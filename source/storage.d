@@ -2,6 +2,7 @@ import d2sqlite3;
 
 import std.process: environment;
 import std.file;
+import core.stdc.errno;
 
 
 immutable string sqlCreateSchema =
@@ -33,10 +34,10 @@ class Storage
         path = appdir~"/"~filename;
         
         try
-        {
             mkdir(appdir);
-        }
-        catch(Exception e){}
+            
+        catch(FileException e)
+            if(e.errno != EEXIST) throw e;
         
         db = Database(path);
         db.execute(sqlCreateSchema);
