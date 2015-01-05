@@ -1,3 +1,4 @@
+import records;
 import d2sqlite3;
 
 import std.process: environment;
@@ -48,10 +49,33 @@ class Storage
         db.close();
         remove(path);
     }
+    
+    void Insert(Record r)
+    {
+        auto q = db.query("INSERT INTO records (version, chain, key, value)\n"
+                          "VALUES (0, :ChainType, :key, :value)");
+                 
+        q.bind(":ChainType", r.chainType);
+        q.bind(":key", r.key);
+        q.bind(":value", r.value);
+        
+        q.execute();
+    }
 }
 
 unittest
 {
-    auto storage = new Storage("_unittest.sqlite");
-    storage.Remove;
+    auto s= new Storage("_unittest.sqlite");
+    
+    Record r = {
+            chainType: ChainType.Test,
+            key:[0xDE, 0xEA, 0xBE, 0xEF],
+            value:[0x11, 0x22, 0x33, 0x44]
+        };
+        
+    s.Insert(r);
+    s.Insert(r);
+    s.Insert(r);
+    
+    s.Remove;
 }
