@@ -3,14 +3,23 @@ import d2sqlite3;
 import std.process: environment;
 import std.file;
 
+
 immutable string sqlCreateSchema =
-`CREATE TABLE IF NOT EXISTS sqlar (
-    name TEXT PRIMARY KEY,
-    mode INT,
-    mtime INT,
-    sz INT,
-    data BLOB
-);`;
+`CREATE TABLE IF NOT EXISTS records (
+    version INT,
+    chain INT, -- 0 = real chain, 1 = testing chain
+    key BLOB,
+    value BLOB,
+    signature BLOB,
+    prev_filled_block_hour INT, -- UTC
+    proof_of_work BLOB
+);
+
+CREATE TABLE blocks (
+    hour INT,
+    hash BLOB
+);
+`;
 
 class Storage
 {
@@ -43,6 +52,6 @@ class Storage
 
 unittest
 {
-    auto storage = new Storage("unittest.sqlite");
+    auto storage = new Storage("_unittest.sqlite");
     storage.Remove;
 }
