@@ -1,0 +1,21 @@
+{
+    "name": "dianna2",
+    "description": "DIANNA - IANA Decetralized",
+    "copyright": "Copyright © 2014 Denis Feklushkin",
+    "license": "MIT",
+    "authors": [
+        "Denis Feklushkin <denis.feklushkin@gmail.com>"
+        ],
+    "targetPath": "bin",
+    
+    "configurations": [
+        {
+            "name": "production",
+            "targetType": "executable"
+        },
+        {
+            "name": "dev",
+            "targetType": "executable",
+        }
+    ]
+}
