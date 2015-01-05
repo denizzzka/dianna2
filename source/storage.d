@@ -35,7 +35,6 @@ class Storage
         
         try
             mkdir(appdir);
-            
         catch(FileException e)
             if(e.errno != EEXIST) throw e;
         
