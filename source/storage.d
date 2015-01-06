@@ -15,7 +15,7 @@ immutable string sqlCreateSchema =
     signature BLOB,
     prev_filled_block_num INT,
     proof_of_work BLOB,
-    POW_difficulty integer
+    POW_difficulty INT
 );
 
 CREATE INDEX IF NOT EXISTS prev_block
