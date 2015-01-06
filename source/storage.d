@@ -23,7 +23,8 @@ ON records(prev_filled_block_num);
 
 CREATE TABLE IF NOT EXISTS blocks (
     block_num INT,
-    hash BLOB
+    hash BLOB,
+    POW_difficulty INT
 );
 
 CREATE INDEX IF NOT EXISTS block_num
