@@ -34,6 +34,8 @@ class Storage
     const string path;
     Database db;
     
+    private Query qInsertRec;
+    
     this(string filename = "storage.sqlite3")
     {
         string home = environment["HOME"];
@@ -47,25 +49,31 @@ class Storage
         
         db = Database(path);
         db.execute(sqlCreateSchema);
+        
+        qInsertRec = db.query(
+                "INSERT INTO records (version, chain, key, value)\n"
+                "VALUES (0, :chainType, :key, :value)"
+        );        
     }
     
     version(unittest)
     void Remove()
     {
-        db.close();
+        destroy(qInsertRec);
+        destroy(db);
         remove(path);
     }
     
     void Insert(Record r)
     {
-        auto q = db.query("INSERT INTO records (version, chain, key, value)\n"
-                          "VALUES (0, :chainType, :key, :value)");
                  
-        q.bind(":chainType", r.chainType);
-        q.bind(":key", r.key);
-        q.bind(":value", r.value);
+        qInsertRec.bind(":chainType", r.chainType);
+        qInsertRec.bind(":key", r.key);
+        qInsertRec.bind(":value", r.value);
         
-        q.execute();
+        qInsertRec.execute();
+        assert(db.changes() == 1);
+        qInsertRec.reset();
     }
 }
 
@@ -78,7 +86,7 @@ unittest
             key:[0xDE, 0xEA, 0xBE, 0xEF],
             value:[0x11, 0x22, 0x33, 0x44]
         };
-        
+    
     s.Insert(r);
     s.Insert(r);
     s.Insert(r);
