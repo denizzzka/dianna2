@@ -17,7 +17,7 @@ immutable string sqlCreateSchema =
     proof_of_work BLOB
 );
 
-CREATE TABLE blocks (
+CREATE TABLE IF NOT EXISTS blocks (
     hour INT,
     hash BLOB
 );
@@ -53,9 +53,9 @@ class Storage
     void Insert(Record r)
     {
         auto q = db.query("INSERT INTO records (version, chain, key, value)\n"
-                          "VALUES (0, :ChainType, :key, :value)");
+                          "VALUES (0, :chainType, :key, :value)");
                  
-        q.bind(":ChainType", r.chainType);
+        q.bind(":chainType", r.chainType);
         q.bind(":key", r.key);
         q.bind(":value", r.value);
         
