@@ -9,12 +9,13 @@ import core.stdc.errno;
 immutable string sqlCreateSchema =
 `CREATE TABLE IF NOT EXISTS records (
     version INT,
-    chain INT, -- 0 = real chain, 1 = testing chain
+    chain INT, -- 0 = real chain, 1 = test chain
     key BLOB,
     value BLOB,
     signature BLOB,
     prev_filled_block_num INT,
-    proof_of_work BLOB
+    proof_of_work BLOB,
+    POW_difficulty integer
 );
 
 CREATE INDEX IF NOT EXISTS prev_block
