@@ -13,22 +13,22 @@ immutable string sqlCreateSchema =
     key BLOB,
     value BLOB,
     signature BLOB,
-    prev_filled_block_num INT,
+    prev_filled_block_hash BLOB,
     proof_of_work BLOB,
     POW_difficulty INT
 );
 
 CREATE INDEX IF NOT EXISTS prev_block
-ON records(prev_filled_block_num);
+ON records(prev_filled_block_hash);
 
 CREATE TABLE IF NOT EXISTS blocks (
-    block_num INT,
     hash BLOB,
+    block_num INT,
     POW_difficulty INT
 );
 
-CREATE INDEX IF NOT EXISTS block_num
-ON blocks(block_num);
+CREATE UNIQUE INDEX IF NOT EXISTS block_num
+ON blocks(hash);
 `;
 
 class Storage
