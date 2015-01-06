@@ -13,6 +13,7 @@ immutable string sqlCreateSchema =
     key BLOB,
     value BLOB,
     signature BLOB,
+    block_num INT,
     prev_filled_block_hash BLOB,
     proof_of_work BLOB,
     POW_difficulty INT
