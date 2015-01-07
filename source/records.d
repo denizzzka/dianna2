@@ -27,7 +27,7 @@ struct Record
     BlockHash prevFilledBlock;
     PoW proofOfWork;
     
-    ubyte[] dumpPlainBinary() const
+    ubyte[] serialize() const
     {
         ubyte[] res;
         
@@ -61,7 +61,7 @@ BlockHash calcBlockHash(inout Record[] records)
     
     foreach(r; records)
     {
-        hash.put(r.dumpPlainBinary);
+        hash.put(r.serialize);
     }
     
     return cast(BlockHash) hash.finish;
