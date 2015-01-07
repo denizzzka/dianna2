@@ -9,7 +9,7 @@ enum SCRYPT_p = 16;
 
 enum SCRYPT_HASH_LEN = 64;
 
-auto scrypt(
+ubyte[SCRYPT_HASH_LEN] scrypt(
     const ubyte[] src,
     const ubyte[] salt,
     uint N = SCRYPT_N,
