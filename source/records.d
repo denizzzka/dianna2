@@ -102,7 +102,7 @@ struct Difficulty
      * ^^^^^^^^^^^^^^ ^^^^^^^^^^^
      * exponent = 5   mantissa = [0xEF, 0xBE, 0xAD, 0xDE]
      * 
-     * Valid hash for this explanation is:
+     * Valid hash sample for this explanation:
      * FF FF FF FF FF FF FE FE FE 11 11 11 00 00 00
      * 
      */
