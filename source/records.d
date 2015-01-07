@@ -4,6 +4,7 @@ import std.datetime;
 import std.conv;
 import std.digest.sha;
 import std.typecons;
+import scrypt;
 
 
 enum ChainType
@@ -74,6 +75,7 @@ unittest
     auto h = calcBlockHash(r);
 }
 
-//SHA1_hash calcProofOfWork(SHA1_hash fromHash)
+//PoW calcProofOfWork(SHA1_hash from, ubyte[] difficulty, long iterations)
 //{
+//    scrypt(
 //}

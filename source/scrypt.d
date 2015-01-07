@@ -7,17 +7,16 @@ enum SCRYPT_N = 16384;
 enum SCRYPT_r = 8;
 enum SCRYPT_p = 16;
 
-enum SCRYPT_HASH_LEN = 64;
-
-ubyte[SCRYPT_HASH_LEN] scrypt(
+ubyte[] scrypt(
     const ubyte[] src,
     const ubyte[] salt,
     uint N = SCRYPT_N,
     uint r = SCRYPT_r,
-    uint p = SCRYPT_p
+    uint p = SCRYPT_p,
+    size_t outputBuf = 64
 )
 {
-    ubyte[SCRYPT_HASH_LEN] res;
+    ubyte[] res = new ubyte[outputBuf];
     
     auto errno = libscrypt_scrypt(
         src.ptr,
