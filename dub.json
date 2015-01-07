@@ -12,6 +12,7 @@
             "d2sqlite3": ">=0.5.2",
             "vibe-d": ">=0.7.21"
     },
+    "libs": ["scrypt"],
     "configurations": [
         {
             "name": "production",
