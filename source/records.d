@@ -68,13 +68,13 @@ BlockHash calcBlockHash(inout Record[] records)
 }
 
 bool calcProofOfWork(
-    SHA1_hash from,
-    Difficulty difficulty,
+    inout SHA1_hash from,
+    inout Difficulty difficulty,
     size_t iterations,
     out PoW pow
-)
+) pure
 {
-    enforce(PoW.length >= difficulty.length);
+    enforce(pow.length >= difficulty.length);
     
     ubyte[8] salt;
         
@@ -110,7 +110,7 @@ struct Difficulty
     ubyte exponent;
     ubyte[] mantissa;
     
-    size_t length()
+    size_t length() const pure
     {
         return exponent + mantissa.length;
     }
