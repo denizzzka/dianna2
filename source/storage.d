@@ -1,3 +1,5 @@
+@safe
+
 import records;
 import d2sqlite3;
 

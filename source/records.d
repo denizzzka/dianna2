@@ -12,6 +12,7 @@ enum ChainType
     Test
 }
 
+alias RecordHash = Typedef!SHA1;
 alias BlockHash = Typedef!SHA1;
 alias Signature = Typedef!ubyte[10];
 alias PoW = Typedef!ubyte[10];
@@ -25,11 +26,20 @@ struct Record
     uint blockNum;
     BlockHash prevFilledBlock;
     PoW proofOfWork;
+    
+    ubyte[] dumpPlainBinary() const
+    {
+        ubyte[] res;
+        
+        //res ~= chainType;
+        
+        return res;
+    }
 }
 
 immutable half_block_duration_hours = 12;
 
-uint CalcCurrentFilledBlockNum()
+uint calcCurrentFilledBlockNum()
 {
     uint hours = to!uint(Clock.currTime.toUnixTime / 3600);
     return hours / half_block_duration_hours - 2;
@@ -37,5 +47,14 @@ uint CalcCurrentFilledBlockNum()
 
 unittest
 {
-    assert(CalcCurrentFilledBlockNum > 32800);
+    assert(calcCurrentFilledBlockNum > 32800);
+}
+
+BlockHash calcBlockHash(inout Record[] records)
+{
+    BlockHash res;
+    
+    foreach(r; records){}
+    
+    return res;
 }
