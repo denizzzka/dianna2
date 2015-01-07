@@ -7,7 +7,8 @@ enum SCRYPT_N = 16384;
 enum SCRYPT_r = 8;
 enum SCRYPT_p = 16;
 
-ubyte[] calcScrypt(
+void calcScrypt(T)(
+    T result,
     const ubyte[] src,
     const ubyte[] salt,
     uint N = SCRYPT_N,
@@ -16,8 +17,6 @@ ubyte[] calcScrypt(
     size_t outputBuf = 64
 ) pure
 {
-    ubyte[] res = new ubyte[outputBuf];
-    
     auto errno = libscrypt_scrypt(
         src.ptr,
         src.length,
@@ -26,23 +25,24 @@ ubyte[] calcScrypt(
         N,
         r,
         p,
-        res.ptr,
-        res.length
+        result.ptr,
+        result.length
     );
     
     enforce(!errno, "Error in scrypt function");
-    
-    return res;
+}
+
+void genSalt(T)(T res) pure @nogc
+{
+    libscrypt_salt_gen(res.ptr, res.length);
 }
 
 unittest
 {
-    auto r = calcScrypt([0x11, 0x22, 0x33, 0x44], [0x11, 0x22, 0x33, 0x44]);
-}
-
-void genSalt(T)(T res)
-{
-    libscrypt_salt_gen(res.ptr, res.length);
+    ubyte[8] r;
+    calcScrypt(r, [0x11, 0x22, 0x33, 0x44], [0x11, 0x22, 0x33, 0x44]);
+    
+    genSalt(r);
 }
 
 private:

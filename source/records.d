@@ -69,7 +69,11 @@ BlockHash calcBlockHash(inout Record[] records)
 
 PoW calcProofOfWork(SHA1_hash from, ubyte[] difficulty, long iterations)
 {
-    return to!PoW( calcScrypt(from, [], 65536, 64, 1) );
+    PoW res;
+    
+    calcScrypt(res, from, [], 65536, 64, 1);
+    
+    return res;
 }
 
 unittest
