@@ -3,7 +3,6 @@
 import std.datetime;
 import std.conv;
 import std.digest.sha;
-import std.typecons;
 import scrypt;
 
 
