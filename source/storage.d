@@ -1,4 +1,4 @@
-@safe
+@trusted:
 
 import records;
 import d2sqlite3;

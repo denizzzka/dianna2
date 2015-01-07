@@ -1,4 +1,4 @@
-@safe
+@safe:
 
 import std.datetime;
 import std.conv;
@@ -14,20 +14,17 @@ enum ChainType
 }
 
 alias SHA1_hash = ubyte[20];
-alias RecordHash = Typedef!ubyte[10];
-alias BlockHash = Typedef!SHA1_hash;
-alias Signature = Typedef!ubyte[10];
-alias PoW = Typedef!ubyte[10];
+alias BlockHash = SHA1_hash;
 
 struct Record
 {
     ChainType chainType;
     ubyte[] key;
     ubyte[] value;
-    Signature signature;
+    ubyte[10] signature;
     uint blockNum;
     BlockHash prevFilledBlock;
-    PoW proofOfWork;
+    ubyte[10] proofOfWork;
     
     ubyte[] serialize() const
     {
@@ -35,10 +32,10 @@ struct Record
         
         res ~= to!string(chainType);
         res ~= key ~ value;
-        res ~= cast(ubyte[])signature;
+        res ~= signature;
         res ~= to!string(blockNum);
-        res ~= cast(ubyte[])prevFilledBlock;
-        res ~= cast(ubyte[])proofOfWork;
+        res ~= prevFilledBlock;
+        res ~= proofOfWork;
         
         return res;
     }

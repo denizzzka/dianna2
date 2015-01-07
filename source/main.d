@@ -1,4 +1,4 @@
-@safe
+@safe:
 
 import storage;
 

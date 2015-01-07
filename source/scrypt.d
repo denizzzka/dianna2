@@ -1,4 +1,4 @@
-@trusted
+@safe:
 
 import std.exception: enforce;
 
@@ -14,7 +14,7 @@ ubyte[] scrypt(
     uint r = SCRYPT_r,
     uint p = SCRYPT_p,
     size_t outputBuf = 64
-)
+) pure
 {
     ubyte[] res = new ubyte[outputBuf];
     
@@ -65,4 +65,4 @@ extern (C):
  * Return 0 on success; or -1 on error.
  */
 int libscrypt_scrypt(const uint8_t *, size_t, const uint8_t *, size_t, uint64_t,
-    uint32_t, uint32_t, /*@out@*/ uint8_t *, size_t);
+    uint32_t, uint32_t, /*@out@*/ uint8_t *, size_t) pure;
