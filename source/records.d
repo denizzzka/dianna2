@@ -94,15 +94,15 @@ struct Difficulty
     /*
      * Difficulty sets minimum valid hash value.
      * 
-     * Obtaining hash mask:
+     * Difficulty hash mask explanation:
      * 
      * |<- most significant  less significant ->
      * FF FF FF FF FF DE AD BE EF 00 00 00 00 00 00
      * ^^^^^^^^^^^^^^ ^^^^^^^^^^^
      * exponent = 5   mantissa = [0xEF, 0xBE, 0xAD, 0xDE]
      * 
-     * Valid hash:
-     * FF FF FF FF FF FF FE FE FE 11 11 11 11 11 11
+     * Valid hash for this explanation is:
+     * FF FF FF FF FF FF FE FE FE 11 11 11 00 00 00
      * 
      */
     
