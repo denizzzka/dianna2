@@ -67,26 +67,27 @@ BlockHash calcBlockHash(inout Record[] records)
     return cast(BlockHash) hash.finish;
 }
 
-PoW calcProofOfWork(SHA1_hash from, ubyte[] difficulty, long iterations)
+bool calcProofOfWork(
+    SHA1_hash from,
+    Difficulty difficulty,
+    size_t iterations,
+    out PoW pow
+)
 {
     enforce(PoW.length >= difficulty.length);
     
-    PoW res;
-    
-    calcScrypt(res, from, [], 65536, 64, 1);
-    
-    return res;
-}
-
-unittest
-{
-    Record[10] r;
-    auto h = calcBlockHash(r);
-    
     ubyte[8] salt;
-    genSalt(salt);
+        
+    foreach(i; 0..iterations)
+    {
+        genSalt(salt);
+        calcScrypt(pow, from, salt, 65536, 64, 1);
+        
+        if(isSatisfyDifficulty(pow, difficulty))
+            return true;
+    }
     
-    auto proof = calcProofOfWork(h, salt, 1);
+    return false;
 }
 
 struct Difficulty
@@ -108,6 +109,11 @@ struct Difficulty
     
     ubyte exponent;
     ubyte[] mantissa;
+    
+    size_t length()
+    {
+        return exponent + mantissa.length;
+    }
 }
 
 bool isSatisfyDifficulty(inout PoW pow, inout Difficulty d) pure @nogc
@@ -146,4 +152,11 @@ unittest
     assert(isSatisfyDifficulty(p, d3));
     assert(isSatisfyDifficulty(p, d4));
     assert(!isSatisfyDifficulty(p, d5));
+    
+    Record[10] rec;
+    auto hash = calcBlockHash(rec);
+    
+    PoW proof;
+    Difficulty smallDifficulty = {exponent: 0, mantissa:[0x88]};
+    calcProofOfWork(hash, smallDifficulty, 1, proof);
 }

@@ -8,7 +8,7 @@ enum SCRYPT_r = 8;
 enum SCRYPT_p = 16;
 
 void calcScrypt(T)(
-    T result,
+    out T result,
     const ubyte[] src,
     const ubyte[] salt,
     uint N = SCRYPT_N,
@@ -32,7 +32,7 @@ void calcScrypt(T)(
     enforce(!errno, "Error in scrypt function");
 }
 
-void genSalt(T)(T res) pure @nogc
+void genSalt(T)(out T res) pure @nogc
 {
     libscrypt_salt_gen(res.ptr, res.length);
 }
