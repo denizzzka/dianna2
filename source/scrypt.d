@@ -7,7 +7,7 @@ enum SCRYPT_N = 16384;
 enum SCRYPT_r = 8;
 enum SCRYPT_p = 16;
 
-ubyte[] scrypt(
+ubyte[] calcScrypt(
     const ubyte[] src,
     const ubyte[] salt,
     uint N = SCRYPT_N,
@@ -37,9 +37,13 @@ ubyte[] scrypt(
 
 unittest
 {
-    auto r = scrypt([0x11, 0x22, 0x33, 0x44], [0x11, 0x22, 0x33, 0x44]);
+    auto r = calcScrypt([0x11, 0x22, 0x33, 0x44], [0x11, 0x22, 0x33, 0x44]);
 }
 
+void genSalt(T)(T res)
+{
+    libscrypt_salt_gen(res.ptr, res.length);
+}
 
 private:
 
@@ -47,6 +51,7 @@ alias ubyte uint8_t;
 alias ulong uint64_t;
 alias uint uint32_t;
 
+@trusted:
 extern (C):
     
 /**
@@ -66,3 +71,9 @@ extern (C):
  */
 int libscrypt_scrypt(const uint8_t *, size_t, const uint8_t *, size_t, uint64_t,
     uint32_t, uint32_t, /*@out@*/ uint8_t *, size_t) pure @nogc;
+
+/** Generates a salt.
+ * This is not a cryptographically unpredictable function,
+ * but should produce appropriately randomised output for this purpose
+ */
+void libscrypt_salt_gen(/*@out@*/ ubyte *rand, size_t len) pure @nogc;

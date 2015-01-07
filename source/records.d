@@ -15,6 +15,7 @@ enum ChainType
 
 alias SHA1_hash = ubyte[20];
 alias BlockHash = SHA1_hash;
+alias PoW = ubyte[64];
 
 struct Record
 {
@@ -24,7 +25,7 @@ struct Record
     ubyte[10] signature;
     uint blockNum;
     BlockHash prevFilledBlock;
-    ubyte[10] proofOfWork;
+    PoW proofOfWork;
     
     ubyte[] serialize() const
     {
@@ -66,13 +67,18 @@ BlockHash calcBlockHash(inout Record[] records)
     return cast(BlockHash) hash.finish;
 }
 
+PoW calcProofOfWork(SHA1_hash from, ubyte[] difficulty, long iterations)
+{
+    return to!PoW( calcScrypt(from, [], 65536, 64, 1) );
+}
+
 unittest
 {
     Record[10] r;
     auto h = calcBlockHash(r);
+    
+    ubyte[8] salt;
+    genSalt(salt);
+    
+    auto proof = calcProofOfWork(h, salt, 1);
 }
-
-//PoW calcProofOfWork(SHA1_hash from, ubyte[] difficulty, long iterations)
-//{
-//    scrypt(
-//}
