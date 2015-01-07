@@ -69,6 +69,8 @@ BlockHash calcBlockHash(inout Record[] records)
 
 PoW calcProofOfWork(SHA1_hash from, ubyte[] difficulty, long iterations)
 {
+    enforce(PoW.length >= difficulty.length);
+    
     PoW res;
     
     calcScrypt(res, from, [], 65536, 64, 1);
@@ -85,4 +87,63 @@ unittest
     genSalt(salt);
     
     auto proof = calcProofOfWork(h, salt, 1);
+}
+
+struct Difficulty
+{
+    /*
+     * Difficulty sets minimum valid hash value.
+     * 
+     * Obtaining hash mask:
+     * 
+     * |<- most significant  less significant ->
+     * FF FF FF FF FF DE AD BE EF 00 00 00 00 00 00
+     * ^^^^^^^^^^^^^^ ^^^^^^^^^^^
+     * exponent = 5   mantissa = [0xEF, 0xBE, 0xAD, 0xDE]
+     * 
+     * Valid hash:
+     * FF FF FF FF FF FF FE FE FE 11 11 11 11 11 11
+     * 
+     */
+    
+    ubyte exponent;
+    ubyte[] mantissa;
+}
+
+bool isSatisfyDifficulty(inout PoW pow, inout Difficulty d) pure @nogc
+{
+    assert(pow.length >= d.exponent + d.mantissa.length);
+    
+    immutable PoWExpBorder = pow.length - d.exponent;
+    
+    // exponent part check
+    foreach_reverse(pf; pow[PoWExpBorder..$])
+        if(pf < 0xFF) return false;
+    
+    // mantissa part check
+    foreach_reverse(i, m; d.mantissa)
+        if(pow[PoWExpBorder-(d.mantissa.length-i)] < m) return false;
+    
+    return true;
+}
+
+unittest
+{
+    PoW p;
+    p[60] = 0x01;
+    p[61] = 0x00;
+    p[62] = 0xFF;
+    p[63] = 0xFF;
+    
+    Difficulty d1 = {exponent: 2, mantissa:[0x00, 0x00]};
+    Difficulty d2 = {exponent: 2, mantissa:[0x01, 0x00]};
+    Difficulty d3 = {exponent: 0, mantissa:[0x00, 0x00]};
+    Difficulty d4 = {exponent: 0, mantissa:[0x00, 0x00, 0xFF, 0xFF]};
+    Difficulty d5 = {exponent: 0, mantissa:[0x00, 0x00, 0xFF, 0xFF, 0xFF]};
+    
+    assert(isSatisfyDifficulty(p, d1));
+    assert(isSatisfyDifficulty(p, d2));
+    assert(isSatisfyDifficulty(p, d3));
+    assert(isSatisfyDifficulty(p, d4));
+    assert(!isSatisfyDifficulty(p, d5));
 }
