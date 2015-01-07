@@ -12,8 +12,9 @@ enum ChainType
     Test
 }
 
+alias SHA1_hash = ubyte[20];
 alias RecordHash = Typedef!ubyte[10];
-alias BlockHash = Typedef!ubyte[20];
+alias BlockHash = Typedef!SHA1_hash;
 alias Signature = Typedef!ubyte[10];
 alias PoW = Typedef!ubyte[10];
 
@@ -72,3 +73,7 @@ unittest
     Record[10] r;
     auto h = calcBlockHash(r);
 }
+
+//SHA1_hash calcProofOfWork(SHA1_hash fromHash)
+//{
+//}
