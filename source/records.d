@@ -13,7 +13,7 @@ enum ChainType
 }
 
 alias RecordHash = Typedef!ubyte[10];
-alias BlockHash = Typedef!ubyte[10];
+alias BlockHash = Typedef!ubyte[20];
 alias Signature = Typedef!ubyte[10];
 alias PoW = Typedef!ubyte[10];
 
@@ -42,13 +42,6 @@ struct Record
     }
 }
 
-unittest
-{
-    Record r;
-    auto d = r.dumpPlainBinary;
-    assert(d.length >= 35);
-}
-
 immutable half_block_duration_hours = 12;
 
 uint calcCurrentFilledBlockNum()
@@ -64,9 +57,18 @@ unittest
 
 BlockHash calcBlockHash(inout Record[] records)
 {
-    BlockHash res;
+    SHA1 hash;
     
-    foreach(r; records){}
+    foreach(r; records)
+    {
+        hash.put(r.dumpPlainBinary);
+    }
     
-    return res;
+    return cast(BlockHash) hash.finish;
+}
+
+unittest
+{
+    Record[10] r;
+    auto h = calcBlockHash(r);
 }
