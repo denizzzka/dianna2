@@ -10,19 +10,21 @@ import core.stdc.errno;
 
 immutable string sqlCreateSchema =
 `CREATE TABLE IF NOT EXISTS records (
-    version INT,
-    chain INT, -- 0 = real chain, 1 = test chain
-    key BLOB,
-    value BLOB,
+    version INT NOT NULL,
+    chain INT NOT NULL, -- 0 = real chain, 1 = test chain
+    key BLOB NOT NULL,
+    value BLOB NOT NULL,
     signature BLOB,
-    block_num INT,
-    prev_filled_block_hash BLOB,
-    proof_of_work BLOB,
-    POW_difficulty INT
+    blockNum INT NOT NULL,
+    prevFilledBlockHash BLOB,
+    proofOfWorkHash BLOB NOT NULL,
+    proofOfWorkSalt BLOB NOT NULL,
+    difficultyExponent INT NOT NULL,
+    difficultyMantissa BLOB --NOT NULL FIXME!
 );
 
 CREATE INDEX IF NOT EXISTS prev_block
-ON records(prev_filled_block_hash);
+ON records(prevFilledBlockHash);
 
 CREATE TABLE IF NOT EXISTS blocks (
     hash BLOB,
@@ -56,9 +58,35 @@ class Storage
         db.execute(sqlCreateSchema);
         
         qInsertRec = db.query(
-                "INSERT INTO records (version, chain, key, value)\n"
-                "VALUES (0, :chainType, :key, :value)"
-        );        
+q"EOS
+INSERT INTO records (
+    version,
+    chain,
+    key,
+    value,
+    signature,
+    blockNum,
+    prevFilledBlockHash,
+    proofOfWorkHash,
+    proofOfWorkSalt,
+    difficultyExponent,
+    difficultyMantissa
+)
+VALUES (
+    0,
+    :chainType,
+    :key,
+    :value,
+    :signature,
+    :blockNum,
+    :prevFilledBlockHash,
+    :proofOfWorkHash,
+    :proofOfWorkSalt,
+    :difficultyExponent,
+    :difficultyMantissa
+)
+EOS"
+        );
     }
     
     version(unittest)
@@ -75,6 +103,13 @@ class Storage
         qInsertRec.bind(":chainType", r.chainType);
         qInsertRec.bind(":key", r.key);
         qInsertRec.bind(":value", r.value);
+        qInsertRec.bind(":signature", r.signature);
+        qInsertRec.bind(":blockNum", r.blockNum);
+        qInsertRec.bind(":prevFilledBlockHash", r.prevFilledBlock);
+        qInsertRec.bind(":proofOfWorkHash", r.proofOfWork.hash);
+        qInsertRec.bind(":proofOfWorkSalt", r.proofOfWork.salt);
+        qInsertRec.bind(":difficultyExponent", r.difficulty.exponent);
+        qInsertRec.bind(":difficultyMantissa", r.difficulty.mantissa);
         
         qInsertRec.execute();
         assert(db.changes() == 1);

@@ -30,6 +30,8 @@ struct Record
     uint blockNum;
     BlockHash prevFilledBlock;
     PoW proofOfWork;
+    Difficulty difficulty;
+
     
     ubyte[] serialize() const
     {
@@ -42,7 +44,8 @@ struct Record
         res ~= prevFilledBlock;
         res ~= proofOfWork.hash;
         res ~= proofOfWork.salt;
-        
+        res ~= difficulty.exponent;
+        res ~= difficulty.mantissa;
         return res;
     }
 }
