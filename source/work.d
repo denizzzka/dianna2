@@ -16,6 +16,11 @@ void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
     s.addRecordAwaitingPoW(r);
 }
 
+bool calcPowForNewRecords(Storage s, size_t iterations, size_t cpuNum)
+{
+    return false;
+}
+
 unittest
 {
     auto s = new Storage("_unittest.sqlite");

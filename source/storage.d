@@ -9,7 +9,7 @@ import core.stdc.errno;
 
 immutable string sqlRecordFields = q"EOS
     version INT NOT NULL,
-    chain INT NOT NULL, -- 0 = real chain, 1 = test chain
+    chainType INT NOT NULL, -- 0 = real chain, 1 = test chain
     key BLOB NOT NULL,
     value BLOB NOT NULL,
     signature BLOB NOT NULL,
@@ -52,8 +52,10 @@ class Storage
     const string path;
     Database db;
     
-    private Query qInsertRec;
-    private Query qInsertRecAwaitingPoW;
+    private Query
+        qInsertRec,
+        qInsertRecAwaitingPoW,
+        qSelectOldestRecsAwaitingPoW;
     
     this(string filename)
     {
@@ -73,7 +75,7 @@ class Storage
 q"EOS
 INSERT INTO records (
     version,
-    chain,
+    chainType,
     key,
     value,
     signature,
@@ -99,7 +101,7 @@ EOS"
         qInsertRecAwaitingPoW = db.query("
             INSERT INTO recordsAwaitingPoW (
                 version,
-                chain,
+                chainType,
                 key,
                 value,
                 signature
@@ -112,14 +114,25 @@ EOS"
                 :signature
             )
         ");
+        
+        qSelectOldestRecsAwaitingPoW = db.query("
+            SELECT
+                version,
+                chainType,
+                key,
+                value,
+                signature
+            FROM recordsAwaitingPoW
+            WHERE chainType = :chainType
+            AND blockNum IS NULL -- means that hash and other is not calculated
+            ORDER BY rowid
+            LIMIT :num
+        ");
     }
     
     version(unittest)
     void purge()
     {
-        destroy(qInsertRec);
-        destroy(qInsertRecAwaitingPoW);
-        destroy(db);
         remove(path);
     }
     
