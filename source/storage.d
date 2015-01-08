@@ -188,7 +188,7 @@ EOS"
         q.reset();
     }
     
-    Record[] getOldestRecordsAwaitingPoW(ChainType chainType, size_t num)
+    shared (Record[]) getOldestRecordsAwaitingPoW(ChainType chainType, size_t num)
     {
         alias q = qSelectOldestRecsAwaitingPublish;
         
@@ -213,7 +213,7 @@ EOS"
         
         q.reset();
         
-        return res;
+        return cast(shared Record[]) res;
     }
     
     void setCalculatedPoW(Record r)
