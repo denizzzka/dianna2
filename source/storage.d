@@ -14,13 +14,13 @@ immutable string sqlCreateSchema =
     chain INT NOT NULL, -- 0 = real chain, 1 = test chain
     key BLOB NOT NULL,
     value BLOB NOT NULL,
-    signature BLOB,
+    signature BLOB, --NOT NULL FIXME!
     blockNum INT NOT NULL,
     prevFilledBlockHash BLOB,
     proofOfWorkHash BLOB NOT NULL,
     proofOfWorkSalt BLOB NOT NULL,
     difficultyExponent INT NOT NULL,
-    difficultyMantissa BLOB --NOT NULL FIXME!
+    difficultyMantissa BLOB
 );
 
 CREATE INDEX IF NOT EXISTS prev_block
