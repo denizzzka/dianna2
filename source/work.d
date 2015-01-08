@@ -17,13 +17,21 @@ void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
     s.addRecordAwaitingPoW(r);
 }
 
-void calcPowForNewRecords(Storage s, ChainType chainType, size_t iterations, size_t threadsNum)
+void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum)
 {
-    shared Record[] records = s.getOldestRecordsAwaitingPoW(chainType, threadsNum);
+    Record[] records = s.getOldestRecordsAwaitingPoW(chainType, threadsNum);
     
     if(records.length == 0) return;
     
-    //worker
+    void worker(Record r)
+    {
+        immutable RecordHash hash = r.calcHash;
+        
+        Difficulty difficulty;
+        PoW pow;
+        
+        calcProofOfWork(hash, difficulty, pow);
+    }
 }
 
 unittest

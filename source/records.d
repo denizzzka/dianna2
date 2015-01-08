@@ -13,6 +13,7 @@ enum ChainType: ushort
 }
 
 alias SHA1_hash = ubyte[20];
+alias RecordHash = SHA1_hash;
 alias BlockHash = SHA1_hash;
 alias Signature = ubyte[10];
 
@@ -32,9 +33,8 @@ struct Record
     BlockHash prevFilledBlock;
     PoW proofOfWork;
     Difficulty difficulty;
-
     
-    ubyte[] serialize() const
+    ubyte[] serialize() const pure
     {
         ubyte[] res;
         
@@ -49,6 +49,15 @@ struct Record
         res ~= difficulty.mantissa;
         
         return res;
+    }
+    
+    RecordHash calcHash() const pure
+    {
+        SHA1 hash;
+        
+        hash.put(serialize());
+        
+        return cast(RecordHash) hash.finish;
     }
 }
 
@@ -80,22 +89,15 @@ BlockHash calcBlockHash(inout Record[] records)
 bool calcProofOfWork(
     inout SHA1_hash from,
     inout Difficulty difficulty,
-    size_t iterations,
     out PoW pow
 ) pure
 {
     enforce(pow.hash.length >= difficulty.length);
     
-    foreach(i; 0..iterations)
-    {
-        genSalt(pow.salt);
-        calcScrypt(pow.hash, from, pow.salt, 65536, 64, 1);
-        
-        if(isSatisfyDifficulty(pow.hash, difficulty))
-            return true;
-    }
+    genSalt(pow.salt);
+    calcScrypt(pow.hash, from, pow.salt, 65536, 64, 1);
     
-    return false;
+    return isSatisfyDifficulty(pow.hash, difficulty);
 }
 
 bool isValidProofOfWork(inout SHA1_hash from, inout PoW pow)
@@ -175,7 +177,10 @@ unittest
     
     PoW proof;
     Difficulty smallDifficulty = {exponent: 0, mantissa:[0x88]};
-    calcProofOfWork(hash, smallDifficulty, 1000, proof);
+    
+    while(
+        !calcProofOfWork(hash, smallDifficulty, proof)
+    ){}
     
     assert(isValidProofOfWork(hash, proof));
     
