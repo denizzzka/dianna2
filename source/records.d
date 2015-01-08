@@ -14,7 +14,12 @@ enum ChainType
 
 alias SHA1_hash = ubyte[20];
 alias BlockHash = SHA1_hash;
-alias PoW = ubyte[64];
+
+struct PoW
+{
+    ubyte[64] hash;
+    ubyte[8] salt;
+}
 
 struct Record
 {
@@ -35,7 +40,8 @@ struct Record
         res ~= signature;
         res ~= to!string(blockNum);
         res ~= prevFilledBlock;
-        res ~= proofOfWork;
+        res ~= proofOfWork.hash;
+        res ~= proofOfWork.salt;
         
         return res;
     }
@@ -73,16 +79,14 @@ bool calcProofOfWork(
     out PoW pow
 ) pure
 {
-    enforce(pow.length >= difficulty.length);
+    enforce(pow.hash.length >= difficulty.length);
     
-    ubyte[8] salt;
-        
     foreach(i; 0..iterations)
     {
-        genSalt(salt);
-        calcScrypt(pow, from, salt, 65536, 64, 1);
+        genSalt(pow.salt);
+        calcScrypt(pow.hash, from, pow.salt, 65536, 64, 1);
         
-        if(isSatisfyDifficulty(pow, difficulty))
+        if(isSatisfyDifficulty(pow.hash, difficulty))
             return true;
     }
     
@@ -115,7 +119,7 @@ struct Difficulty
     }
 }
 
-bool isSatisfyDifficulty(inout PoW pow, inout Difficulty d) pure @nogc
+bool isSatisfyDifficulty(inout typeof(PoW.hash) pow, inout Difficulty d) pure @nogc
 {
     assert(pow.length >= d.exponent + d.mantissa.length);
     
@@ -135,10 +139,10 @@ bool isSatisfyDifficulty(inout PoW pow, inout Difficulty d) pure @nogc
 unittest
 {
     PoW p;
-    p[60] = 0x01;
-    p[61] = 0x00;
-    p[62] = 0xFF;
-    p[63] = 0xFF;
+    p.hash[60] = 0x01;
+    p.hash[61] = 0x00;
+    p.hash[62] = 0xFF;
+    p.hash[63] = 0xFF;
     
     Difficulty d1 = {exponent: 2, mantissa:[0x00, 0x00]};
     Difficulty d2 = {exponent: 2, mantissa:[0x01, 0x00]};
@@ -146,11 +150,11 @@ unittest
     Difficulty d4 = {exponent: 0, mantissa:[0x00, 0x00, 0xFF, 0xFF]};
     Difficulty d5 = {exponent: 0, mantissa:[0x00, 0x00, 0xFF, 0xFF, 0xFF]};
     
-    assert(isSatisfyDifficulty(p, d1));
-    assert(isSatisfyDifficulty(p, d2));
-    assert(isSatisfyDifficulty(p, d3));
-    assert(isSatisfyDifficulty(p, d4));
-    assert(!isSatisfyDifficulty(p, d5));
+    assert(isSatisfyDifficulty(p.hash, d1));
+    assert(isSatisfyDifficulty(p.hash, d2));
+    assert(isSatisfyDifficulty(p.hash, d3));
+    assert(isSatisfyDifficulty(p.hash, d4));
+    assert(!isSatisfyDifficulty(p.hash, d5));
     
     Record[10] rec;
     auto hash = calcBlockHash(rec);
