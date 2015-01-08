@@ -2,6 +2,7 @@
 
 import storage;
 import records;
+import std.concurrency;
 
 
 void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
@@ -16,9 +17,13 @@ void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
     s.addRecordAwaitingPoW(r);
 }
 
-bool calcPowForNewRecords(Storage s, size_t iterations, size_t cpuNum)
+void calcPowForNewRecords(Storage s, ChainType chainType, size_t iterations, size_t cpuNum)
 {
-    return false;
+    Record[] records = s.getOldestRecordsAwaitingPoW(chainType, 1);
+    
+    if(records.length == 0) return;
+    
+    
 }
 
 unittest
@@ -29,7 +34,7 @@ unittest
     s.createNewRecord([0x00, 0x01, 0x02], [0x11, 0x22, 0x33]);
     s.createNewRecord([0x00, 0x01, 0x02], [0x11, 0x22, 0x33]);
     
-    auto r = s.getRecordsAwaitingPoW(ChainType.Test, 2);
+    auto r = s.getOldestRecordsAwaitingPoW(ChainType.Test, 2);
     assert(r.length == 2);
     
     s.purge;

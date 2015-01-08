@@ -167,7 +167,7 @@ EOS"
         q.reset();
     }
     
-    Record[] getRecordsAwaitingPoW(ChainType chainType, size_t num)
+    Record[] getOldestRecordsAwaitingPoW(ChainType chainType, size_t num)
     {
         alias q = qSelectOldestRecsAwaitingPoW;
         
