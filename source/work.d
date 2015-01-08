@@ -17,21 +17,32 @@ void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
     s.addRecordAwaitingPoW(r);
 }
 
-void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum)
+void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @trusted
 {
-    Record[] records = s.getOldestRecordsAwaitingPoW(chainType, threadsNum);
+    size_t currThreads = 0;
+    shared Storage _s = cast(shared Storage) s;
     
-    if(records.length == 0) return;
-    
-    void worker(Record r)
+    for(;;)
     {
-        immutable RecordHash hash = r.calcHash;
+        Record[] records = s.getOldestRecordsAwaitingPoW(chainType, 1);
         
-        Difficulty difficulty;
-        PoW pow;
+        if(records.length == 0) break;
         
-        calcProofOfWork(hash, difficulty, pow);
-    }
+        assert(records.length == 1);
+        
+        spawn(&worker, _s, cast(shared Record) records[0]);
+    }    
+}
+
+private void worker(shared Storage s, shared Record r)
+{
+    //immutable RecordHash hash = r.calcHash;
+    
+    Difficulty difficulty;
+    PoW pow;
+    
+    //if(tryToCalcProofOfWork(hash, difficulty, pow))
+        //s.setCalculatedPoW(r);
 }
 
 unittest

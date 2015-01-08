@@ -86,7 +86,7 @@ BlockHash calcBlockHash(inout Record[] records)
     return cast(BlockHash) hash.finish;
 }
 
-bool calcProofOfWork(
+bool tryToCalcProofOfWork(
     inout SHA1_hash from,
     inout Difficulty difficulty,
     out PoW pow
@@ -179,7 +179,7 @@ unittest
     Difficulty smallDifficulty = {exponent: 0, mantissa:[0x88]};
     
     while(
-        !calcProofOfWork(hash, smallDifficulty, proof)
+        !tryToCalcProofOfWork(hash, smallDifficulty, proof)
     ){}
     
     assert(isValidProofOfWork(hash, proof));
