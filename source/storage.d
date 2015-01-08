@@ -3,6 +3,7 @@
 import records;
 import d2sqlite3;
 
+import std.exception: enforce;
 import std.process: environment;
 import std.file;
 import core.stdc.errno;
@@ -65,6 +66,8 @@ class Storage
     
     this(string filename)
     {
+        enforce(sqlite3_threadsafe(), "SQLite3 is not threadsafe");
+        
         string home = environment["HOME"];
         string appdir = home~"/.dianna2";
         path = appdir~"/"~filename;

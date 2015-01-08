@@ -19,7 +19,7 @@ void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
 
 void calcPowForNewRecords(Storage s, ChainType chainType, size_t iterations, size_t cpuNum)
 {
-    Record[] records = s.getOldestRecordsAwaitingPoW(chainType, 1);
+    Record[] records = s.getOldestRecordsAwaitingPoW(chainType, cpuNum);
     
     if(records.length == 0) return;
     
