@@ -55,7 +55,7 @@ class Storage
     
     private Query qInsertRec;
     
-    this(string filename = "storage.sqlite3")
+    this(string filename)
     {
         string home = environment["HOME"];
         string appdir = home~"/.dianna2";
@@ -98,7 +98,7 @@ EOS"
     }
     
     version(unittest)
-    void Remove()
+    void purge()
     {
         destroy(qInsertRec);
         destroy(db);
@@ -125,7 +125,7 @@ EOS"
 
 unittest
 {
-    auto s= new Storage("_unittest.sqlite");
+    auto s = new Storage("_unittest.sqlite");
     
     Record r = {
             chainType: ChainType.Test,
@@ -137,5 +137,5 @@ unittest
     s.Insert(r);
     s.Insert(r);
     
-    s.Remove;
+    s.purge;
 }
