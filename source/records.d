@@ -173,7 +173,7 @@ unittest
     
     PoW proof;
     Difficulty smallDifficulty = {exponent: 0, mantissa:[0x88]};
-    calcProofOfWork(hash, smallDifficulty, 1, proof);
+    calcProofOfWork(hash, smallDifficulty, 1000, proof);
     
     assert(isValidProofOfWork(hash, proof));
     

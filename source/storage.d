@@ -12,22 +12,25 @@ immutable string sqlRecordFields = q"EOS
     chain INT NOT NULL, -- 0 = real chain, 1 = test chain
     key BLOB NOT NULL,
     value BLOB NOT NULL,
-    signature BLOB, --NOT NULL FIXME!
-    blockNum INT NOT NULL,
-    prevFilledBlockHash BLOB,
-    proofOfWorkHash BLOB NOT NULL,
-    proofOfWorkSalt BLOB NOT NULL,
-    difficultyExponent INT NOT NULL,
-    difficultyMantissa BLOB
+    signature BLOB,
+                 -- ^^^ FIXME! Need to add NOT NULL here
 EOS";
 
 immutable string sqlCreateSchema =
 `CREATE TABLE IF NOT EXISTS records (
 `~sqlRecordFields~`
+    blockNum INT NOT NULL,
+    prevFilledBlockHash BLOB,
+    proofOfWorkHash BLOB NOT NULL,
+    proofOfWorkSalt BLOB NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS recordsAwaiting (
+CREATE TABLE IF NOT EXISTS recordsPreparing (
 `~sqlRecordFields~`
+    blockNum INT,
+    prevFilledBlockHash BLOB,
+    proofOfWorkHash BLOB,
+    proofOfWorkSalt BLOB
 );
 
 CREATE INDEX IF NOT EXISTS prev_block
@@ -77,9 +80,7 @@ INSERT INTO records (
     blockNum,
     prevFilledBlockHash,
     proofOfWorkHash,
-    proofOfWorkSalt,
-    difficultyExponent,
-    difficultyMantissa
+    proofOfWorkSalt
 )
 VALUES (
     0,
@@ -90,9 +91,7 @@ VALUES (
     :blockNum,
     :prevFilledBlockHash,
     :proofOfWorkHash,
-    :proofOfWorkSalt,
-    :difficultyExponent,
-    :difficultyMantissa
+    :proofOfWorkSalt
 )
 EOS"
         );
@@ -117,8 +116,6 @@ EOS"
         qInsertRec.bind(":prevFilledBlockHash", r.prevFilledBlock);
         qInsertRec.bind(":proofOfWorkHash", r.proofOfWork.hash);
         qInsertRec.bind(":proofOfWorkSalt", r.proofOfWork.salt);
-        qInsertRec.bind(":difficultyExponent", r.difficulty.exponent);
-        qInsertRec.bind(":difficultyMantissa", r.difficulty.mantissa);
         
         qInsertRec.execute();
         assert(db.changes() == 1);
