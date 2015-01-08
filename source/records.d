@@ -175,5 +175,6 @@ unittest
     assert(isValidProofOfWork(hash, proof));
     
     BlockHash zeroHash;
+    assert(hash != zeroHash);
     assert(!isValidProofOfWork(zeroHash, proof));
 }
