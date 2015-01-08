@@ -3,6 +3,7 @@
 import storage;
 import records;
 import std.concurrency;
+import core.atomic: atomicOp;
 
 
 void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
@@ -19,30 +20,39 @@ void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
 
 void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @trusted
 {
-    size_t currThreads = 0;
-    shared Storage _s = cast(shared Storage) s;
+    size_t freeThreads = threadsNum;
     
-    for(;;)
+    Record[] records = s.getOldestRecordsAwaitingPoW(chainType, freeThreads);
+    
+    if(records.length == 0) return;
+    
+    freeThreads -= records.length;
+    
+    foreach(i; 0..records.length)
     {
-        Record[] records = s.getOldestRecordsAwaitingPoW(chainType, 1);
-        
-        if(records.length == 0) break;
-        
-        assert(records.length == 1);
-        
-        spawn(&worker, _s, cast(shared Record) records[0]);
-    }    
+        spawn(&worker, cast(shared Record) records[0]);
+    }
+    
+    //s.setCalculatedPoW(_r);
 }
 
-private void worker(shared Storage s, shared Record r)
+private void worker(shared Record r) @trusted
 {
-    //immutable RecordHash hash = r.calcHash;
+    auto _r = cast(Record) r;
     
-    Difficulty difficulty;
-    PoW pow;
+    immutable RecordHash hash = _r.calcHash;
     
-    //if(tryToCalcProofOfWork(hash, difficulty, pow))
-        //s.setCalculatedPoW(r);
+    Difficulty smallDifficulty = {exponent: 0, mantissa:[0x88]};
+    
+    import std.stdio;
+    writeln("thread started for record key=", _r.key);
+    
+    if(tryToCalcProofOfWork(hash, smallDifficulty, _r.proofOfWork))
+    {
+        writeln("solved!");
+        send(ownerTid(), r);
+    }
+    
 }
 
 unittest
@@ -55,6 +65,8 @@ unittest
     
     auto r = s.getOldestRecordsAwaitingPoW(ChainType.Test, 2);
     assert(r.length == 2);
+    
+    s.calcPowForNewRecords(ChainType.Test, 1);
     
     s.purge;
 }
