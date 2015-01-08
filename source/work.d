@@ -26,6 +26,11 @@ unittest
     auto s = new Storage("_unittest.sqlite");
     
     s.createNewRecord([0x00, 0x01, 0x02], [0x11, 0x22, 0x33]);
+    s.createNewRecord([0x00, 0x01, 0x02], [0x11, 0x22, 0x33]);
+    s.createNewRecord([0x00, 0x01, 0x02], [0x11, 0x22, 0x33]);
+    
+    auto r = s.getRecordsAwaitingPoW(ChainType.Test, 2);
+    assert(r.length == 2);
     
     s.purge;
 }

@@ -6,6 +6,8 @@ import d2sqlite3;
 import std.process: environment;
 import std.file;
 import core.stdc.errno;
+import std.conv: to;
+
 
 immutable string sqlRecordFields = q"EOS
     version INT NOT NULL,
@@ -117,13 +119,12 @@ EOS"
         
         qSelectOldestRecsAwaitingPoW = db.query("
             SELECT
-                version,
-                chainType,
                 key,
                 value,
                 signature
             FROM recordsAwaitingPoW
-            WHERE chainType = :chainType
+            WHERE version = 0
+            AND chainType = :chainType
             AND blockNum IS NULL -- means that hash and other is not calculated
             ORDER BY rowid
             LIMIT :num
@@ -164,6 +165,34 @@ EOS"
         q.execute();
         assert(db.changes() == 1);
         q.reset();
+    }
+    
+    Record[] getRecordsAwaitingPoW(ChainType chainType, size_t num)
+    {
+        alias q = qSelectOldestRecsAwaitingPoW;
+        
+        q.bind(":chainType", chainType);
+        q.bind(":num", num);
+        
+        q.execute();
+        
+        Record[] res;
+        
+        foreach(row; q)
+        {
+            Record r = {
+                chainType: chainType,
+                key: row["key"].as!(ubyte[]),
+                value: row["value"].as!(ubyte[]),
+                signature: to!Signature(row["signature"].as!(ubyte[]))
+            };
+            
+            res ~= r;
+        }
+        
+        q.reset();
+        
+        return res;
     }
 }
 

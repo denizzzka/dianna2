@@ -6,7 +6,7 @@ import std.digest.sha;
 import scrypt;
 
 
-enum ChainType
+enum ChainType: ushort
 {
     Real,
     Test
@@ -14,6 +14,7 @@ enum ChainType
 
 alias SHA1_hash = ubyte[20];
 alias BlockHash = SHA1_hash;
+alias Signature = ubyte[10];
 
 struct PoW
 {
@@ -26,7 +27,7 @@ struct Record
     ChainType chainType;
     ubyte[] key;
     ubyte[] value;
-    ubyte[10] signature;
+    Signature signature;
     uint blockNum;
     BlockHash prevFilledBlock;
     PoW proofOfWork;
