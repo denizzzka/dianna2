@@ -12,8 +12,7 @@ immutable string sqlRecordFields = q"EOS
     chain INT NOT NULL, -- 0 = real chain, 1 = test chain
     key BLOB NOT NULL,
     value BLOB NOT NULL,
-    signature BLOB,
-                 -- ^^^ FIXME! Need to add NOT NULL here
+    signature BLOB NOT NULL,
 EOS";
 
 immutable string sqlCreateSchema =

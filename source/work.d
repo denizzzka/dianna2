@@ -4,11 +4,23 @@ import storage;
 import records;
 
 
-void storeRecord(ubyte[] key, ubyte[] value)
+void createNewRecord(ubyte[] key, ubyte[] value)
 {
-    Record record;
+    Record r;
     
-    record.chainType = ChainType.Test;
-    record.key = key;
-    record.value = value;
+    r.chainType = ChainType.Test;
+    r.key = key;
+    r.value = value;
+    r.signature = new ubyte[10];
+}
+
+unittest
+{
+    import std.conv;
+    
+    auto s = new Storage("_unittest.sqlite");
+    
+    createNewRecord([0x00, 0x01, 0x02], [0x00, 0x01, 0x02]);
+    
+    s.purge;
 }
