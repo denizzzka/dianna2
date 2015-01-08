@@ -7,9 +7,7 @@ import std.process: environment;
 import std.file;
 import core.stdc.errno;
 
-
-immutable string sqlCreateSchema =
-`CREATE TABLE IF NOT EXISTS records (
+immutable string sqlRecordFields = q"EOS
     version INT NOT NULL,
     chain INT NOT NULL, -- 0 = real chain, 1 = test chain
     key BLOB NOT NULL,
@@ -21,6 +19,15 @@ immutable string sqlCreateSchema =
     proofOfWorkSalt BLOB NOT NULL,
     difficultyExponent INT NOT NULL,
     difficultyMantissa BLOB
+EOS";
+
+immutable string sqlCreateSchema =
+`CREATE TABLE IF NOT EXISTS records (
+`~sqlRecordFields~`
+);
+
+CREATE TABLE IF NOT EXISTS recordsAwaiting (
+`~sqlRecordFields~`
 );
 
 CREATE INDEX IF NOT EXISTS prev_block
