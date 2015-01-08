@@ -27,9 +27,11 @@ CREATE INDEX IF NOT EXISTS prev_block
 ON records(prevFilledBlockHash);
 
 CREATE TABLE IF NOT EXISTS blocks (
-    hash BLOB,
-    block_num INT,
-    POW_difficulty INT
+    hash BLOB NOT NULL,
+    blockNum INT,
+    difficultyExponent INT NOT NULL,
+    difficultyMantissa BLOB,
+    prevFilledBlockHash BLOB
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS block_num
