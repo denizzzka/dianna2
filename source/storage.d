@@ -24,7 +24,7 @@ immutable string sqlCreateSchema =
     proofOfWorkSalt BLOB NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS recordsPreparing (
+CREATE TABLE IF NOT EXISTS recordsAwaitingPoW (
 `~sqlRecordFields~`
     blockNum INT,
     prevFilledBlockHash BLOB,
@@ -53,6 +53,7 @@ class Storage
     Database db;
     
     private Query qInsertRec;
+    private Query qInsertRecAwaitingPoW;
     
     this(string filename)
     {
@@ -94,19 +95,36 @@ VALUES (
 )
 EOS"
         );
+        
+        qInsertRecAwaitingPoW = db.query("
+            INSERT INTO recordsAwaitingPoW (
+                version,
+                chain,
+                key,
+                value,
+                signature
+            )
+            VALUES (
+                0,
+                :chainType,
+                :key,
+                :value,
+                :signature
+            )
+        ");
     }
     
     version(unittest)
     void purge()
     {
         destroy(qInsertRec);
+        destroy(qInsertRecAwaitingPoW);
         destroy(db);
         remove(path);
     }
     
     void Insert(Record r)
     {
-                 
         qInsertRec.bind(":chainType", r.chainType);
         qInsertRec.bind(":key", r.key);
         qInsertRec.bind(":value", r.value);
@@ -119,6 +137,20 @@ EOS"
         qInsertRec.execute();
         assert(db.changes() == 1);
         qInsertRec.reset();
+    }
+    
+    void addRecordAwaitingPoW(Record r)
+    {
+        alias q = qInsertRecAwaitingPoW;
+        
+        q.bind(":chainType", r.chainType);
+        q.bind(":key", r.key);
+        q.bind(":value", r.value);
+        q.bind(":signature", r.signature);
+        
+        q.execute();
+        assert(db.changes() == 1);
+        q.reset();
     }
 }
 
