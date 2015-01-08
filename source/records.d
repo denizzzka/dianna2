@@ -93,6 +93,15 @@ bool calcProofOfWork(
     return false;
 }
 
+bool isValidProofOfWork(inout SHA1_hash from, inout PoW pow)
+{
+    typeof(PoW.hash) calculatedHash;
+    
+    calcScrypt(calculatedHash, from, pow.salt, 65536, 64, 1);
+    
+    return calculatedHash == pow.hash;
+}
+
 struct Difficulty
 {
     /*
@@ -162,4 +171,9 @@ unittest
     PoW proof;
     Difficulty smallDifficulty = {exponent: 0, mantissa:[0x88]};
     calcProofOfWork(hash, smallDifficulty, 1, proof);
+    
+    assert(isValidProofOfWork(hash, proof));
+    
+    BlockHash zeroHash;
+    assert(!isValidProofOfWork(zeroHash, proof));
 }
