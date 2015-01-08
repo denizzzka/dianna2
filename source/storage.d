@@ -26,13 +26,16 @@ immutable string sqlCreateSchema =
     proofOfWorkSalt BLOB NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS recordsAwaitingPoW (
+CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 `~sqlRecordFields~`
     blockNum INT,
     prevFilledBlockHash BLOB,
     proofOfWorkHash BLOB,
     proofOfWorkSalt BLOB
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
+ON recordsAwaitingPublish(chainType, key, value, signature);
 
 CREATE INDEX IF NOT EXISTS prev_block
 ON records(prevFilledBlockHash);
@@ -56,8 +59,9 @@ class Storage
     
     private Query
         qInsertRec,
-        qInsertRecAwaitingPoW,
-        qSelectOldestRecsAwaitingPoW;
+        qInsertRecAwaitingPublish,
+        qSelectOldestRecsAwaitingPublish,
+        qUpdateCalculatedPoW;
     
     this(string filename)
     {
@@ -100,8 +104,8 @@ VALUES (
 EOS"
         );
         
-        qInsertRecAwaitingPoW = db.query("
-            INSERT INTO recordsAwaitingPoW (
+        qInsertRecAwaitingPublish = db.query("
+            INSERT INTO recordsAwaitingPublish (
                 version,
                 chainType,
                 key,
@@ -117,17 +121,31 @@ EOS"
             )
         ");
         
-        qSelectOldestRecsAwaitingPoW = db.query("
+        qSelectOldestRecsAwaitingPublish = db.query("
             SELECT
                 key,
                 value,
                 signature
-            FROM recordsAwaitingPoW
+            FROM recordsAwaitingPublish
             WHERE version = 0
             AND chainType = :chainType
             AND blockNum IS NULL -- means that hash and other is not calculated
             ORDER BY rowid
             LIMIT :num
+        ");
+        
+        qUpdateCalculatedPoW = db.query("
+            UPDATE recordsAwaitingPublish SET
+            
+            blockNum = :blockNum,
+            prevFilledBlockHash = :prevFilledBlockHash,
+            proofOfWorkHash = :proofOfWorkHash,
+            proofOfWorkSalt = :proofOfWorkSalt
+                        
+            WHERE chainType = :chainType
+            AND key = :key
+            AND value = :value
+            AND signature = :signature
         ");
     }
     
@@ -155,7 +173,7 @@ EOS"
     
     void addRecordAwaitingPoW(Record r)
     {
-        alias q = qInsertRecAwaitingPoW;
+        alias q = qInsertRecAwaitingPublish;
         
         q.bind(":chainType", r.chainType);
         q.bind(":key", r.key);
@@ -169,7 +187,7 @@ EOS"
     
     Record[] getOldestRecordsAwaitingPoW(ChainType chainType, size_t num)
     {
-        alias q = qSelectOldestRecsAwaitingPoW;
+        alias q = qSelectOldestRecsAwaitingPublish;
         
         q.bind(":chainType", chainType);
         q.bind(":num", num);
@@ -194,6 +212,24 @@ EOS"
         
         return res;
     }
+    
+    void setCalculatedPoW(Record r)
+    {
+        alias q = qUpdateCalculatedPoW;
+        
+        q.bind(":chainType", r.chainType);
+        q.bind(":key", r.key);
+        q.bind(":value", r.value);
+        q.bind(":signature", r.signature);
+        q.bind(":blockNum", r.blockNum);
+        q.bind(":prevFilledBlockHash", r.prevFilledBlock);
+        q.bind(":proofOfWorkHash", r.proofOfWork.hash);
+        q.bind(":proofOfWorkSalt", r.proofOfWork.salt);
+        
+        q.execute();
+        assert(db.changes() == 1);
+        q.reset();
+    }
 }
 
 unittest
@@ -206,8 +242,6 @@ unittest
             value:[0x11, 0x22, 0x33, 0x44]
         };
     
-    s.Insert(r);
-    s.Insert(r);
     s.Insert(r);
     
     s.purge;

@@ -47,6 +47,7 @@ struct Record
         res ~= proofOfWork.salt;
         res ~= difficulty.exponent;
         res ~= difficulty.mantissa;
+        
         return res;
     }
 }
