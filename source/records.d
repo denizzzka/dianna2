@@ -3,7 +3,6 @@
 import std.datetime;
 import std.conv;
 import std.digest.sha;
-import std.random;
 import scrypt;
 
 
@@ -96,12 +95,13 @@ BlockHash calcBlockHash(inout Record[] records)
 bool tryToCalcProofOfWork(
     inout SHA1_hash from,
     inout ref Difficulty difficulty,
+    inout typeof(PoW.salt) salt,
     out PoW pow
 ) pure
 {
     enforce(pow.hash.length >= difficulty.length);
     
-    genSalt(pow.salt);
+    pow.salt = salt;
     calcScrypt(pow.hash, from, pow.salt, 65536, 64, 1);
     
     return isSatisfyDifficulty(pow.hash, difficulty);
@@ -190,9 +190,13 @@ unittest
     PoW proof;
     Difficulty smallDifficulty = {exponent: 0, mantissa:[0x88]};
     
+    ubyte[8] salt;
+    do{
+        genSalt(salt);
+    }
     while(
-        !tryToCalcProofOfWork(hash, smallDifficulty, proof)
-    ){}
+        !tryToCalcProofOfWork(hash, smallDifficulty, salt, proof)
+    );
     
     assert(isValidProofOfWork(hash, proof));
     

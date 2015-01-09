@@ -3,7 +3,7 @@
 import storage;
 import records;
 import std.concurrency;
-import core.atomic: atomicOp;
+import std.random;
 
 
 void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
@@ -47,7 +47,11 @@ private void worker(shared Record* r) @trusted
     
     foreach(i; 0..99)
     {
-        if(tryToCalcProofOfWork(_r.calcHash, smallDifficulty, _r.proofOfWork))
+        ubyte[8] salt;
+        foreach(ref e; salt)
+            e = uniform!ubyte;
+        
+        if(tryToCalcProofOfWork(_r.calcHash, smallDifficulty, salt, _r.proofOfWork))
         {
             writeln("solved! i=", i, " proofOfWork=", _r.proofOfWork);
             send(ownerTid(), r);
