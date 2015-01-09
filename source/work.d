@@ -20,39 +20,40 @@ void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
 
 void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @trusted
 {
-    size_t freeThreads = threadsNum;
-    
-    Record[] records = s.getOldestRecordsAwaitingPoW(chainType, freeThreads);
+    Record[] records = s.getOldestRecordsAwaitingPoW(chainType, 1);
     
     if(records.length == 0) return;
+    assert(records.length == 1);
     
-    freeThreads -= records.length;
-    
-    foreach(i; 0..records.length)
+    foreach(i; 0..threadsNum)
     {
-        spawn(&worker, cast(shared Record) records[0]);
+        Record* r = new Record;
+        *r = records[0];
+        
+        spawn(&worker, cast(shared Record*) r);
     }
     
     //s.setCalculatedPoW(_r);
 }
 
-private void worker(shared Record r) @trusted
+private void worker(shared Record* r) @trusted
 {
-    auto _r = cast(Record) r;
-    
-    immutable RecordHash hash = _r.calcHash;
+    auto _r = cast(Record*) r;
     
     Difficulty smallDifficulty = {exponent: 0, mantissa:[0x88]};
     
     import std.stdio;
     writeln("thread started for record key=", _r.key);
     
-    if(tryToCalcProofOfWork(hash, smallDifficulty, _r.proofOfWork))
+    foreach(i; 0..99)
     {
-        writeln("solved!");
-        send(ownerTid(), r);
+        if(tryToCalcProofOfWork(_r.calcHash, smallDifficulty, _r.proofOfWork))
+        {
+            writeln("solved! i=", i, " proofOfWork=", _r.proofOfWork);
+            send(ownerTid(), r);
+            return;
+        }
     }
-    
 }
 
 unittest
@@ -66,7 +67,7 @@ unittest
     auto r = s.getOldestRecordsAwaitingPoW(ChainType.Test, 2);
     assert(r.length == 2);
     
-    s.calcPowForNewRecords(ChainType.Test, 1);
+    s.calcPowForNewRecords(ChainType.Test, 3);
     
     s.purge;
 }

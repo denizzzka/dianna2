@@ -3,6 +3,7 @@
 import std.datetime;
 import std.conv;
 import std.digest.sha;
+import std.random;
 import scrypt;
 
 
@@ -33,6 +34,12 @@ struct Record
     BlockHash prevFilledBlock;
     PoW proofOfWork;
     Difficulty difficulty;
+    
+    this(this)
+    {
+        key = key.dup;
+        value = value.dup;
+    }
     
     ubyte[] serialize() const pure
     {
@@ -78,7 +85,7 @@ BlockHash calcBlockHash(inout Record[] records)
 {
     SHA1 hash;
     
-    foreach(r; records)
+    foreach(ref r; records)
     {
         hash.put(r.serialize);
     }
@@ -88,7 +95,7 @@ BlockHash calcBlockHash(inout Record[] records)
 
 bool tryToCalcProofOfWork(
     inout SHA1_hash from,
-    inout Difficulty difficulty,
+    inout ref Difficulty difficulty,
     out PoW pow
 ) pure
 {
@@ -133,9 +140,14 @@ struct Difficulty
     {
         return exponent + mantissa.length;
     }
+    
+    this(this)
+    {
+        mantissa = mantissa.dup;
+    }
 }
 
-bool isSatisfyDifficulty(inout typeof(PoW.hash) pow, inout Difficulty d) pure @nogc
+bool isSatisfyDifficulty(inout typeof(PoW.hash) pow, inout ref Difficulty d) pure @nogc
 {
     assert(pow.length >= d.exponent + d.mantissa.length);
     

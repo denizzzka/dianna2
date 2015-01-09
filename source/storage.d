@@ -174,7 +174,7 @@ EOS"
         qInsertRec.reset();
     }
     
-    void addRecordAwaitingPoW(Record r)
+    void addRecordAwaitingPoW(ref Record r)
     {
         alias q = qInsertRecAwaitingPublish;
         
