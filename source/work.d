@@ -32,7 +32,6 @@ void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @tr
         
         calcPowForRecord(records[0], threadsNum);
         
-        // TODO: save PoW to DB
         s.setCalculatedPoW(records[0]);
     } while(records.length == 1);
     
