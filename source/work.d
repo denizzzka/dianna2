@@ -5,7 +5,7 @@ import records;
 import std.concurrency;
 import core.time: Duration;
 import std.random;
-debug(PoWt) import std.stdio; // PoW threads debugging
+debug(PoWt) import std.stdio; // PoWt is "PoW threads"
 
 
 void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
