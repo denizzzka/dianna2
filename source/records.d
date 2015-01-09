@@ -3,6 +3,7 @@
 import std.datetime;
 import std.conv;
 import std.digest.sha;
+import std.bitmanip;
 import scrypt;
 
 
@@ -19,8 +20,28 @@ alias Signature = ubyte[10];
 
 struct PoW
 {
-    ubyte[64] hash;
-    ubyte[8] salt;
+    alias Hash = ubyte[32];
+    alias Salt = ubyte[8];
+    
+    Hash hash;
+    Salt salt;
+}
+
+ulong extractDifficulty(in PoW.Hash h) pure @nogc
+{
+    immutable offset = h.length - ulong.sizeof;
+    
+    ubyte[ulong.sizeof] arr = h[offset..offset + ulong.sizeof];
+    
+    return ulong.max - littleEndianToNative!ulong(arr);
+}
+
+unittest
+{
+    PoW pow;
+    pow.hash[24] = 1;
+    
+    assert(pow.hash.extractDifficulty() == ulong.max - 1);
 }
 
 struct Record
@@ -95,7 +116,7 @@ BlockHash calcBlockHash(inout Record[] records)
 bool tryToCalcProofOfWork(
     inout SHA1_hash from,
     inout ref Difficulty difficulty,
-    inout typeof(PoW.salt) salt,
+    inout PoW.Salt salt,
     out PoW pow
 ) pure
 {
@@ -167,10 +188,10 @@ bool isSatisfyDifficulty(inout typeof(PoW.hash) pow, inout ref Difficulty d) pur
 unittest
 {
     PoW p;
-    p.hash[60] = 0x01;
-    p.hash[61] = 0x00;
-    p.hash[62] = 0xFF;
-    p.hash[63] = 0xFF;
+    p.hash[28] = 0x01;
+    p.hash[29] = 0x00;
+    p.hash[30] = 0xFF;
+    p.hash[31] = 0xFF;
     
     Difficulty d1 = {exponent: 2, mantissa:[0x00, 0x00]};
     Difficulty d2 = {exponent: 2, mantissa:[0x01, 0x00]};
