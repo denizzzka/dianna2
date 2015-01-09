@@ -82,7 +82,7 @@ private void worker(shared Record* r) @trusted
 {
     auto _r = cast(Record*) r;
     
-    Difficulty smallDifficulty = {exponent: 0, mantissa:[0x33]};
+    Difficulty smallDifficulty = 0x33;
     
     debug(PoWt) writeln("Worker thread started for Record.key=", _r.key);
     
