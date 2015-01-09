@@ -216,7 +216,7 @@ EOS"
         return res;
     }
     
-    void setCalculatedPoW(Record r)
+    void setCalculatedPoW(in Record r)
     {
         alias q = qUpdateCalculatedPoW;
         
@@ -230,6 +230,9 @@ EOS"
         q.bind(":proofOfWorkSalt", r.proofOfWork.salt);
         
         q.execute();
+        auto ddd = db.changes();
+        import std.stdio;
+        writeln("db.changes()=", ddd);
         assert(db.changes() == 1);
         q.reset();
     }
@@ -237,15 +240,32 @@ EOS"
 
 unittest
 {
-    auto s = new Storage("_unittest.sqlite");
+    ubyte[3] test1 = [1,2,3];
+    ubyte[] test2 = cast(ubyte[]) test1;
+    
+    import std.stdio;
+    writeln(test1);
+    writeln(test2);
+    
+    auto s = new Storage("_unittest_storage.sqlite");
     
     Record r = {
-            chainType: ChainType.Test,
-            key:[0xDE, 0xEA, 0xBE, 0xEF],
-            value:[0x11, 0x22, 0x33, 0x44]
-        };
+        chainType: ChainType.Test,
+        key: [0x6b, 0x6b, 0x6b, 0x6b],
+        value: [0x76, 0x76, 0x76, 0x76],
+        signature: [0x53, 0x49, 0x47, 0x4e]
+    };
     
     s.Insert(r);
+    
+    writeln("signature1=", r.signature);
+    
+    s.addRecordAwaitingPoW(r);
+
+    writeln("signature2=", r.signature);
+    
+    r.proofOfWork.hash[0] = 0xff;
+    s.setCalculatedPoW(r);
     
     s.purge;
 }
