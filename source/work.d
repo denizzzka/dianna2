@@ -27,6 +27,9 @@ void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @tr
     {
         records = s.getOldestRecordsAwaitingPoW(chainType, 1);
         
+        import std.stdio;
+        writeln("records.length=", records.length);
+        
         if(records.length == 0) return;
         assert(records.length == 1);
         
@@ -37,10 +40,11 @@ void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @tr
     
 }
 
-void calcPowForRecord(ref Record r, size_t threadsNum) @trusted
+void calcPowForRecord(ref Record r, in size_t threadsNum) @trusted
 {
     Tid[] children;
     
+    // Start workers
     foreach(i; 0..threadsNum)
     {
         Record* _r = new Record;
@@ -48,50 +52,64 @@ void calcPowForRecord(ref Record r, size_t threadsNum) @trusted
         
         children ~= spawn(&worker, cast(shared Record*) _r);
     }
+    
+    // Wait for any children why solved PoW
+    r = cast(Record) *receiveOnly!(shared(records.Record)*);
+    
+    // PoW found, stop all threads
+    foreach(ref c; children)
+        send(c, true);
+    
+    import std.stdio;
+    writeln("Wait for children termination");
+    // Wait for children termination
+    foreach(i; 0..children.length)
+    {
+        receive(
+            (ubyte){}
+        );
         
-    receive(
-        (bool)
-        {
-            // PoW found, stop all threads
-            import std.stdio;
-            writeln("stop all threads");
-            
-            foreach(ref c; children)
-                send(c, true);
-        }
-    );
+        // mbox also can contain other "solved" messages from
+        // any another lucky threads - need to receive it too
+        Duration dur;
+        receiveTimeout(dur, (shared(records.Record)*){});
+        
+        writeln("terminated, i=", i);
+    }
 }
 
 private void worker(shared Record* r) @trusted
 {
     auto _r = cast(Record*) r;
     
-    Difficulty smallDifficulty = {exponent: 0, mantissa:[0x88]};
+    Difficulty smallDifficulty = {exponent: 0, mantissa:[0x33]};
     
     import std.stdio;
     writeln("thread started for record key=", _r.key);
     
-    foreach(i; 0..100)
+    for(auto i = 1;; i++)
     {
+        // Generate random salt
         ubyte[8] salt;
         foreach(ref e; salt)
             e = uniform!ubyte;
         
+        // "close this thread" message received?
         Duration dur;
-        receiveTimeout(dur,
-            (bool){ return; } // "close this thread" message received
-        );
+        if(receiveTimeout(dur, (bool){}))
+            break;
         
         if(tryToCalcProofOfWork(_r.calcHash, smallDifficulty, salt, _r.proofOfWork))
         {
             writeln("solved! i=", i, " proofOfWork=", _r.proofOfWork);
             
-            send(ownerTid(), true);
-            return;
+            send(ownerTid(), r);
+            break;
         }
     }
     
-    send(ownerTid(), false);
+    // message what means "child is stopped"
+    send(ownerTid(), cast(ubyte) 0xED);
 }
 
 unittest
