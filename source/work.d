@@ -5,6 +5,7 @@ import records;
 import std.concurrency;
 import core.time: Duration;
 import std.random;
+debug(PoWt) import std.stdio; // PoW threads debugging
 
 
 void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
@@ -27,8 +28,7 @@ void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @tr
     {
         records = s.getOldestRecordsAwaitingPoW(chainType, 1);
         
-        import std.stdio;
-        writeln("records.length=", records.length);
+        debug(PoWt) writeln("Got ", records.length, " record(s) awaiting PoW");
         
         if(records.length == 0) return;
         assert(records.length == 1);
@@ -44,7 +44,7 @@ void calcPowForRecord(ref Record r, in size_t threadsNum) @trusted
 {
     Tid[] children;
     
-    // Start workers
+    debug(PoWt) writeln("Start workers");
     foreach(i; 0..threadsNum)
     {
         Record* _r = new Record;
@@ -53,28 +53,28 @@ void calcPowForRecord(ref Record r, in size_t threadsNum) @trusted
         children ~= spawn(&worker, cast(shared Record*) _r);
     }
     
-    // Wait for any children why solved PoW
+    debug(PoWt) writeln("Wait for any child why solved PoW");
     r = cast(Record) *receiveOnly!(shared(records.Record)*);
     
-    // PoW found, stop all threads
+    debug(PoWt) writeln("PoW found, sending 'stop' for all threads");
     foreach(ref c; children)
         send(c, true);
     
-    import std.stdio;
-    writeln("Wait for children termination");
-    // Wait for children termination
+    debug(PoWt) writeln("Wait for children termination");
     foreach(i; 0..children.length)
     {
         receive(
             (ubyte){}
         );
         
-        // mbox also can contain other "solved" messages from
-        // any another lucky threads - need to receive it too
+        /*
+         * mbox can also contain other "solved" messages from any
+         * another lucky threads - it is need to receive it too
+         */
         Duration dur;
         receiveTimeout(dur, (shared(records.Record)*){});
         
-        writeln("terminated, i=", i);
+        debug(PoWt) writeln("Child ", i, " terminated");
     }
 }
 
@@ -84,8 +84,7 @@ private void worker(shared Record* r) @trusted
     
     Difficulty smallDifficulty = {exponent: 0, mantissa:[0x33]};
     
-    import std.stdio;
-    writeln("thread started for record key=", _r.key);
+    debug(PoWt) writeln("Worker thread started for Record.key=", _r.key);
     
     for(auto i = 1;; i++)
     {
@@ -101,7 +100,7 @@ private void worker(shared Record* r) @trusted
         
         if(tryToCalcProofOfWork(_r.calcHash, smallDifficulty, salt, _r.proofOfWork))
         {
-            writeln("solved! i=", i, " proofOfWork=", _r.proofOfWork);
+            debug(PoWt) writeln("PoW solved, worker ", i, ", proofOfWork=", _r.proofOfWork);
             
             send(ownerTid(), r);
             break;
