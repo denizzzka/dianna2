@@ -106,7 +106,7 @@ unittest
     auto r = s.getOldestRecordsAwaitingPoW(ChainType.Test, 2);
     assert(r.length == 2);
     
-    //s.calcPowForNewRecords(ChainType.Test, 3);
+    s.calcPowForNewRecords(ChainType.Test, 3);
     
     s.purge;
 }

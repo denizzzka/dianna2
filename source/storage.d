@@ -181,7 +181,7 @@ EOS"
         q.bind(":chainType", r.chainType);
         q.bind(":key", r.key);
         q.bind(":value", r.value);
-        q.bind(":signature", r.signature);
+        q.bind(":signature", cast(ubyte[]) r.signature);
         
         q.execute();
         assert(db.changes() == 1);
@@ -223,16 +223,13 @@ EOS"
         q.bind(":chainType", r.chainType);
         q.bind(":key", r.key);
         q.bind(":value", r.value);
-        q.bind(":signature", r.signature);
+        q.bind(":signature", cast(ubyte[]) r.signature);
         q.bind(":blockNum", r.blockNum);
-        q.bind(":prevFilledBlockHash", r.prevFilledBlock);
-        q.bind(":proofOfWorkHash", r.proofOfWork.hash);
-        q.bind(":proofOfWorkSalt", r.proofOfWork.salt);
+        q.bind(":prevFilledBlockHash", cast(ubyte[]) r.prevFilledBlock);
+        q.bind(":proofOfWorkHash", cast(ubyte[]) r.proofOfWork.hash);
+        q.bind(":proofOfWorkSalt", cast(ubyte[]) r.proofOfWork.salt);
         
         q.execute();
-        auto ddd = db.changes();
-        import std.stdio;
-        writeln("db.changes()=", ddd);
         assert(db.changes() == 1);
         q.reset();
     }
@@ -240,13 +237,6 @@ EOS"
 
 unittest
 {
-    ubyte[3] test1 = [1,2,3];
-    ubyte[] test2 = cast(ubyte[]) test1;
-    
-    import std.stdio;
-    writeln(test1);
-    writeln(test2);
-    
     auto s = new Storage("_unittest_storage.sqlite");
     
     Record r = {
@@ -258,13 +248,9 @@ unittest
     
     s.Insert(r);
     
-    writeln("signature1=", r.signature);
-    
     s.addRecordAwaitingPoW(r);
-
-    writeln("signature2=", r.signature);
     
-    r.proofOfWork.hash[0] = 0xff;
+    r.proofOfWork.hash[0..3] = [0x48, 0x48, 0x48];
     s.setCalculatedPoW(r);
     
     s.purge;
