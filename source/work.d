@@ -40,7 +40,7 @@ void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @tr
     
 }
 
-void calcPowForRecord(ref Record r, inout Difficulty difficulty, inout size_t threadsNum) pure @trusted
+void calcPowForRecord(ref Record r, inout Difficulty difficulty, inout size_t threadsNum) @trusted
 {
     Tid[] children;
     
