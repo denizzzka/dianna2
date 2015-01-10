@@ -42,19 +42,15 @@ void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @tr
 
 void calcPowForRecord(ref Record r, inout Difficulty difficulty, inout size_t threadsNum) @trusted
 {
+    immutable _r = cast(immutable Record) r;
     Tid[] children;
     
     debug(PoWt) writeln("Start workers");
     foreach(i; 0..threadsNum)
-    {
-        Record* _r = new Record;
-        *_r = r;
-        
-        children ~= spawn(&worker, cast(shared Record*) _r, difficulty);
-    }
+        children ~= spawn(&worker, _r);
     
     debug(PoWt) writeln("Wait for any child why solved PoW");
-    r = cast(Record) *receiveOnly!(shared(records.Record)*);
+    r.proofOfWork = receiveOnly!(PoW);
     
     debug(PoWt) writeln("PoW found, sending 'stop' for all threads");
     foreach(ref c; children)
@@ -72,25 +68,24 @@ void calcPowForRecord(ref Record r, inout Difficulty difficulty, inout size_t th
          * another lucky threads - it is need to receive it too
          */
         Duration dur;
-        receiveTimeout(dur, (shared(records.Record)*){});
+        receiveTimeout(dur, (records.PoW){});
         
         debug(PoWt) writeln("Child ", i, " terminated");
     }
 }
 
-private void worker(shared Record* r, immutable Difficulty difficulty) @trusted
-{
-    auto _r = cast(Record*) r;
-    
+private void worker(immutable Record r) @trusted
+{    
     debug(PoWt) auto id = "(no id)";
-    debug(PoWt) writeln("Worker ", id, " thread started for Record.key=", _r.key);
+    debug(PoWt) writeln("Worker ", id, " thread started for Record.key=", r.key);
     
     for(auto i = 1;; i++)
     {
         debug(PoWt) writeln("Worker ", id, " iteration: ", i);
         
         // Generate random salt
-        foreach(ref e; _r.proofOfWork.salt)
+        PoW pow;
+        foreach(ref e; pow.salt)
             e = uniform!ubyte;
         
         // "close this thread" message received?
@@ -98,13 +93,13 @@ private void worker(shared Record* r, immutable Difficulty difficulty) @trusted
         if(receiveTimeout(dur, (bool){}))
             break;
         
-        _r.proofOfWork.hash = calcPoWHash(_r.calcHash, _r.proofOfWork.salt);
+        pow.hash = calcPoWHash(r.calcHash, pow.salt);
         
-        if(isSatisfyDifficulty(_r.proofOfWork.hash, difficulty))
+        if(isSatisfyDifficulty(pow.hash, r.difficulty))
         {
-            debug(PoWt) writeln("PoW solved, worker ", id, ", proofOfWork=", _r.proofOfWork);
+            debug(PoWt) writeln("PoW solved, worker ", id, ", proofOfWork=", pow);
             
-            send(ownerTid(), r);
+            send(ownerTid(), pow);
             break;
         }
     }
