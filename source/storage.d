@@ -18,47 +18,47 @@ immutable string sqlRecordFields = q"EOS
     signature BLOB NOT NULL,
 EOS";
 
-immutable string sqlCreateSchema =
+immutable string[] sqlCreateSchema = [
 `CREATE TABLE IF NOT EXISTS records (
 `~sqlRecordFields~`
     blockNum INT NOT NULL,
     prevFilledBlockHash BLOB,
     proofOfWorkHash BLOB NOT NULL,
     proofOfWorkSalt BLOB NOT NULL
-);
+)`,
 
-CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
+`CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 `~sqlRecordFields~`
     blockNum INT,
     prevFilledBlockHash BLOB,
     proofOfWorkHash BLOB,
     proofOfWorkSalt BLOB
-);
+)`,
 
-CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
-ON recordsAwaitingPublish(chainType, key, value, signature);
+`CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
+ON recordsAwaitingPublish(chainType, key, value, signature)`,
 
-CREATE INDEX IF NOT EXISTS prev_block
-ON records(prevFilledBlockHash);
+`CREATE INDEX IF NOT EXISTS prev_block
+ON records(prevFilledBlockHash)`,
 
-CREATE TABLE IF NOT EXISTS blocks (
+`CREATE TABLE IF NOT EXISTS blocks (
     hash BLOB NOT NULL,
     blockNum INT,
     difficultyExponent INT NOT NULL,
     difficultyMantissa BLOB,
     prevFilledBlockHash BLOB
-);
+)`,
 
-CREATE UNIQUE INDEX IF NOT EXISTS block_num
-ON blocks(hash);
-`;
+`CREATE UNIQUE INDEX IF NOT EXISTS block_num
+ON blocks(hash)`
+];
 
 class Storage
 {
     const string path;
     Database db;
     
-    private Query
+    private Statement
         qInsertRec,
         qInsertRecAwaitingPublish,
         qSelectOldestRecsAwaitingPublish,
@@ -78,9 +78,11 @@ class Storage
             if(e.errno != EEXIST) throw e;
         
         db = Database(path);
-        db.execute(sqlCreateSchema);
         
-        qInsertRec = db.query(
+        foreach(s; sqlCreateSchema)
+            db.execute(s);
+        
+        qInsertRec = db.prepare(
 q"EOS
 INSERT INTO records (
     version,
@@ -107,7 +109,7 @@ VALUES (
 EOS"
         );
         
-        qInsertRecAwaitingPublish = db.query("
+        qInsertRecAwaitingPublish = db.prepare("
             INSERT INTO recordsAwaitingPublish (
                 version,
                 chainType,
@@ -124,7 +126,7 @@ EOS"
             )
         ");
         
-        qSelectOldestRecsAwaitingPublish = db.query("
+        qSelectOldestRecsAwaitingPublish = db.prepare("
             SELECT
                 key,
                 value,
@@ -137,7 +139,7 @@ EOS"
             LIMIT :num
         ");
         
-        qUpdateCalculatedPoW = db.query("
+        qUpdateCalculatedPoW = db.prepare("
             UPDATE recordsAwaitingPublish SET
             
             blockNum = :blockNum,
@@ -181,7 +183,7 @@ EOS"
         q.bind(":chainType", r.chainType);
         q.bind(":key", r.key);
         q.bind(":value", r.value);
-        q.bind(":signature", cast(ubyte[]) r.signature);
+        q.bind(":signature", r.signature);
         
         q.execute();
         assert(db.changes() == 1);
@@ -195,11 +197,11 @@ EOS"
         q.bind(":chainType", chainType);
         q.bind(":num", num);
         
-        q.execute();
+        auto queryRes = q.execute();
         
         Record[] res;
         
-        foreach(row; q)
+        foreach(row; queryRes)
         {
             Record r = {
                 chainType: chainType,
@@ -223,11 +225,11 @@ EOS"
         q.bind(":chainType", r.chainType);
         q.bind(":key", r.key);
         q.bind(":value", r.value);
-        q.bind(":signature", cast(ubyte[]) r.signature);
+        q.bind(":signature", r.signature);
         q.bind(":blockNum", r.blockNum);
-        q.bind(":prevFilledBlockHash", cast(ubyte[]) r.prevFilledBlock);
-        q.bind(":proofOfWorkHash", cast(ubyte[]) r.proofOfWork.hash);
-        q.bind(":proofOfWorkSalt", cast(ubyte[]) r.proofOfWork.salt);
+        q.bind(":prevFilledBlockHash", r.prevFilledBlock);
+        q.bind(":proofOfWorkHash", r.proofOfWork.hash);
+        q.bind(":proofOfWorkSalt", r.proofOfWork.salt);
         
         q.execute();
         assert(db.changes() == 1);

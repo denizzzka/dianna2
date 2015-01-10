@@ -9,7 +9,7 @@
     "targetPath": "bin",
     "versions": ["VibeCustomMain"],
     "dependencies": {
-            "d2sqlite3": ">=0.5.2",
+            "d2sqlite3": ">=0.6.0",
             "vibe-d": ">=0.7.21"
     },
     "libs": ["scrypt"],

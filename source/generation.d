@@ -115,8 +115,3 @@ void benchmark()
     writeln("Hashes per minute: ", 1.0 * hashes / sw.peek.seconds * 60);
     writeln("Elapsed time, minutes: ", 1.0 * sw.peek.seconds / 60);
 }
-
-unittest
-{
-    benchmark();
-}
