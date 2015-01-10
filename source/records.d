@@ -154,7 +154,7 @@ bool isValidPoW(inout ubyte[] from, inout PoW pow)
 
 bool isSatisfyDifficulty(inout PoW.Hash pow, inout Difficulty d) pure @nogc
 {
-    return pow.extractTarget() <= ~d;
+    return pow.extractTarget() >= d;
 }
 
 unittest
@@ -163,7 +163,7 @@ unittest
     immutable hash = calcBlockHash(rec);
     
     PoW proof;
-    Difficulty smallDifficulty = 5;
+    immutable Difficulty smallDifficulty = 5;
     
     do{
         genSalt(proof.salt);
