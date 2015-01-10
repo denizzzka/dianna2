@@ -20,7 +20,7 @@ void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
     s.addRecordAwaitingPoW(r);
 }
 
-void calcPowForRecord(ref Record r) @trusted
+private void calcPowForRecord(ref Record r) @trusted
 {
     immutable threads = threadsPerCPU;
     bool isFound;
