@@ -32,17 +32,31 @@ Difficulty extractDifficulty(in PoW.Hash h) pure @nogc
 {
     immutable offset = h.length - ulong.sizeof;
     
-    ubyte[ulong.sizeof] arr = h[offset..offset + ulong.sizeof];
+    immutable ubyte[ulong.sizeof] arr = h[offset..offset + ulong.sizeof];
     
-    return ulong.max - littleEndianToNative!ulong(arr);
+    auto res = ulong.max - littleEndianToNative!ulong(arr);
+    return res;
 }
 
 unittest
 {
     PoW pow;
+    
+    assert(pow.hash.extractDifficulty() == ulong.max);
+    
     pow.hash[24] = 1;
     
     assert(pow.hash.extractDifficulty() == ulong.max - 1);
+    
+    foreach(i; 24..32)
+        pow.hash[i] = 0xff;
+    
+    assert(pow.hash.extractDifficulty() == 0);
+    
+    pow.hash[24] = 1;
+    
+    assert(pow.hash.extractDifficulty() < ulong.max);
+    assert(pow.hash.extractDifficulty() > 1);
 }
 
 struct Record
@@ -138,6 +152,21 @@ bool isValidProofOfWork(inout SHA1_hash from, inout PoW pow)
 bool isSatisfyDifficulty(inout PoW.Hash pow, inout Difficulty d) pure @nogc
 {
     return pow.extractDifficulty() >= d;
+}
+
+unittest
+{
+    PoW.Hash pow = [58, 122, 208, 53, 215, 102, 248, 34, 9, 182, 73, 154, 164, 218, 
+    113, 3, 194, 241, 138, 245, 162, 199, 20, 163, 223, 27, 35, 46, 
+    108, 173, 107, 216];
+    
+    ulong d1 = pow.extractDifficulty;
+    ulong d2 = 0xFFFFFFFFFFFFFFF;
+    
+    auto d3 = d2-d1;
+    assert(d3 && d2);
+    
+    assert(d1 >= d2);
 }
 
 unittest

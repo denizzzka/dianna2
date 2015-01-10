@@ -82,12 +82,13 @@ private void worker(shared Record* r) @trusted
 {
     auto _r = cast(Record*) r;
     
-    Difficulty smallDifficulty = 0x33;
-    
-    debug(PoWt) writeln("Worker thread started for Record.key=", _r.key);
+    debug(PoWt) auto id = "(no id)";
+    debug(PoWt) writeln("Worker ", id, " thread started for Record.key=", _r.key);
     
     for(auto i = 1;; i++)
     {
+        debug(PoWt) writeln("Worker ", id, " iteration: ", i);
+        
         // Generate random salt
         ubyte[8] salt;
         foreach(ref e; salt)
@@ -97,10 +98,10 @@ private void worker(shared Record* r) @trusted
         Duration dur;
         if(receiveTimeout(dur, (bool){}))
             break;
-        
-        if(tryToCalcProofOfWork(_r.calcHash, smallDifficulty, salt, _r.proofOfWork))
+        //0xFFFFFFFFFFFFFFFF
+        if(tryToCalcProofOfWork(_r.calcHash, 0xFFFFFFFFFFFFFFF, salt, _r.proofOfWork))
         {
-            debug(PoWt) writeln("PoW solved, worker ", i, ", proofOfWork=", _r.proofOfWork);
+            debug(PoWt) writeln("PoW solved, worker ", id, ", proofOfWork=", _r.proofOfWork);
             
             send(ownerTid(), r);
             break;
@@ -125,4 +126,32 @@ unittest
     s.calcPowForNewRecords(ChainType.Test, 3);
     
     s.purge;
+    
+    benchmark();
+}
+
+
+void benchmark() @trusted
+{
+    import std.stdio;
+    import std.datetime;
+    import core.cpuid;
+    
+    immutable size_t threads = threadsPerCPU();
+    StopWatch sw;    
+    Record r;
+    immutable hashes = 6;
+    
+    writeln("Starting benchmarking");
+    writeln("Hashes: ", hashes, ", threads: ", threads);
+    
+    sw.start();
+    
+    foreach(i; 1..hashes)
+        calcPowForRecord(r, threads);
+    
+    sw.stop();
+    
+    writeln("Hashes per second: ", (cast(float) hashes) / sw.peek.seconds);
+    writeln("Elapsed time, seconds: ", sw.peek.seconds);
 }
