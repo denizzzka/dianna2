@@ -75,7 +75,7 @@ void calcPowForRecord(ref Record r, inout size_t threadsNum) @trusted
     }
 }
 
-bool calcPowForRecord(
+bool calcPowWithTimeout(
     immutable Record r,
     immutable Duration duration,
     immutable size_t threadsNum,
@@ -192,7 +192,7 @@ void benchmark() @trusted
         immutable Record r;
         PoW pow;
         
-        calcPowForRecord(r, dur!"days"(365*10), threads, pow);
+        calcPowWithTimeout(r, dur!"days"(365*10), threads, pow);
     }
     
     sw.stop();
