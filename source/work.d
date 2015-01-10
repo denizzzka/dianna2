@@ -98,8 +98,8 @@ private void worker(shared Record* r) @trusted
         Duration dur;
         if(receiveTimeout(dur, (bool){}))
             break;
-        //                                  0xFFFFFFFFFFFFFFFF
-        if(tryToCalcProofOfWork(_r.calcHash, 0xFFFFFFFFFFFFFFF, salt, _r.proofOfWork))
+        
+        if(tryToCalcProofOfWork(_r.calcHash, 0xEFFFFFFFFFFFFFFF, salt, _r.proofOfWork))
         {
             debug(PoWt) writeln("PoW solved, worker ", id, ", proofOfWork=", _r.proofOfWork);
             

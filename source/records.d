@@ -150,7 +150,7 @@ bool isValidProofOfWork(inout SHA1_hash from, inout PoW pow)
 
 bool isSatisfyDifficulty(inout PoW.Hash pow, inout Difficulty d) pure @nogc
 {
-    return pow.extractTarget() <= Difficulty.max - d;
+    return pow.extractTarget() <= ~d;
 }
 
 unittest
@@ -159,7 +159,7 @@ unittest
     auto hash = calcBlockHash(rec);
     
     PoW proof;
-    Difficulty smallDifficulty = 10;
+    Difficulty smallDifficulty = 5;
     
     ubyte[8] salt;
     do{
