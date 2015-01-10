@@ -68,11 +68,11 @@ bool calcPowWithTimeout(
         children ~= spawn(&worker, r);
     
     debug(PoWt) writeln("Wait for any child why solved PoW");
-    immutable isFound = receiveTimeout(duration,
+    bool isFound = receiveTimeout(duration,
         (PoW _pow){ pow = _pow; }
     );
     
-    debug(PoWt) writeln("PoW is "~(isFound?"":"not ")~"found, sending 'stop' for all threads");
+    debug(PoWt) writeln("Sending 'stop' for all threads");
     foreach(ref c; children)
         send(c, true);
     
@@ -84,10 +84,12 @@ bool calcPowWithTimeout(
         );
         
         /*
-         * mbox can also contain other "solved" messages from any
-         * another lucky threads - it is need to receive it too
+         * mbox also can contain other "solved" messages from any
+         * another lucky thread - it is need to receive it too
          */
-        receiveTimeout(dur!"seconds"(0), (records.PoW){});
+        receiveTimeout(dur!"seconds"(0),
+            (PoW _pow){ pow = _pow; isFound = true; }
+        );
         
         debug(PoWt) writeln("Child ", i, " terminated");
     }
