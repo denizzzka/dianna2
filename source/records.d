@@ -28,7 +28,7 @@ struct PoW
     Salt salt;
 }
 
-ulong extractReachedTarget(in PoW.Hash h) pure @nogc
+ulong extractTarget(in PoW.Hash h) pure @nogc
 {
     immutable offset = h.length - ulong.sizeof;
     
@@ -41,21 +41,21 @@ unittest
 {
     PoW pow;
     
-    assert(pow.hash.extractReachedTarget() == 0);
+    assert(pow.hash.extractTarget() == 0);
     
     pow.hash[24] = 1;
     
-    assert(pow.hash.extractReachedTarget() == 1);
+    assert(pow.hash.extractTarget() == 1);
     
     foreach(i; 24..32)
         pow.hash[i] = 0xff;
     
-    assert(pow.hash.extractReachedTarget() == ulong.max);
+    assert(pow.hash.extractTarget() == ulong.max);
     
     pow.hash[24] = 1;
     
-    assert(pow.hash.extractReachedTarget() < ulong.max);
-    assert(pow.hash.extractReachedTarget() > 1);
+    assert(pow.hash.extractTarget() < ulong.max);
+    assert(pow.hash.extractTarget() > 1);
 }
 
 struct Record
@@ -150,7 +150,7 @@ bool isValidProofOfWork(inout SHA1_hash from, inout PoW pow)
 
 bool isSatisfyDifficulty(inout PoW.Hash pow, inout Difficulty d) pure @nogc
 {
-    return pow.extractReachedTarget() <= Difficulty.max - d;
+    return pow.extractTarget() <= Difficulty.max - d;
 }
 
 unittest
