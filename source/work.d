@@ -127,11 +127,9 @@ unittest
     s.calcPowForNewRecords(ChainType.Test, 3);
     
     s.purge;
-    
-    benchmark();
 }
 
-
+/*
 void benchmark() @trusted
 {
     import std.stdio;
@@ -156,3 +154,4 @@ void benchmark() @trusted
     writeln("Hashes per second: ", (cast(float) hashes) / sw.peek.seconds);
     writeln("Elapsed time, seconds: ", sw.peek.seconds);
 }
+*/
