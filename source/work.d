@@ -33,14 +33,14 @@ void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @tr
         if(records.length == 0) return;
         assert(records.length == 1);
         
-        calcPowForRecord(records[0], threadsNum);
+        calcPowForRecord(records[0], 0xDFFFFFFFFFFFFFFF, threadsNum);
         
         s.setCalculatedPoW(records[0]);
     } while(records.length == 1);
     
 }
 
-void calcPowForRecord(ref Record r, in size_t threadsNum) @trusted
+void calcPowForRecord(ref Record r, inout Difficulty difficulty, inout size_t threadsNum) @trusted
 {
     Tid[] children;
     
@@ -50,7 +50,7 @@ void calcPowForRecord(ref Record r, in size_t threadsNum) @trusted
         Record* _r = new Record;
         *_r = r;
         
-        children ~= spawn(&worker, cast(shared Record*) _r);
+        children ~= spawn(&worker, cast(shared Record*) _r, difficulty);
     }
     
     debug(PoWt) writeln("Wait for any child why solved PoW");
@@ -78,7 +78,7 @@ void calcPowForRecord(ref Record r, in size_t threadsNum) @trusted
     }
 }
 
-private void worker(shared Record* r) @trusted
+private void worker(shared Record* r, Difficulty difficulty) @trusted
 {
     auto _r = cast(Record*) r;
     
@@ -100,7 +100,7 @@ private void worker(shared Record* r) @trusted
         
         _r.proofOfWork.hash = calcPoWHash(_r.calcHash, _r.proofOfWork.salt);
         
-        if(isSatisfyDifficulty(_r.proofOfWork.hash, 0xDFFFFFFFFFFFFFFF))
+        if(isSatisfyDifficulty(_r.proofOfWork.hash, difficulty))
         {
             debug(PoWt) writeln("PoW solved, worker ", id, ", proofOfWork=", _r.proofOfWork);
             
@@ -127,31 +127,37 @@ unittest
     s.calcPowForNewRecords(ChainType.Test, 3);
     
     s.purge;
+    
+    benchmark();
 }
 
-/*
 void benchmark() @trusted
 {
     import std.stdio;
     import std.datetime;
     import core.cpuid;
+    import std.random;
     
-    immutable size_t threads = threadsPerCPU();
-    StopWatch sw;    
-    Record r;
-    immutable hashes = 6;
+    
+    immutable threads = threadsPerCPU();
+    immutable hashesPerThread = 10;    
+    immutable hashes = hashesPerThread * threads;
+    
+    StopWatch sw;
     
     writeln("Starting benchmarking");
     writeln("Hashes: ", hashes, ", threads: ", threads);
     
     sw.start();
     
-    foreach(i; 1..hashes)
-        calcPowForRecord(r, threads);
+    foreach(n; 1..hashesPerThread)
+    {
+        Record r;
+        calcPowForRecord(r, 0, threads);
+    }
     
     sw.stop();
     
-    writeln("Hashes per second: ", (cast(float) hashes) / sw.peek.seconds);
-    writeln("Elapsed time, seconds: ", sw.peek.seconds);
+    writeln("Hashes per minute: ", (cast(float) hashes) / sw.peek.seconds * 60);
+    writeln("Elapsed time, minutes: ", cast(float) sw.peek.seconds / 60);
 }
-*/
