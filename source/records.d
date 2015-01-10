@@ -136,7 +136,7 @@ BlockHash calcBlockHash(inout Record[] records)
     return cast(BlockHash) hash.finish;
 }
 
-private void calcPoWHash(
+void calcPoWHash(
     inout ubyte[] from,
     ref PoW pow
 ) pure
@@ -147,17 +147,6 @@ private void calcPoWHash(
     immutable ubyte[20] sha1Hash = sha1Hasher.finish;
     
     calcScrypt(pow.hash, sha1Hash, pow.scryptSalt, 65536, 64, 1);
-}
-
-bool tryToCalcProofOfWork(
-    inout ubyte[] from,
-    inout Difficulty difficulty,
-    ref PoW pow
-) pure
-{
-    calcPoWHash(from, pow);
-    
-    return isSatisfyDifficulty(pow.hash, difficulty);
 }
 
 bool isValidPoW(inout ubyte[] from, inout PoW pow)
@@ -178,16 +167,17 @@ bool isSatisfyDifficulty(inout PoW.Hash pow, inout Difficulty d) pure @nogc
 unittest
 {
     Record[10] rec;
-    auto hash = calcBlockHash(rec);
+    auto hash = calcBlockHash(rec); // rename to from!
     
     PoW proof;
     Difficulty smallDifficulty = 5;
     
     do{
         genSalt(proof.salt);
+        calcPoWHash(hash, proof);
     }
     while(
-        !tryToCalcProofOfWork(hash, smallDifficulty, proof)
+        !isSatisfyDifficulty(proof.hash, smallDifficulty) // tryToCalcProofOfWork(hash, smallDifficulty, proof)
     );
     
     assert(isValidPoW(hash, proof));
