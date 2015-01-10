@@ -33,14 +33,15 @@ void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @tr
         if(records.length == 0) return;
         assert(records.length == 1);
         
-        calcPowForRecord(records[0], 0xDFFFFFFFFFFFFFFF, threadsNum);
+        records[0].difficulty = 0xDFFFFFFFFFFFFFFF;
+        calcPowForRecord(records[0], threadsNum);
         
         s.setCalculatedPoW(records[0]);
     } while(records.length == 1);
     
 }
 
-void calcPowForRecord(ref Record r, inout Difficulty difficulty, inout size_t threadsNum) @trusted
+void calcPowForRecord(ref Record r, inout size_t threadsNum) @trusted
 {
     immutable _r = cast(immutable Record) r;
     Tid[] children;
@@ -148,7 +149,7 @@ void benchmark() @trusted
     foreach(n; 1..hashesPerThread)
     {
         Record r;
-        calcPowForRecord(r, 0, threads);
+        calcPowForRecord(r, threads);
     }
     
     sw.stop();
