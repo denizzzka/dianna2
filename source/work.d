@@ -78,7 +78,7 @@ void calcPowForRecord(ref Record r, inout Difficulty difficulty, inout size_t th
     }
 }
 
-private void worker(shared Record* r, Difficulty difficulty) @trusted
+private void worker(shared Record* r, immutable Difficulty difficulty) @trusted
 {
     auto _r = cast(Record*) r;
     
