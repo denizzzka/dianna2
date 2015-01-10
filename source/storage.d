@@ -18,40 +18,40 @@ immutable string sqlRecordFields = q"EOS
     signature BLOB NOT NULL,
 EOS";
 
-immutable string[] sqlCreateSchema = [
+immutable string sqlCreateSchema =
 `CREATE TABLE IF NOT EXISTS records (
 `~sqlRecordFields~`
     blockNum INT NOT NULL,
     prevFilledBlockHash BLOB,
     proofOfWorkHash BLOB NOT NULL,
     proofOfWorkSalt BLOB NOT NULL
-)`,
+);
 
-`CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
+CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 `~sqlRecordFields~`
     blockNum INT,
     prevFilledBlockHash BLOB,
     proofOfWorkHash BLOB,
     proofOfWorkSalt BLOB
-)`,
+);
 
-`CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
-ON recordsAwaitingPublish(chainType, key, value, signature)`,
+CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
+ON recordsAwaitingPublish(chainType, key, value, signature);
 
-`CREATE INDEX IF NOT EXISTS prev_block
-ON records(prevFilledBlockHash)`,
+CREATE INDEX IF NOT EXISTS prev_block
+ON records(prevFilledBlockHash);
 
-`CREATE TABLE IF NOT EXISTS blocks (
+CREATE TABLE IF NOT EXISTS blocks (
     hash BLOB NOT NULL,
     blockNum INT,
     difficultyExponent INT NOT NULL,
     difficultyMantissa BLOB,
     prevFilledBlockHash BLOB
-)`,
+);
 
-`CREATE UNIQUE INDEX IF NOT EXISTS block_num
-ON blocks(hash)`
-];
+CREATE UNIQUE INDEX IF NOT EXISTS block_num
+ON blocks(hash);
+`;
 
 class Storage
 {
@@ -78,9 +78,7 @@ class Storage
             if(e.errno != EEXIST) throw e;
         
         db = Database(path);
-        
-        foreach(s; sqlCreateSchema)
-            db.execute(s);
+        db.run(sqlCreateSchema);
         
         qInsertRec = db.prepare(
 q"EOS
