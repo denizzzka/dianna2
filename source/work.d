@@ -37,42 +37,21 @@ void calcPowForNewRecords(Storage s, ChainType chainType, size_t threadsNum) @tr
         calcPowForRecord(records[0], threadsNum);
         
         s.setCalculatedPoW(records[0]);
-    } while(records.length == 1);
-    
+    }
+    while(records.length > 0);
 }
 
 void calcPowForRecord(ref Record r, inout size_t threadsNum) @trusted
 {
-    immutable _r = cast(immutable Record) r;
-    Tid[] children;
+    bool isFound;
     
-    debug(PoWt) writeln("Start workers");
-    foreach(i; 0..threadsNum)
-        children ~= spawn(&worker, _r);
-    
-    debug(PoWt) writeln("Wait for any child why solved PoW");
-    r.proofOfWork = receiveOnly!(PoW);
-    
-    debug(PoWt) writeln("PoW found, sending 'stop' for all threads");
-    foreach(ref c; children)
-        send(c, true);
-    
-    debug(PoWt) writeln("Wait for children termination");
-    foreach(i; 0..children.length)
+    do
     {
-        receive(
-            (ubyte){}
-        );
+        immutable _r = cast(immutable Record) r;
         
-        /*
-         * mbox can also contain other "solved" messages from any
-         * another lucky threads - it is need to receive it too
-         */
-        Duration dur;
-        receiveTimeout(dur, (records.PoW){});
-        
-        debug(PoWt) writeln("Child ", i, " terminated");
+        isFound = calcPowWithTimeout(_r, dur!"seconds"(10), threadsNum, r.proofOfWork);
     }
+    while(!isFound);
 }
 
 bool calcPowWithTimeout(
