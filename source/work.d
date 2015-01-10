@@ -90,8 +90,7 @@ private void worker(shared Record* r) @trusted
         debug(PoWt) writeln("Worker ", id, " iteration: ", i);
         
         // Generate random salt
-        ubyte[8] salt;
-        foreach(ref e; salt)
+        foreach(ref e; _r.proofOfWork.salt)
             e = uniform!ubyte;
         
         // "close this thread" message received?
@@ -99,7 +98,7 @@ private void worker(shared Record* r) @trusted
         if(receiveTimeout(dur, (bool){}))
             break;
         
-        if(tryToCalcProofOfWork(_r.calcHash, 0xEFFFFFFFFFFFFFFF, salt, _r.proofOfWork))
+        if(tryToCalcProofOfWork(_r.calcHash, 0xEFFFFFFFFFFFFFFF, _r.proofOfWork))
         {
             debug(PoWt) writeln("PoW solved, worker ", id, ", proofOfWork=", _r.proofOfWork);
             

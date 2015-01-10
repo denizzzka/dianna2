@@ -22,10 +22,20 @@ alias Difficulty = ulong;
 struct PoW
 {
     alias Hash = ubyte[32];
-    alias Salt = ubyte[8];
+    alias Salt = ubyte[16];
     
     Hash hash;
     Salt salt;
+    
+    ubyte[8] sha1Salt() pure @nogc @property
+    {
+        return salt[0..8];
+    }
+    
+    ubyte[8] scryptSalt() pure @nogc @property
+    {
+        return salt[8..16];
+    }
 }
 
 ulong extractTarget(in PoW.Hash h) pure @nogc
@@ -126,26 +136,38 @@ BlockHash calcBlockHash(inout Record[] records)
     return cast(BlockHash) hash.finish;
 }
 
-bool tryToCalcProofOfWork(
-    inout SHA1_hash from,
-    inout Difficulty difficulty,
-    inout PoW.Salt salt,
-    out PoW pow
+private void calcPoWHash(
+    inout ubyte[] from,
+    ref PoW pow
 ) pure
 {
-    pow.salt = salt;
-    calcScrypt(pow.hash, from, pow.salt, 65536, 64, 1);
+    SHA1 sha1Hasher;
+    sha1Hasher.put(pow.sha1Salt);
+    sha1Hasher.put(from);
+    immutable ubyte[20] sha1Hash = sha1Hasher.finish;
+    
+    calcScrypt(pow.hash, sha1Hash, pow.scryptSalt, 65536, 64, 1);
+}
+
+bool tryToCalcProofOfWork(
+    inout ubyte[] from,
+    inout Difficulty difficulty,
+    ref PoW pow
+) pure
+{
+    calcPoWHash(from, pow);
     
     return isSatisfyDifficulty(pow.hash, difficulty);
 }
 
-bool isValidProofOfWork(inout SHA1_hash from, inout PoW pow)
+bool isValidProofOfWork(inout ubyte[] from, inout PoW pow)
 {
-    typeof(PoW.hash) calculatedHash;
+    PoW calculatedPow;
+    calculatedPow.salt = pow.salt;
     
-    calcScrypt(calculatedHash, from, pow.salt, 65536, 64, 1);
+    calcPoWHash(from, calculatedPow);
     
-    return calculatedHash == pow.hash;
+    return calculatedPow.hash == pow.hash;
 }
 
 bool isSatisfyDifficulty(inout PoW.Hash pow, inout Difficulty d) pure @nogc
@@ -161,12 +183,11 @@ unittest
     PoW proof;
     Difficulty smallDifficulty = 5;
     
-    ubyte[8] salt;
     do{
-        genSalt(salt);
+        genSalt(proof.salt);
     }
     while(
-        !tryToCalcProofOfWork(hash, smallDifficulty, salt, proof)
+        !tryToCalcProofOfWork(hash, smallDifficulty, proof)
     );
     
     assert(isValidProofOfWork(hash, proof));
