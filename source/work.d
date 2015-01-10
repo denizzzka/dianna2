@@ -75,7 +75,7 @@ void calcPowForRecord(ref Record r, inout Difficulty difficulty, inout size_t th
 }
 
 private void worker(immutable Record r) @trusted
-{    
+{
     debug(PoWt) auto id = "(no id)";
     debug(PoWt) writeln("Worker ", id, " thread started for Record.key=", r.key);
     
