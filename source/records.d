@@ -160,7 +160,7 @@ bool tryToCalcProofOfWork(
     return isSatisfyDifficulty(pow.hash, difficulty);
 }
 
-bool isValidProofOfWork(inout ubyte[] from, inout PoW pow)
+bool isValidPoW(inout ubyte[] from, inout PoW pow)
 {
     PoW calculatedPow;
     calculatedPow.salt = pow.salt;
@@ -190,10 +190,10 @@ unittest
         !tryToCalcProofOfWork(hash, smallDifficulty, proof)
     );
     
-    assert(isValidProofOfWork(hash, proof));
+    assert(isValidPoW(hash, proof));
     assert(isSatisfyDifficulty(proof.hash, smallDifficulty));
     
     BlockHash zeroHash;
     assert(hash != zeroHash);
-    assert(!isValidProofOfWork(zeroHash, proof));
+    assert(!isValidPoW(zeroHash, proof));
 }
