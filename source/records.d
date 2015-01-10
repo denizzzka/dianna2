@@ -167,7 +167,7 @@ bool isSatisfyDifficulty(inout PoW.Hash pow, inout Difficulty d) pure @nogc
 unittest
 {
     Record[10] rec;
-    auto hash = calcBlockHash(rec); // rename to from!
+    immutable hash = calcBlockHash(rec);
     
     PoW proof;
     Difficulty smallDifficulty = 5;
@@ -177,7 +177,7 @@ unittest
         calcPoWHash(hash, proof);
     }
     while(
-        !isSatisfyDifficulty(proof.hash, smallDifficulty) // tryToCalcProofOfWork(hash, smallDifficulty, proof)
+        !isSatisfyDifficulty(proof.hash, smallDifficulty)
     );
     
     assert(isValidPoW(hash, proof));
