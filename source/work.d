@@ -4,6 +4,7 @@ import storage;
 import records;
 import generation;
 import core.time: Duration, dur;
+import core.cpuid: threadsPerCPU;
 debug(PoW) import std.stdio;
 
 
@@ -17,6 +18,20 @@ void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
     r.signature = new ubyte[10];
 
     s.addRecordAwaitingPoW(r);
+}
+
+void calcPowForRecord(ref Record r) @trusted
+{
+    immutable threads = threadsPerCPU;
+    bool isFound;
+    
+    do
+    {
+        immutable _r = cast(immutable Record) r;
+        
+        isFound = calcPowWithTimeout(_r, dur!"seconds"(10), threads, r.proofOfWork);
+    }
+    while(!isFound);
 }
 
 void calcPowForNewRecords(Storage s, ChainType chainType) @trusted

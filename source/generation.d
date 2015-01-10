@@ -4,23 +4,8 @@ import records;
 import core.time;
 import std.concurrency;
 import std.random: uniform;
-import core.cpuid: threadsPerCPU;
 debug(PoWt) import std.stdio; // PoWt == "PoW threads"
 
-
-void calcPowForRecord(ref Record r)
-{
-    immutable threads = threadsPerCPU;
-    bool isFound;
-    
-    do
-    {
-        immutable _r = cast(immutable Record) r;
-        
-        isFound = calcPowWithTimeout(_r, dur!"seconds"(10), threads, r.proofOfWork);
-    }
-    while(!isFound);
-}
 
 bool calcPowWithTimeout(
     immutable Record r,
@@ -103,6 +88,7 @@ void benchmark()
 {
     import std.stdio;
     import std.datetime;
+    import core.cpuid: threadsPerCPU;
     
     
     immutable threads = threadsPerCPU();
