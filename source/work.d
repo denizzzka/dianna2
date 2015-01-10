@@ -83,15 +83,15 @@ private void worker(immutable Record r) @trusted
     {
         debug(PoWt) writeln("Worker ", id, " iteration: ", i);
         
-        // Generate random salt
-        PoW pow;
-        foreach(ref e; pow.salt)
-            e = uniform!ubyte;
-        
         // "close this thread" message received?
         Duration dur;
         if(receiveTimeout(dur, (bool){}))
             break;
+        
+        // Generate random salt
+        PoW pow;
+        foreach(ref e; pow.salt)
+            e = uniform!ubyte;
         
         pow.hash = calcPoWHash(r.calcHash, pow.salt);
         
