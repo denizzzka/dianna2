@@ -98,7 +98,7 @@ private void worker(shared Record* r) @trusted
         if(receiveTimeout(dur, (bool){}))
             break;
         
-        calcPoWHash(_r.calcHash, _r.proofOfWork);
+        _r.proofOfWork.hash = calcPoWHash(_r.calcHash, _r.proofOfWork.salt);
         
         if(isSatisfyDifficulty(_r.proofOfWork.hash, 0xDFFFFFFFFFFFFFFF))
         {

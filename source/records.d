@@ -26,16 +26,6 @@ struct PoW
     
     Hash hash;
     Salt salt;
-    
-    ubyte[8] sha1Salt() pure @nogc @property
-    {
-        return salt[0..8];
-    }
-    
-    ubyte[8] scryptSalt() pure @nogc @property
-    {
-        return salt[8..16];
-    }
 }
 
 ulong extractTarget(in PoW.Hash h) pure @nogc
@@ -136,17 +126,20 @@ BlockHash calcBlockHash(inout Record[] records)
     return cast(BlockHash) hash.finish;
 }
 
-void calcPoWHash(
+PoW.Hash calcPoWHash(
     inout ubyte[] from,
-    ref PoW pow
+    inout PoW.Salt salt
 ) pure
 {
     SHA1 sha1Hasher;
-    sha1Hasher.put(pow.sha1Salt);
+    sha1Hasher.put(salt[0..8]);
     sha1Hasher.put(from);
     immutable ubyte[20] sha1Hash = sha1Hasher.finish;
     
-    calcScrypt(pow.hash, sha1Hash, pow.scryptSalt, 65536, 64, 1);
+    PoW.Hash hash;
+    calcScrypt(hash, sha1Hash, salt[8..16], 65536, 64, 1);
+    
+    return hash;
 }
 
 bool isValidPoW(inout ubyte[] from, inout PoW pow)
@@ -154,7 +147,7 @@ bool isValidPoW(inout ubyte[] from, inout PoW pow)
     PoW calculatedPow;
     calculatedPow.salt = pow.salt;
     
-    calcPoWHash(from, calculatedPow);
+    calculatedPow.hash = calcPoWHash(from, calculatedPow.salt);
     
     return calculatedPow.hash == pow.hash;
 }
@@ -174,7 +167,7 @@ unittest
     
     do{
         genSalt(proof.salt);
-        calcPoWHash(hash, proof);
+        proof.hash = calcPoWHash(hash, proof.salt);
     }
     while(
         !isSatisfyDifficulty(proof.hash, smallDifficulty)
