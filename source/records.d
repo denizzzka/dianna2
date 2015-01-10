@@ -69,7 +69,7 @@ struct Record
     PoW proofOfWork;
     Difficulty difficulty;
     
-    this(this)
+    this(this) pure
     {
         key = key.dup;
         value = value.dup;
