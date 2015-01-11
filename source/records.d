@@ -34,19 +34,11 @@ struct Hash(T)
 }
 
 alias SHA1Hash = Hash!(ubyte[20]);
+alias PoW = Hash!(ubyte[32]);
 alias RecordHash = SHA1Hash;
 alias BlockHash = SHA1Hash;
 alias Signature = ubyte[10];
 alias Difficulty = ulong;
-
-struct PoW
-{
-    alias Hash = ubyte[32];
-    alias Salt = ubyte[8];
-    
-    Hash hash;
-    Salt salt;
-}
 
 ulong extractTarget(in PoW.Hash h) pure @nogc
 {
