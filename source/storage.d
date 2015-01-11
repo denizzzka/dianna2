@@ -165,7 +165,7 @@ EOS"
         qInsertRec.bind(":value", r.value);
         qInsertRec.bind(":signature", r.signature);
         qInsertRec.bind(":blockNum", r.blockNum);
-        qInsertRec.bind(":prevFilledBlockHash", r.prevFilledBlock);
+        qInsertRec.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
         qInsertRec.bind(":proofOfWorkHash", r.proofOfWork.hash);
         qInsertRec.bind(":proofOfWorkSalt", r.proofOfWork.salt);
         
@@ -225,7 +225,7 @@ EOS"
         q.bind(":value", r.value);
         q.bind(":signature", r.signature);
         q.bind(":blockNum", r.blockNum);
-        q.bind(":prevFilledBlockHash", r.prevFilledBlock);
+        q.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
         q.bind(":proofOfWorkHash", r.proofOfWork.hash);
         q.bind(":proofOfWorkSalt", r.proofOfWork.salt);
         

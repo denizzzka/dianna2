@@ -13,9 +13,23 @@ enum ChainType: ushort
     Test
 }
 
-alias SHA1_hash = ubyte[20];
-alias RecordHash = SHA1_hash;
-alias BlockHash = SHA1_hash;
+struct SHA1Hash
+{
+    alias Hash = ubyte[20];
+    alias Salt = ubyte[4];
+    
+    Hash hash;
+    Salt salt;
+    
+    auto getUbytes() const pure
+    {
+        immutable ubyte[Hash.sizeof + Salt.sizeof] res = hash ~ salt;
+        return res;
+    }
+}
+
+alias RecordHash = SHA1Hash;
+alias BlockHash = SHA1Hash;
 alias Signature = ubyte[10];
 alias Difficulty = ulong;
 
@@ -83,7 +97,7 @@ struct Record
         res ~= key ~ value;
         res ~= signature;
         res ~= to!string(blockNum);
-        res ~= prevFilledBlock;
+        res ~= prevFilledBlock.getUbytes;
         res ~= proofOfWork.hash;
         res ~= proofOfWork.salt;
         res ~= to!string(difficulty);
@@ -126,14 +140,17 @@ BlockHash calcBlockHash(inout Record[] records)
     return cast(BlockHash) hash.finish;
 }
 
+//SHA1Hash calcSHA1Hash
+
 PoW.Hash calcPoWHash(
-    inout ubyte[] from,
+    inout SHA1Hash from,
     inout PoW.Salt salt
 ) pure
 {
     SHA1 sha1Hasher;
     sha1Hasher.put(salt[0..8]);
-    sha1Hasher.put(from);
+    sha1Hasher.put(from.hash);
+    sha1Hasher.put(from.salt);
     immutable ubyte[20] sha1Hash = sha1Hasher.finish;
     
     PoW.Hash hash;
@@ -142,7 +159,7 @@ PoW.Hash calcPoWHash(
     return hash;
 }
 
-bool isValidPoW(inout ubyte[] from, inout PoW pow)
+bool isValidPoW(inout SHA1Hash from, inout PoW pow)
 {
     PoW calculatedPow;
     calculatedPow.salt = pow.salt;
