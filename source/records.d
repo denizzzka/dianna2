@@ -13,9 +13,10 @@ enum ChainType: ushort
     Test
 }
 
-enum RecordType: ushort
+enum PayloadType: ushort
 {
-    DNS = 1
+    Test = 1,
+    DNS
 }
 
 struct Hash(T)
@@ -78,8 +79,8 @@ unittest
 struct Record
 {
     ChainType chainType;
-    ubyte[] key;
-    ubyte[] value;
+    PayloadType payloadType;
+    ubyte[] payload;
     uint blockNum;
     BlockHash prevFilledBlock;
     PoW proofOfWork;
@@ -87,8 +88,7 @@ struct Record
     
     this(this) pure
     {
-        key = key.dup;
-        value = value.dup;
+        payload = payload.dup;
     }
     
     ubyte[] serialize() const pure
@@ -96,7 +96,8 @@ struct Record
         ubyte[] res;
         
         res ~= to!string(chainType);
-        res ~= key ~ value;
+        res ~= to!string(payloadType);
+        res ~= payload;
         res ~= to!string(blockNum);
         res ~= prevFilledBlock.getUbytes;
         res ~= proofOfWork.hash;

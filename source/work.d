@@ -8,13 +8,13 @@ import core.cpuid: threadsPerCPU;
 debug(PoW) import std.stdio;
 
 
-void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
+void createNewRecord(Storage s, ubyte[] payload)
 {
     Record r;
     
     r.chainType = ChainType.Test;
-    r.key = key;
-    r.value = value;
+    r.payloadType = PayloadType.Test;
+    r.payload = payload;
     
     s.addRecordAwaitingPoW(r);
 }
@@ -58,9 +58,9 @@ unittest
 {
     auto s = new Storage("_unittest_work.sqlite");
     
-    s.createNewRecord([0x00, 0x01, 0x02], [0x11, 0x22, 0x33]);
-    s.createNewRecord([0x01, 0x01, 0x02], [0x11, 0x22, 0x33]);
-    s.createNewRecord([0x02, 0x01, 0x02], [0x11, 0x22, 0x33]);
+    s.createNewRecord([0x00, 0x01, 0x02]);
+    s.createNewRecord([0x01, 0x01, 0x02]);
+    s.createNewRecord([0x02, 0x01, 0x02]);
     
     auto r = s.getOldestRecordsAwaitingPoW(ChainType.Test, 2);
     assert(r.length == 2);

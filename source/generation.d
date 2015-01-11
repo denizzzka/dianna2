@@ -53,7 +53,7 @@ bool calcPowWithTimeout(
 private void worker(immutable Record r)
 {
     debug(PoWt) auto id = "(no id)";
-    debug(PoWt) writeln("Worker ", id, " thread started for Record.key=", r.key);
+    debug(PoWt) writeln("Worker ", id, " thread started for '", r.payloadType, "' payload ", r.payload);
     
     for(auto i = 1;; i++)
     {
