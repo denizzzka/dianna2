@@ -106,10 +106,16 @@ struct Record
     RecordHash calcHash() const pure
     {
         SHA1 hash;
+        RecordHash res;
         
-        hash.put(serialize());
+        res.fillSalt();
         
-        return cast(RecordHash) hash.finish;
+        hash.put(res.salt);
+        hash.put(serialize);
+        
+        res.hash = hash.finish;
+        
+        return res;
     }
 }
 
