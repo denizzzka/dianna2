@@ -16,7 +16,7 @@ enum ChainType: ushort
 struct SHA1Hash
 {
     alias Hash = ubyte[20];
-    alias Salt = ubyte[4];
+    alias Salt = ubyte[8];
     
     Hash hash;
     Salt salt;
