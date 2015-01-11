@@ -13,9 +13,9 @@ enum ChainType: ushort
     Test
 }
 
-struct SHA1Hash
+struct Hash(T)
 {
-    alias Hash = ubyte[20];
+    alias Hash = T;
     alias Salt = ubyte[8];
     
     Hash hash;
@@ -26,8 +26,14 @@ struct SHA1Hash
         immutable ubyte[Hash.sizeof + Salt.sizeof] res = hash ~ salt;
         return res;
     }
+    
+    void fillSalt()
+    {
+        genSalt(salt);
+    }
 }
 
+alias SHA1Hash = Hash!(ubyte[20]);
 alias RecordHash = SHA1Hash;
 alias BlockHash = SHA1Hash;
 alias Signature = ubyte[10];
@@ -36,7 +42,7 @@ alias Difficulty = ulong;
 struct PoW
 {
     alias Hash = ubyte[32];
-    alias Salt = ubyte[16];
+    alias Salt = ubyte[8];
     
     Hash hash;
     Salt salt;
@@ -140,23 +146,21 @@ BlockHash calcBlockHash(inout Record[] records)
     return cast(BlockHash) hash.finish;
 }
 
-//SHA1Hash calcSHA1Hash
-
 PoW.Hash calcPoWHash(
     inout SHA1Hash from,
     inout PoW.Salt salt
 ) pure
 {
     SHA1 sha1Hasher;
-    sha1Hasher.put(salt[0..8]);
     sha1Hasher.put(from.hash);
     sha1Hasher.put(from.salt);
+    sha1Hasher.put(salt);
     immutable ubyte[20] sha1Hash = sha1Hasher.finish;
     
-    PoW.Hash hash;
-    calcScrypt(hash, sha1Hash, salt[8..16], 65536, 64, 1);
+    PoW.Hash result;
+    calcScrypt(result, sha1Hash, null, 65536, 64, 1);
     
-    return hash;
+    return result;
 }
 
 bool isValidPoW(inout SHA1Hash from, inout PoW pow)
