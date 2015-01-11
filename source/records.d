@@ -130,6 +130,7 @@ unittest
     assert(calcCurrentFilledBlockNum > 32800);
 }
 
+@disable
 BlockHash calcBlockHash(inout Record[] records) pure
 {
     SHA1 hash;
