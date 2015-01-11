@@ -13,6 +13,11 @@ enum ChainType: ushort
     Test
 }
 
+enum RecordType: ushort
+{
+    DNS = 1
+}
+
 struct Hash(T)
 {
     alias Hash = T;
