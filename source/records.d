@@ -126,7 +126,7 @@ unittest
     assert(calcCurrentFilledBlockNum > 32800);
 }
 
-BlockHash calcBlockHash(inout Record[] records)
+BlockHash calcBlockHash(inout Record[] records) pure
 {
     SHA1 hash;
     
@@ -135,7 +135,14 @@ BlockHash calcBlockHash(inout Record[] records)
         hash.put(r.serialize);
     }
     
-    return cast(BlockHash) hash.finish;
+    BlockHash res;
+    res.fillSalt();
+    
+    hash.put(res.salt);
+    
+    res.hash = hash.finish;
+    
+    return res;
 }
 
 PoW.Hash calcPoWHash(
@@ -179,7 +186,7 @@ unittest
     immutable Difficulty smallDifficulty = 5;
     
     do{
-        genSalt(proof.salt);
+        proof.fillSalt();
         proof.hash = calcPoWHash(hash, proof.salt);
     }
     while(
