@@ -22,16 +22,14 @@ immutable string sqlCreateSchema =
 `~sqlRecordFields~`
     blockNum INT NOT NULL,
     prevFilledBlockHash BLOB,
-    proofOfWorkHash BLOB NOT NULL,
-    proofOfWorkSalt BLOB NOT NULL
+    proofOfWork BLOB NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 `~sqlRecordFields~`
     blockNum INT,
     prevFilledBlockHash BLOB,
-    proofOfWorkHash BLOB,
-    proofOfWorkSalt BLOB
+    proofOfWork BLOB
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
@@ -43,8 +41,7 @@ ON records(prevFilledBlockHash);
 CREATE TABLE IF NOT EXISTS blocks (
     hash BLOB NOT NULL,
     blockNum INT,
-    difficultyExponent INT NOT NULL,
-    difficultyMantissa BLOB,
+    difficulty INT NOT NULL,
     prevFilledBlockHash BLOB
 );
 
@@ -88,8 +85,7 @@ INSERT INTO records (
     payload,
     blockNum,
     prevFilledBlockHash,
-    proofOfWorkHash,
-    proofOfWorkSalt
+    proofOfWork
 )
 VALUES (
     0,
@@ -98,8 +94,7 @@ VALUES (
     :payload,
     :blockNum,
     :prevFilledBlockHash,
-    :proofOfWorkHash,
-    :proofOfWorkSalt
+    :proofOfWork
 )
 EOS"
         );
@@ -138,8 +133,7 @@ EOS"
             
             blockNum = :blockNum,
             prevFilledBlockHash = :prevFilledBlockHash,
-            proofOfWorkHash = :proofOfWorkHash,
-            proofOfWorkSalt = :proofOfWorkSalt
+            proofOfWork = :proofOfWork
                         
             WHERE chainType = :chainType
             AND payloadType = :payloadType
@@ -160,8 +154,7 @@ EOS"
         qInsertRec.bind(":payload", r.payload);
         qInsertRec.bind(":blockNum", r.blockNum);
         qInsertRec.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
-        qInsertRec.bind(":proofOfWorkHash", r.proofOfWork.hash);
-        qInsertRec.bind(":proofOfWorkSalt", r.proofOfWork.salt);
+        qInsertRec.bind(":proofOfWork", r.proofOfWork.getUbytes);
         
         qInsertRec.execute();
         assert(db.changes() == 1);
@@ -217,8 +210,7 @@ EOS"
         q.bind(":payload", r.payload);
         q.bind(":blockNum", r.blockNum);
         q.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
-        q.bind(":proofOfWorkHash", r.proofOfWork.hash);
-        q.bind(":proofOfWorkSalt", r.proofOfWork.salt);
+        q.bind(":proofOfWork", r.proofOfWork.getUbytes);
         
         q.execute();
         assert(db.changes() == 1);
