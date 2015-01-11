@@ -129,17 +129,14 @@ unittest
 BlockHash calcBlockHash(inout Record[] records) pure
 {
     SHA1 hash;
-    
-    foreach(ref r; records)
-    {
-        hash.put(r.serialize);
-    }
-    
     BlockHash res;
-    res.fillSalt();
     
+    res.fillSalt();
     hash.put(res.salt);
     
+    foreach(ref r; records)
+        hash.put(r.serialize);
+        
     res.hash = hash.finish;
     
     return res;
