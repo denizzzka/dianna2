@@ -15,7 +15,6 @@ immutable string sqlRecordFields = q"EOS
     chainType INT NOT NULL, -- 0 = real chain, 1 = test chain
     key BLOB NOT NULL,
     value BLOB NOT NULL,
-    signature BLOB NOT NULL,
 EOS";
 
 immutable string sqlCreateSchema =
@@ -36,7 +35,7 @@ CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
-ON recordsAwaitingPublish(chainType, key, value, signature);
+ON recordsAwaitingPublish(chainType, key, value);
 
 CREATE INDEX IF NOT EXISTS prev_block
 ON records(prevFilledBlockHash);
@@ -87,7 +86,6 @@ INSERT INTO records (
     chainType,
     key,
     value,
-    signature,
     blockNum,
     prevFilledBlockHash,
     proofOfWorkHash,
@@ -98,7 +96,6 @@ VALUES (
     :chainType,
     :key,
     :value,
-    :signature,
     :blockNum,
     :prevFilledBlockHash,
     :proofOfWorkHash,
@@ -112,23 +109,20 @@ EOS"
                 version,
                 chainType,
                 key,
-                value,
-                signature
+                value
             )
             VALUES (
                 0,
                 :chainType,
                 :key,
-                :value,
-                :signature
+                :value
             )
         ");
         
         qSelectOldestRecsAwaitingPublish = db.prepare("
             SELECT
                 key,
-                value,
-                signature
+                value
             FROM recordsAwaitingPublish
             WHERE version = 0
             AND chainType = :chainType
@@ -148,7 +142,6 @@ EOS"
             WHERE chainType = :chainType
             AND key = :key
             AND value = :value
-            AND signature = :signature
         ");
     }
     
@@ -163,7 +156,6 @@ EOS"
         qInsertRec.bind(":chainType", r.chainType);
         qInsertRec.bind(":key", r.key);
         qInsertRec.bind(":value", r.value);
-        qInsertRec.bind(":signature", r.signature);
         qInsertRec.bind(":blockNum", r.blockNum);
         qInsertRec.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
         qInsertRec.bind(":proofOfWorkHash", r.proofOfWork.hash);
@@ -181,7 +173,6 @@ EOS"
         q.bind(":chainType", r.chainType);
         q.bind(":key", r.key);
         q.bind(":value", r.value);
-        q.bind(":signature", r.signature);
         
         q.execute();
         assert(db.changes() == 1);
@@ -204,8 +195,7 @@ EOS"
             Record r = {
                 chainType: chainType,
                 key: row["key"].as!(ubyte[]),
-                value: row["value"].as!(ubyte[]),
-                signature: to!Signature(row["signature"].as!(ubyte[]))
+                value: row["value"].as!(ubyte[])
             };
             
             res ~= r;
@@ -223,7 +213,6 @@ EOS"
         q.bind(":chainType", r.chainType);
         q.bind(":key", r.key);
         q.bind(":value", r.value);
-        q.bind(":signature", r.signature);
         q.bind(":blockNum", r.blockNum);
         q.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
         q.bind(":proofOfWorkHash", r.proofOfWork.hash);
@@ -242,8 +231,7 @@ unittest
     Record r = {
         chainType: ChainType.Test,
         key: [0x6b, 0x6b, 0x6b, 0x6b],
-        value: [0x76, 0x76, 0x76, 0x76],
-        signature: [0x53, 0x49, 0x47, 0x4e]
+        value: [0x76, 0x76, 0x76, 0x76]
     };
     
     s.Insert(r);

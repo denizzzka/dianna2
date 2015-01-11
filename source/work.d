@@ -15,8 +15,7 @@ void createNewRecord(Storage s, ubyte[] key, ubyte[] value)
     r.chainType = ChainType.Test;
     r.key = key;
     r.value = value;
-    r.signature = new ubyte[10];
-
+    
     s.addRecordAwaitingPoW(r);
 }
 

@@ -75,7 +75,6 @@ struct Record
     ChainType chainType;
     ubyte[] key;
     ubyte[] value;
-    Signature signature;
     uint blockNum;
     BlockHash prevFilledBlock;
     PoW proofOfWork;
@@ -93,7 +92,6 @@ struct Record
         
         res ~= to!string(chainType);
         res ~= key ~ value;
-        res ~= signature;
         res ~= to!string(blockNum);
         res ~= prevFilledBlock.getUbytes;
         res ~= proofOfWork.hash;
