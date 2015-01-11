@@ -182,8 +182,8 @@ bool isSatisfyDifficulty(inout PoW.Hash pow, inout Difficulty d) pure @nogc
 
 unittest
 {
-    Record[10] rec;
-    immutable hash = calcBlockHash(rec);
+    Record r;
+    immutable hash = r.calcHash();
     
     PoW proof;
     immutable Difficulty smallDifficulty = 5;
