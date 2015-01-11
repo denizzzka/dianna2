@@ -87,7 +87,7 @@ private void worker(immutable Record r)
 void benchmark()
 {
     import std.stdio;
-    import std.datetime;
+    import std.datetime: StopWatch;
     import core.cpuid: threadsPerCPU;
     
     
@@ -107,7 +107,8 @@ void benchmark()
         immutable Record r;
         PoW pow;
         
-        calcPowWithTimeout(r, dur!"days"(365*10), threads, pow);
+        // Any timeout is usable here
+        calcPowWithTimeout(r, dur!"usecs"(0), threads, pow);
     }
     
     sw.stop();
