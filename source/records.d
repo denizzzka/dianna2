@@ -191,23 +191,23 @@ bool isSatisfyDifficulty(inout PoW.Hash pow, inout Difficulty d) pure @nogc
 unittest
 {
     Record r;
-    immutable hash = r.getFullRecordHashSource();
+    immutable src = r.getFullRecordHashSource();
     
     PoW proof;
     immutable Difficulty smallDifficulty = 5;
     
     do{
         proof.salt = PoW.genSaltFast();
-        proof.hash = calcPoWHash(hash, proof.salt);
+        proof.hash = calcPoWHash(src, proof.salt);
     }
     while(
         !isSatisfyDifficulty(proof.hash, smallDifficulty)
     );
     
-    assert(isValidPoW(hash, proof));
+    assert(isValidPoW(src, proof));
     assert(isSatisfyDifficulty(proof.hash, smallDifficulty));
     
-    ubyte[] zeroHash = [0, 0, 0, 0];
-    assert(hash != zeroHash);
-    assert(!isValidPoW(zeroHash, proof));
+    ubyte[] zeroes = [0, 0, 0, 0];
+    assert(src != zeroes);
+    assert(!isValidPoW(zeroes, proof));
 }
