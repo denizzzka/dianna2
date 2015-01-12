@@ -93,6 +93,7 @@ struct Record
     PayloadType payloadType;
     ubyte[] payload;
     uint blockNum;
+    RecordHash hash;
     BlockHash prevFilledBlock;
     PoW proofOfWork;
     Difficulty difficulty;
@@ -110,6 +111,7 @@ struct Record
         res ~= to!string(payloadType);
         res ~= payload;
         res ~= to!string(blockNum);
+        res ~= hash.getUbytes;
         res ~= prevFilledBlock.getUbytes;
         res ~= proofOfWork.hash;
         res ~= proofOfWork.salt;

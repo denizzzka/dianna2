@@ -7,19 +7,20 @@ debug(PoWt) import std.stdio; // PoWt == "PoW threads"
 
 
 bool calcPowWithTimeout(
-    immutable Record r,
+    immutable RecordHash recordHash,
+    immutable Difficulty difficulty,
     immutable Duration duration,
     immutable size_t threadsNum,
     out PoW pow
 )
 {
-    immutable RecordHash recordHash = r.calcHash();
-    
     Tid[] children;
     
+    debug(PoWt) writeln("Hash: ", recordHash);
+    debug(PoWt) writefln("Difficulty: %X", difficulty);
     debug(PoWt) writeln("Start workers");
     foreach(i; 0..threadsNum)
-        children ~= spawn(&worker, recordHash, r.difficulty);
+        children ~= spawn(&worker, recordHash, difficulty);
     
     debug(PoWt) writeln("Wait for any child why solved PoW");
     bool isFound = receiveTimeout(duration,
@@ -99,15 +100,17 @@ void benchmark()
     writeln("Starting benchmarking");
     writeln("Hashes: ", hashes, ", threads: ", threads);
     
+    immutable Record r;
+    immutable RecordHash h = r.calcHash();
+    
     sw.start();
     
     foreach(n; 1..hashesPerThread)
     {
-        immutable Record r;
         PoW pow;
         
         // Any timeout is usable here
-        calcPowWithTimeout(r, dur!"usecs"(0), threads, pow);
+        calcPowWithTimeout(h, 0, dur!"usecs"(0), threads, pow);
     }
     
     sw.stop();

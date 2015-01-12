@@ -28,7 +28,7 @@ private void calcPowForRecord(ref Record r) @trusted
     {
         immutable _r = cast(immutable Record) r;
         
-        isFound = calcPowWithTimeout(_r, dur!"seconds"(10), threads, r.proofOfWork);
+        isFound = calcPowWithTimeout(_r.hash, _r.difficulty, dur!"seconds"(10), threads, r.proofOfWork);
     }
     while(!isFound);
 }
@@ -46,8 +46,11 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
         if(records.length == 0) return;
         assert(records.length == 1);
         
-        records[0].difficulty = 0xDFFFFFFFFFFFFFFF;
-        calcPowForRecord(records[0]);
+        auto r = &records[0];
+        r.hash = r.calcHash();
+        r.difficulty = 0xDFFFFFFFFFFFFFFF;
+        
+        calcPowForRecord(*r);
         
         s.setCalculatedPoW(records[0]);
     }
