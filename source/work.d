@@ -15,6 +15,7 @@ void createNewRecord(Storage s, ubyte[] payload)
     r.chainType = ChainType.Test;
     r.payloadType = PayloadType.Test;
     r.payload = payload;
+    r.hash = r.calcHash();
     
     s.addRecordAwaitingPoW(r);
 }

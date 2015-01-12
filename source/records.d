@@ -122,7 +122,13 @@ struct Record
     
     RecordHash calcHash() const
     {
-        return serialize.calcSHA1Hash(RecordHash.genSalt());
+        ubyte[] b;
+        
+        b ~= to!string(chainType);
+        b ~= to!string(payloadType);
+        b ~= payload;
+        
+        return b.calcSHA1Hash(RecordHash.genSalt());
     }
 }
 

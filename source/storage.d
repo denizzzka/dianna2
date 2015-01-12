@@ -15,12 +15,12 @@ immutable string sqlRecordFields = q"EOS
     chainType INT NOT NULL, -- 0 = real chain, 1 = test chain
     payloadType INT NOT NULL,
     payload BLOB NOT NULL,
+    hash BLOB NOT NULL,
 EOS";
 
 immutable string sqlCreateSchema =
 `CREATE TABLE IF NOT EXISTS records (
 `~sqlRecordFields~`
-    hash BLOB NOT NULL,
     blockNum INT NOT NULL,
     prevFilledBlockHash BLOB,
     proofOfWork BLOB NOT NULL
@@ -28,7 +28,6 @@ immutable string sqlCreateSchema =
 
 CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 `~sqlRecordFields~`
-    hash BLOB,
     blockNum INT,
     prevFilledBlockHash BLOB,
     proofOfWork BLOB
@@ -108,13 +107,15 @@ EOS"
                 version,
                 chainType,
                 payloadType,
-                payload
+                payload,
+                hash
             )
             VALUES (
                 0,
                 :chainType,
                 :payloadType,
-                :payload
+                :payload,
+                :hash
             )
         ");
         
@@ -174,6 +175,7 @@ EOS"
         q.bind(":chainType", r.chainType);
         q.bind(":payloadType", r.payloadType);
         q.bind(":payload", r.payload);
+        q.bind(":hash", r.hash.getUbytes);
         
         q.execute();
         assert(db.changes() == 1);
