@@ -35,17 +35,22 @@ struct Hash(T)
         return res;
     }
     
-    void fillSalt()
-    {
-        salt = genSalt();
-    }
-    
-    static Salt genSalt() @trusted
+    static Salt genSaltFast() @trusted
     {
         Salt res;
+        
+        foreach(ref e; res)
+            e = uniform!ubyte;
+        
+        return res;
+    }
+    
+    static Salt genSaltExpensive() @trusted
+    {
+        Salt res;
+        
         res = cast(ubyte[]) read("/dev/urandom", Salt.sizeof);
-        import std.stdio;
-        writefln("new salt: %(%02X %)", res);
+        
         return res;
     }
 }
@@ -111,7 +116,7 @@ struct Record
         b ~= to!string(payloadType);
         b ~= payload;
         
-        return b.calcSHA1Hash(RecordHash.genSalt());
+        return b.calcSHA1Hash(RecordHash.genSaltExpensive());
     }
     
     ubyte[] getFullRecordHashSource() const pure
@@ -192,7 +197,7 @@ unittest
     immutable Difficulty smallDifficulty = 5;
     
     do{
-        proof.fillSalt();
+        proof.salt = PoW.genSaltFast();
         proof.hash = calcPoWHash(hash, proof.salt);
     }
     while(
