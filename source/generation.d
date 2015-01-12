@@ -16,7 +16,7 @@ bool calcPowWithTimeout(
 {
     Tid[] children;
     
-    debug(PoWt) writeln("Hash: ", recordHash);
+    debug(PoWt) writefln("Hash: %(%02X %)", recordHash.getUbytes);
     debug(PoWt) writefln("Difficulty: %X", difficulty);
     debug(PoWt) writeln("Start workers");
     foreach(i; 0..threadsNum)
@@ -55,7 +55,7 @@ bool calcPowWithTimeout(
 private void worker(immutable RecordHash rHash, immutable Difficulty difficulty)
 {
     debug(PoWt) auto id = "(no id)";
-    debug(PoWt) writeln("Worker ", id, " thread started for record hash ", rHash);
+    debug(PoWt) writefln("Worker %s thread started for record hash %(%02X %)", id, rHash.getUbytes);
     
     for(auto i = 1;; i++)
     {
@@ -73,7 +73,7 @@ private void worker(immutable RecordHash rHash, immutable Difficulty difficulty)
         
         if(isSatisfyDifficulty(pow.hash, difficulty))
         {
-            debug(PoWt) writeln("PoW solved, worker ", id, ", proofOfWork=", pow);
+            debug(PoWt) writefln("Solved by worker %s, PoW=%(%02X %)", id, pow.getUbytes);
             
             send(ownerTid(), pow);
             break;

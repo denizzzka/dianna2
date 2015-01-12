@@ -20,6 +20,7 @@ EOS";
 immutable string sqlCreateSchema =
 `CREATE TABLE IF NOT EXISTS records (
 `~sqlRecordFields~`
+    hash BLOB NOT NULL,
     blockNum INT NOT NULL,
     prevFilledBlockHash BLOB,
     proofOfWork BLOB NOT NULL
@@ -27,6 +28,7 @@ immutable string sqlCreateSchema =
 
 CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 `~sqlRecordFields~`
+    hash BLOB,
     blockNum INT,
     prevFilledBlockHash BLOB,
     proofOfWork BLOB
@@ -83,6 +85,7 @@ INSERT INTO records (
     chainType,
     payloadType,
     payload,
+    hash,
     blockNum,
     prevFilledBlockHash,
     proofOfWork
@@ -92,6 +95,7 @@ VALUES (
     :chainType,
     :payloadType,
     :payload,
+    :hash,
     :blockNum,
     :prevFilledBlockHash,
     :proofOfWork
@@ -131,6 +135,7 @@ EOS"
         qUpdateCalculatedPoW = db.prepare("
             UPDATE recordsAwaitingPublish SET
             
+            hash = :hash,
             blockNum = :blockNum,
             prevFilledBlockHash = :prevFilledBlockHash,
             proofOfWork = :proofOfWork
@@ -152,6 +157,7 @@ EOS"
         qInsertRec.bind(":chainType", r.chainType);
         qInsertRec.bind(":payloadType", r.payloadType);
         qInsertRec.bind(":payload", r.payload);
+        qInsertRec.bind(":hash", r.hash.getUbytes);
         qInsertRec.bind(":blockNum", r.blockNum);
         qInsertRec.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
         qInsertRec.bind(":proofOfWork", r.proofOfWork.getUbytes);
@@ -208,6 +214,7 @@ EOS"
         q.bind(":chainType", r.chainType);
         q.bind(":payloadType", r.payloadType);
         q.bind(":payload", r.payload);
+        q.bind(":hash", r.hash.getUbytes);
         q.bind(":blockNum", r.blockNum);
         q.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
         q.bind(":proofOfWork", r.proofOfWork.getUbytes);

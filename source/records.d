@@ -92,8 +92,8 @@ struct Record
     ChainType chainType;
     PayloadType payloadType;
     ubyte[] payload;
-    uint blockNum;
     RecordHash hash;
+    uint blockNum;
     BlockHash prevFilledBlock;
     PoW proofOfWork;
     Difficulty difficulty;
