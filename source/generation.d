@@ -67,8 +67,8 @@ private void worker(immutable ubyte[] from, immutable Difficulty difficulty)
             break;
         
         PoW pow;
-        pow.salt = PoW.genSaltFast();
         
+        pow.salt = PoW.genSaltFast();
         pow.hash = calcPoWHash(from, pow.salt);
         
         if(isSatisfyDifficulty(pow.hash, difficulty))
