@@ -3,7 +3,6 @@
 import records;
 import core.time;
 import std.concurrency;
-import std.random: uniform;
 debug(PoWt) import std.stdio; // PoWt == "PoW threads"
 
 
@@ -14,11 +13,13 @@ bool calcPowWithTimeout(
     out PoW pow
 )
 {
+    immutable RecordHash recordHash = r.calcHash();
+    
     Tid[] children;
     
     debug(PoWt) writeln("Start workers");
     foreach(i; 0..threadsNum)
-        children ~= spawn(&worker, r);
+        children ~= spawn(&worker, recordHash, r.difficulty);
     
     debug(PoWt) writeln("Wait for any child why solved PoW");
     bool isFound = receiveTimeout(duration,
@@ -50,10 +51,10 @@ bool calcPowWithTimeout(
     return isFound;
 }
 
-private void worker(immutable Record r)
+private void worker(immutable RecordHash rHash, immutable Difficulty difficulty)
 {
     debug(PoWt) auto id = "(no id)";
-    debug(PoWt) writeln("Worker ", id, " thread started for '", r.payloadType, "' payload ", r.payload);
+    debug(PoWt) writeln("Worker ", id, " thread started for record hash ", rHash);
     
     for(auto i = 1;; i++)
     {
@@ -64,14 +65,12 @@ private void worker(immutable Record r)
         if(receiveTimeout(dur, (bool){}))
             break;
         
-        // Generate random salt
         PoW pow;
-        foreach(ref e; pow.salt)
-            e = uniform!ubyte;
+        pow.fillSalt();
         
-        pow.hash = calcPoWHash(r.calcHash, pow.salt);
+        pow.hash = calcPoWHash(rHash, pow.salt);
         
-        if(isSatisfyDifficulty(pow.hash, r.difficulty))
+        if(isSatisfyDifficulty(pow.hash, difficulty))
         {
             debug(PoWt) writeln("PoW solved, worker ", id, ", proofOfWork=", pow);
             

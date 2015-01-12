@@ -4,7 +4,8 @@ import std.datetime;
 import std.conv;
 import std.digest.sha;
 import std.bitmanip;
-import scrypt;
+import std.random: uniform;
+import scrypt: calcScrypt;
 
 
 enum ChainType: ushort
@@ -35,7 +36,17 @@ struct Hash(T)
     
     void fillSalt()
     {
-        genSalt(salt);
+        salt = genSalt();
+    }
+    
+    static Salt genSalt() @trusted
+    {
+        Salt res;
+        
+        foreach(ref e; res)
+            e = uniform!ubyte;
+        
+        return res;
     }
 }
 
@@ -107,20 +118,24 @@ struct Record
         return res;
     }
     
-    RecordHash calcHash() const pure
+    RecordHash calcHash() const
     {
-        SHA1 hash;
-        RecordHash res;
-        
-        res.fillSalt();
-        
-        hash.put(res.salt);
-        hash.put(serialize);
-        
-        res.hash = hash.finish;
-        
-        return res;
+        return serialize.calcSHA1Hash(RecordHash.genSalt());
     }
+}
+
+SHA1Hash calcSHA1Hash(inout ubyte[] from, inout SHA1Hash.Salt salt) pure
+{
+    SHA1Hash res;
+    
+    SHA1 _hash;
+    _hash.put(from);
+    _hash.put(salt);
+    
+    res.hash = _hash.finish;
+    res.salt = salt;
+    
+    return res;
 }
 
 immutable half_block_duration_hours = 12;
@@ -136,36 +151,16 @@ unittest
     assert(calcCurrentFilledBlockNum > 32800);
 }
 
-@disable
-BlockHash calcBlockHash(inout Record[] records) pure
-{
-    SHA1 hash;
-    BlockHash res;
-    
-    res.fillSalt();
-    hash.put(res.salt);
-    
-    foreach(ref r; records)
-        hash.put(r.serialize);
-        
-    res.hash = hash.finish;
-    
-    return res;
-}
-
 PoW.Hash calcPoWHash(
-    inout SHA1Hash from,
+    inout RecordHash from,
     inout PoW.Salt salt
 ) pure
 {
-    SHA1 sha1Hasher;
-    sha1Hasher.put(from.hash);
-    sha1Hasher.put(from.salt);
-    sha1Hasher.put(salt);
-    immutable ubyte[20] sha1Hash = sha1Hasher.finish;
+    immutable SHA1Hash firstHash = from.getUbytes.calcSHA1Hash(salt);
     
     PoW.Hash result;
-    calcScrypt(result, sha1Hash, null, 65536, 64, 1);
+    
+    calcScrypt(result, firstHash.getUbytes, null, 65536, 64, 1);
     
     return result;
 }
