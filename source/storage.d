@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
-ON recordsAwaitingPublish(chainType, payloadType, payload);
+ON recordsAwaitingPublish(chainType, hash);
 
 CREATE INDEX IF NOT EXISTS prev_block
 ON records(prevFilledBlockHash);
@@ -121,11 +121,11 @@ EOS"
         
         qSelectOldestRecsAwaitingPublish = db.prepare("
             SELECT
+                chainType,
                 payloadType,
-                payload
-                
+                payload,
+                hash
             FROM recordsAwaitingPublish
-            
             WHERE version = 0
             AND chainType = :chainType
             AND blockNum IS NULL -- means that hash and other is not calculated
@@ -195,10 +195,18 @@ EOS"
         
         foreach(row; queryRes)
         {
+            ubyte[] hashRow = row["hash"].as!(ubyte[]);
+            
+            immutable RecordHash hash = {
+                hash: hashRow[0..RecordHash.Hash.sizeof],
+                salt: hashRow[RecordHash.Hash.sizeof..RecordHash.Hash.sizeof+RecordHash.Salt.sizeof]
+            };
+            
             Record r = {
                 chainType: chainType,
                 payloadType: row["payloadType"].as!PayloadType,
-                payload: row["payload"].as!(ubyte[])
+                payload: row["payload"].as!(ubyte[]),
+                hash: hash
             };
             
             res ~= r;

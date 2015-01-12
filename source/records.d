@@ -6,6 +6,7 @@ import std.digest.sha;
 import std.bitmanip;
 import std.random: uniform;
 import scrypt: calcScrypt;
+import std.file: read;
 
 
 enum ChainType: ushort
@@ -42,10 +43,9 @@ struct Hash(T)
     static Salt genSalt() @trusted
     {
         Salt res;
-        
-        foreach(ref e; res)
-            e = uniform!ubyte;
-        
+        res = cast(ubyte[]) read("/dev/urandom", Salt.sizeof);
+        import std.stdio;
+        writefln("new salt: %(%02X %)", res);
         return res;
     }
 }
@@ -103,24 +103,7 @@ struct Record
         payload = payload.dup;
     }
     
-    ubyte[] serialize() const pure
-    {
-        ubyte[] res;
-        
-        res ~= to!string(chainType);
-        res ~= to!string(payloadType);
-        res ~= payload;
-        res ~= to!string(blockNum);
-        res ~= hash.getUbytes;
-        res ~= prevFilledBlock.getUbytes;
-        res ~= proofOfWork.hash;
-        res ~= proofOfWork.salt;
-        res ~= to!string(difficulty);
-        
-        return res;
-    }
-    
-    RecordHash calcHash() const
+    RecordHash calcPayloadHash() const
     {
         ubyte[] b;
         
@@ -129,6 +112,18 @@ struct Record
         b ~= payload;
         
         return b.calcSHA1Hash(RecordHash.genSalt());
+    }
+    
+    ubyte[] getFullRecordHashSource() const pure
+    {
+        ubyte[] res;
+        
+        res ~= hash.getUbytes;
+        res ~= to!string(blockNum);
+        res ~= prevFilledBlock.getUbytes;
+        res ~= to!string(difficulty);
+        
+        return res;
     }
 }
 
@@ -160,11 +155,11 @@ unittest
 }
 
 PoW.Hash calcPoWHash(
-    inout RecordHash from,
+    inout ubyte[] from,
     inout PoW.Salt salt
 ) pure
 {
-    immutable SHA1Hash firstHash = from.getUbytes.calcSHA1Hash(salt);
+    immutable SHA1Hash firstHash = from.calcSHA1Hash(salt);
     
     PoW.Hash result;
     
@@ -173,7 +168,7 @@ PoW.Hash calcPoWHash(
     return result;
 }
 
-bool isValidPoW(inout SHA1Hash from, inout PoW pow)
+bool isValidPoW(inout ubyte[] from, inout PoW pow)
 {
     PoW calculatedPow;
     calculatedPow.salt = pow.salt;
@@ -191,7 +186,7 @@ bool isSatisfyDifficulty(inout PoW.Hash pow, inout Difficulty d) pure @nogc
 unittest
 {
     Record r;
-    immutable hash = r.calcHash();
+    immutable hash = r.getFullRecordHashSource();
     
     PoW proof;
     immutable Difficulty smallDifficulty = 5;
@@ -207,7 +202,7 @@ unittest
     assert(isValidPoW(hash, proof));
     assert(isSatisfyDifficulty(proof.hash, smallDifficulty));
     
-    BlockHash zeroHash;
+    ubyte[] zeroHash = [0, 0, 0, 0];
     assert(hash != zeroHash);
     assert(!isValidPoW(zeroHash, proof));
 }

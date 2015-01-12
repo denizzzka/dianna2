@@ -7,7 +7,7 @@ debug(PoWt) import std.stdio; // PoWt == "PoW threads"
 
 
 bool calcPowWithTimeout(
-    immutable RecordHash recordHash,
+    immutable ubyte[] from,
     immutable Difficulty difficulty,
     immutable Duration duration,
     immutable size_t threadsNum,
@@ -16,11 +16,11 @@ bool calcPowWithTimeout(
 {
     Tid[] children;
     
-    debug(PoWt) writefln("Hash: %(%02X %)", recordHash.getUbytes);
+    debug(PoWt) writefln("Target: %(%02X %)", from);
     debug(PoWt) writefln("Difficulty: %X", difficulty);
     debug(PoWt) writeln("Start workers");
     foreach(i; 0..threadsNum)
-        children ~= spawn(&worker, recordHash, difficulty);
+        children ~= spawn(&worker, from, difficulty);
     
     debug(PoWt) writeln("Wait for any child why solved PoW");
     bool isFound = receiveTimeout(duration,
@@ -52,10 +52,10 @@ bool calcPowWithTimeout(
     return isFound;
 }
 
-private void worker(immutable RecordHash rHash, immutable Difficulty difficulty)
+private void worker(immutable ubyte[] from, immutable Difficulty difficulty)
 {
     debug(PoWt) auto id = "(no id)";
-    debug(PoWt) writefln("Worker %s thread started for record hash %(%02X %)", id, rHash.getUbytes);
+    debug(PoWt) writefln("Worker %s thread started for: %(%02X %)", id, from);
     
     for(auto i = 1;; i++)
     {
@@ -69,7 +69,7 @@ private void worker(immutable RecordHash rHash, immutable Difficulty difficulty)
         PoW pow;
         pow.fillSalt();
         
-        pow.hash = calcPoWHash(rHash, pow.salt);
+        pow.hash = calcPoWHash(from, pow.salt);
         
         if(isSatisfyDifficulty(pow.hash, difficulty))
         {
@@ -100,8 +100,7 @@ void benchmark()
     writeln("Starting benchmarking");
     writeln("Hashes: ", hashes, ", threads: ", threads);
     
-    immutable Record r;
-    immutable RecordHash h = r.calcHash();
+    immutable ubyte[64] h;
     
     sw.start();
     

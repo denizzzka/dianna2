@@ -15,7 +15,7 @@ void createNewRecord(Storage s, ubyte[] payload)
     r.chainType = ChainType.Test;
     r.payloadType = PayloadType.Test;
     r.payload = payload;
-    r.hash = r.calcHash();
+    r.hash = r.calcPayloadHash();
     
     s.addRecordAwaitingPoW(r);
 }
@@ -28,8 +28,9 @@ private void calcPowForRecord(ref Record r) @trusted
     do
     {
         immutable _r = cast(immutable Record) r;
+        immutable f = _r.getFullRecordHashSource();
         
-        isFound = calcPowWithTimeout(_r.hash, _r.difficulty, dur!"seconds"(10), threads, r.proofOfWork);
+        isFound = calcPowWithTimeout(f, _r.difficulty, dur!"seconds"(10), threads, r.proofOfWork);
     }
     while(!isFound);
 }
@@ -48,12 +49,11 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
         assert(records.length == 1);
         
         auto r = &records[0];
-        r.hash = r.calcHash();
         r.difficulty = 0xDFFFFFFFFFFFFFFF;
         
         calcPowForRecord(*r);
         
-        s.setCalculatedPoW(records[0]);
+        s.setCalculatedPoW(*r);
     }
     while(records.length > 0);
 }
