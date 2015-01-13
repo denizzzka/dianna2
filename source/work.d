@@ -41,7 +41,7 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     
     do
     {
-        records = s.getOldestRecordsAwaitingPoW(chainType, 1);
+        records = s.getOldestRecordsAwaitingPublish(chainType, false, 1);
         
         debug(PoW) writeln("Got ", records.length, " record(s) awaiting PoW");
         
@@ -66,7 +66,7 @@ unittest
     s.createNewRecord([0x01, 0x01, 0x02]);
     s.createNewRecord([0x02, 0x01, 0x02]);
     
-    auto r = s.getOldestRecordsAwaitingPoW(ChainType.Test, 2);
+    auto r = s.getOldestRecordsAwaitingPublish(ChainType.Test, false, 2);
     assert(r.length == 2);
     
     s.calcPowForNewRecords(ChainType.Test);

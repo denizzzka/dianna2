@@ -130,7 +130,7 @@ EOS"
                 hash
             FROM recordsAwaitingPublish
             WHERE chainType = :chainType
-            AND blockNum IS NULL -- means that hash and other is not calculated
+            AND (proofOfWork IS NOT NULL) = (:hasPoW != 0)
             ORDER BY rowid
             LIMIT :num
         ");
@@ -186,11 +186,12 @@ EOS"
         q.reset();
     }
     
-    Record[] getOldestRecordsAwaitingPoW(ChainType chainType, size_t num)
+    Record[] getOldestRecordsAwaitingPublish(ChainType chainType, bool hasPoW, size_t num)
     {
         alias q = qSelectOldestRecsAwaitingPublish;
         
         q.bind(":chainType", chainType);
+        q.bind(":hasPoW", hasPoW ? 1 : 0);
         q.bind(":num", num);
         
         auto queryRes = q.execute();
