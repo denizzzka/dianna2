@@ -62,7 +62,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS blocksContents_uniq
 ON blocksContents(blockHash, recordHash);
 
 CREATE TRIGGER IF NOT EXISTS blocksFilling
-AFTER INSERT ON blocks FOR EACH ROW
+AFTER INSERT ON records FOR EACH ROW
 BEGIN
 select hashFunc('123');
 END;
@@ -96,6 +96,18 @@ class Storage
             if(e.errno != EEXIST) throw e;
         
         db = Database(path);
+        
+        sqlite3_create_function(
+            db.handle,
+            "hashFunc",
+            1,
+            SQLITE_UTF8,
+            null,
+            &hashFunc,
+            null,
+            null
+        );
+        
         db.run(sqlCreateSchema);
         
         qInsertRecAwaitingPublish = db.prepare("
@@ -165,17 +177,6 @@ class Storage
                 :prevFilledBlockHash,
                 :proofOfWork
             )`
-        );
-        
-        sqlite3_create_function(
-            db.handle,
-            "hashFunc",
-            1,
-            SQLITE_UTF8,
-            null,
-            &hashFunc,
-            null,
-            null
         );
     }
     
