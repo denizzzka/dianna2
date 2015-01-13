@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS blocks (
     prevFilledBlockHash BLOB INT NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS block_hash
+CREATE UNIQUE INDEX IF NOT EXISTS blocks_uniq
 ON blocks(hash);
 
 CREATE TABLE IF NOT EXISTS blocksContents (
@@ -60,6 +60,12 @@ CREATE TABLE IF NOT EXISTS blocksContents (
 
 CREATE UNIQUE INDEX IF NOT EXISTS blocksContents_uniq
 ON blocksContents(blockHash, recordHash);
+
+CREATE TRIGGER IF NOT EXISTS blocksFilling
+AFTER INSERT ON blocks FOR EACH ROW
+BEGIN
+select 1;
+END;
 `;
 
 class Storage
@@ -68,11 +74,13 @@ class Storage
     Database db;
     
     private Statement
-        qInsertRec,
         qInsertRecAwaitingPublish,
         qSelectOldestRecsAwaitingPublish,
         qUpdateCalculatedPoW,
-        qDeleteRecordAwaitingPublish;
+        qDeleteRecordAwaitingPublish,
+        qInsertRecord,
+        BEGIN_TRANSACTION,
+        COMMIT_TRANSACTION;
     
     this(string filename)
     {
@@ -89,31 +97,6 @@ class Storage
         
         db = Database(path);
         db.run(sqlCreateSchema);
-        
-        qInsertRec = db.prepare(
-q"EOS
-INSERT INTO records (
-    version,
-    chainType,
-    payloadType,
-    payload,
-    hash,
-    blockNum,
-    prevFilledBlockHash,
-    proofOfWork
-)
-VALUES (
-    1,
-    :chainType,
-    :payloadType,
-    :payload,
-    :hash,
-    :blockNum,
-    :prevFilledBlockHash,
-    :proofOfWork
-)
-EOS"
-        );
         
         qInsertRecAwaitingPublish = db.prepare("
             INSERT INTO recordsAwaitingPublish (
@@ -157,6 +140,32 @@ EOS"
             DELETE FROM recordsAwaitingPublish
             WHERE hash = :hash
         ");
+        
+        BEGIN_TRANSACTION = db.prepare("BEGIN TRANSACTION");
+        COMMIT_TRANSACTION = db.prepare("COMMIT TRANSACTION");
+        
+        qInsertRecord = db.prepare(
+            `INSERT INTO records (
+                version,
+                chainType,
+                payloadType,
+                payload,
+                hash,
+                blockNum,
+                prevFilledBlockHash,
+                proofOfWork
+            )
+            VALUES (
+                1,
+                :chainType,
+                :payloadType,
+                :payload,
+                :recordHash,
+                :blockNum,
+                :prevFilledBlockHash,
+                :proofOfWork
+            )`
+        );
     }
     
     version(unittest)
@@ -165,22 +174,24 @@ EOS"
         remove(path);
     }
     
-    void Insert(Record r)
+    void Insert(in Record r)
     {
-        qInsertRec.bind(":chainType", r.chainType);
-        qInsertRec.bind(":payloadType", r.payloadType);
-        qInsertRec.bind(":payload", r.payload);
-        qInsertRec.bind(":hash", r.hash.getUbytes);
-        qInsertRec.bind(":blockNum", r.blockNum);
-        qInsertRec.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
-        qInsertRec.bind(":proofOfWork", r.proofOfWork.getUbytes);
+        alias e = qInsertRecord;
         
-        qInsertRec.execute();
+        e.bind(":chainType", r.chainType);
+        e.bind(":payloadType", r.payloadType);
+        e.bind(":payload", r.payload);
+        e.bind(":recordHash", r.hash.getUbytes);
+        e.bind(":blockNum", r.blockNum);
+        e.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
+        e.bind(":proofOfWork", r.proofOfWork.getUbytes);
+        
+        e.execute();
         assert(db.changes() == 1);
-        qInsertRec.reset();
+        e.reset();
     }
     
-    void addRecordAwaitingPoW(ref Record r)
+    void addRecordAwaitingPoW(in Record r)
     {
         alias q = qInsertRecAwaitingPublish;
         
