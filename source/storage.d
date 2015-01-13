@@ -181,16 +181,6 @@ class Storage
         );
     }
     
-    //~ SHA1Hash res;
-    
-    //~ SHA1 _hash;
-    //~ _hash.put(from);
-    //~ _hash.put(salt);
-    
-    //~ res.hash = _hash.finish;
-    //~ res.salt = salt;
-    
-    //~ return res;
     extern (C)
     private static void xStepSHA1Func(sqlite3_context *ct, int argc, sqlite3_value **argv)
     {
