@@ -26,6 +26,9 @@ immutable string sqlCreateSchema =
     proofOfWork BLOB NOT NULL
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS records_uniq
+ON records(proofOfWork);
+
 CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 `~sqlRecordFields~`
     blockNum INT,
@@ -34,7 +37,7 @@ CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
-ON recordsAwaitingPublish(chainType, hash);
+ON recordsAwaitingPublish(hash);
 
 CREATE INDEX IF NOT EXISTS prev_block
 ON records(prevFilledBlockHash);
