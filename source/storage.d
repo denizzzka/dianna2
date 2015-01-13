@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS blocks (
     blockNum INT NOT NULL,
     difficulty INT NOT NULL,
     recordsNum INT NOT NULL,
-    prevFilledBlockHash BLOB
+    prevFilledBlockHash BLOB INT NOT NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS block_hash
@@ -63,7 +63,8 @@ class Storage
         qInsertRec,
         qInsertRecAwaitingPublish,
         qSelectOldestRecsAwaitingPublish,
-        qUpdateCalculatedPoW;
+        qUpdateCalculatedPoW,
+        qDeleteRecordAwaitingPublish;
     
     this(string filename)
     {
@@ -141,6 +142,11 @@ EOS"
             prevFilledBlockHash = :prevFilledBlockHash,
             proofOfWork = :proofOfWork
                         
+            WHERE hash = :hash
+        ");
+        
+        qDeleteRecordAwaitingPublish = db.prepare("
+            DELETE FROM recordsAwaitingPublish
             WHERE hash = :hash
         ");
     }
@@ -228,6 +234,17 @@ EOS"
         assert(db.changes() == 1);
         q.reset();
     }
+    
+    void deleteRecordAwaitingPoW(inout RecordHash h)
+    {
+        alias q = qDeleteRecordAwaitingPublish;
+        
+        q.bind(":hash", h.getUbytes);
+        
+        q.execute();
+        assert(db.changes() == 1);
+        q.reset();
+    }
 }
 
 unittest
@@ -246,6 +263,8 @@ unittest
     
     r.proofOfWork.hash[0..3] = [0x48, 0x48, 0x48];
     s.setCalculatedPoW(r);
+    
+    s.deleteRecordAwaitingPoW(r.hash);
     
     s.purge;
 }
