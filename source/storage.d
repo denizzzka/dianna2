@@ -11,7 +11,6 @@ import std.conv: to;
 
 
 immutable string sqlRecordFields = q"EOS
-    version INT NOT NULL,
     chainType INT NOT NULL, -- 0 = real chain, 1 = test chain
     payloadType INT NOT NULL,
     payload BLOB NOT NULL,
@@ -21,6 +20,7 @@ EOS";
 immutable string sqlCreateSchema =
 `CREATE TABLE IF NOT EXISTS records (
 `~sqlRecordFields~`
+    version INT NOT NULL,
     blockNum INT NOT NULL,
     prevFilledBlockHash BLOB,
     proofOfWork BLOB NOT NULL
@@ -94,7 +94,7 @@ INSERT INTO records (
     proofOfWork
 )
 VALUES (
-    0,
+    1,
     :chainType,
     :payloadType,
     :payload,
@@ -108,14 +108,12 @@ EOS"
         
         qInsertRecAwaitingPublish = db.prepare("
             INSERT INTO recordsAwaitingPublish (
-                version,
                 chainType,
                 payloadType,
                 payload,
                 hash
             )
             VALUES (
-                0,
                 :chainType,
                 :payloadType,
                 :payload,
@@ -130,8 +128,7 @@ EOS"
                 payload,
                 hash
             FROM recordsAwaitingPublish
-            WHERE version = 0
-            AND chainType = :chainType
+            WHERE chainType = :chainType
             AND blockNum IS NULL -- means that hash and other is not calculated
             ORDER BY rowid
             LIMIT :num
