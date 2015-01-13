@@ -8,6 +8,7 @@ import std.process: environment;
 import std.file;
 import core.stdc.errno;
 import std.conv: to;
+import std.digest.sha;
 
 
 immutable string sqlRecordFields = q"EOS
@@ -103,9 +104,9 @@ class Storage
             1,
             SQLITE_UTF8,
             null,
-            &hashFunc,
             null,
-            null
+            &xStepSHA1Func,
+            &xFinalSHA1Func
         );
         
         db.run(sqlCreateSchema);
@@ -180,20 +181,41 @@ class Storage
         );
     }
     
+    //~ SHA1Hash res;
+    
+    //~ SHA1 _hash;
+    //~ _hash.put(from);
+    //~ _hash.put(salt);
+    
+    //~ res.hash = _hash.finish;
+    //~ res.salt = salt;
+    
+    //~ return res;
     extern (C)
-    private static void hashFunc(sqlite3_context *ct, int argc, sqlite3_value **argv)
+    private static void xStepSHA1Func(sqlite3_context *ct, int argc, sqlite3_value **argv)
     {
-        if (argc == 1)
+        if (argc != 1)
         {
-            immutable len = sqlite3_value_bytes(argv[0]);
-            const p = sqlite3_value_blob(argv[0]);
-            
-            const b = p[0..len].ptr;
-            
-            sqlite3_result_blob(ct, p, len.to!int, SQLITE_TRANSIENT);
-        }
-        else
             sqlite3_result_null(ct);
+            return;
+        }
+        
+        auto hash = cast(SHA1*) sqlite3_aggregate_context(ct, SHA1.sizeof);
+        
+        immutable len = sqlite3_value_bytes(argv[0]);
+        const p = cast(ubyte*) sqlite3_value_blob(argv[0]);
+        
+        hash.put(p[0..len]);
+    }
+    
+    extern (C)
+    private static void xFinalSHA1Func(sqlite3_context *ct)
+    {
+        auto hash = cast(SHA1*) sqlite3_aggregate_context(ct, SHA1.sizeof);
+        
+        const res = hash.finish;
+        
+        sqlite3_result_blob(ct, res.ptr, res.sizeof, SQLITE_TRANSIENT);
     }
     
     version(unittest)
