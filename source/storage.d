@@ -44,7 +44,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
 ON recordsAwaitingPublish(hash);
 
 CREATE TABLE IF NOT EXISTS blocks (
-    hash BLOB NOT NULL,
+    blockHash BLOB NOT NULL,
     blockNum INT NOT NULL,
     difficulty INT NOT NULL,
     recordsNum INT NOT NULL,
@@ -52,20 +52,48 @@ CREATE TABLE IF NOT EXISTS blocks (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS blocks_uniq
-ON blocks(hash);
+ON blocks(blockHash);
 
 CREATE TABLE IF NOT EXISTS blocksContents (
     blockHash BLOB NOT NULL,
-    recordHash BLOB NOT NULL
+    proofOfWork BLOB NOT NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS blocksContents_uniq
-ON blocksContents(blockHash, recordHash);
+ON blocksContents(blockHash, proofOfWork);
 
 CREATE TRIGGER IF NOT EXISTS blocksFilling
 AFTER INSERT ON records FOR EACH ROW
 BEGIN
-select hashFunc('123');
+    
+    WITH r(blockNum, proofOfWork, prevFilledBlockHash) AS
+    (
+        SELECT blockNum, proofOfWork, prevFilledBlockHash
+        FROM records
+        WHERE version = NEW.version
+        AND blockNum = NEW.blocknum - 1
+        OR
+        (
+            blockNum = NEW.blocknum
+            AND prevFilledBlockHash = NEW.prevFilledBlockHash
+        )
+    ),
+    
+    b(blockNum, blockHash, prevFilledBlockHash, recordsNum, difficulty) AS
+    (
+        SELECT
+            blockNum,
+            hashFunc(proofOfWork) AS blockHash,
+            prevFilledBlockHash,
+            count(*) as recordsNum,
+            12345 as difficulty
+        FROM r
+        GROUP BY blockNum, prevFilledBlockHash
+        ORDER BY proofOfWork
+    )
+    
+    select * from b;
+    
 END;
 `;
 
