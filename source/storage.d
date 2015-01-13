@@ -64,7 +64,7 @@ ON blocksContents(blockHash, recordHash);
 CREATE TRIGGER IF NOT EXISTS blocksFilling
 AFTER INSERT ON blocks FOR EACH ROW
 BEGIN
-select 1;
+select hashFunc('123');
 END;
 `;
 
@@ -166,6 +166,33 @@ class Storage
                 :proofOfWork
             )`
         );
+        
+        sqlite3_create_function(
+            db.handle,
+            "hashFunc",
+            1,
+            SQLITE_UTF8,
+            null,
+            &hashFunc,
+            null,
+            null
+        );
+    }
+    
+    extern (C)
+    private static void hashFunc(sqlite3_context *ct, int argc, sqlite3_value **argv)
+    {
+        if (argc == 1)
+        {
+            immutable len = sqlite3_value_bytes(argv[0]);
+            const p = sqlite3_value_blob(argv[0]);
+            
+            const b = p[0..len].ptr;
+            
+            sqlite3_result_blob(ct, p, len.to!int, SQLITE_TRANSIENT);
+        }
+        else
+            sqlite3_result_null(ct);
     }
     
     version(unittest)
