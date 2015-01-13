@@ -236,7 +236,7 @@ EOS"
         q.reset();
     }
     
-    void deleteRecordAwaitingPoW(inout RecordHash h)
+    void deleteRecordAwaitingPublish(inout RecordHash h)
     {
         alias q = qDeleteRecordAwaitingPublish;
         
@@ -265,7 +265,13 @@ unittest
     r.proofOfWork.hash[0..3] = [0x48, 0x48, 0x48];
     s.setCalculatedPoW(r);
     
-    s.deleteRecordAwaitingPoW(r.hash);
+    auto oldest = s.getOldestRecordsAwaitingPublish(ChainType.Test, true, 3);
+    assert(oldest.length == 1);
+    
+    s.deleteRecordAwaitingPublish(r.hash);
+    
+    auto oldest2 = s.getOldestRecordsAwaitingPublish(ChainType.Test, true, 3);
+    assert(oldest2.length == 0);
     
     s.purge;
 }

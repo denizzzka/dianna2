@@ -66,9 +66,6 @@ unittest
     s.createNewRecord([0x01, 0x01, 0x02]);
     s.createNewRecord([0x02, 0x01, 0x02]);
     
-    auto r = s.getOldestRecordsAwaitingPublish(ChainType.Test, false, 2);
-    assert(r.length == 2);
-    
     s.calcPowForNewRecords(ChainType.Test);
     
     s.purge;
