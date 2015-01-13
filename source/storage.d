@@ -52,6 +52,14 @@ CREATE TABLE IF NOT EXISTS blocks (
 
 CREATE UNIQUE INDEX IF NOT EXISTS block_hash
 ON blocks(hash);
+
+CREATE TABLE IF NOT EXISTS blocksContents (
+    blockHash BLOB NOT NULL,
+    recordHash BLOB NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS blocksContents_uniq
+ON blocksContents(blockHash, recordHash);
 `;
 
 class Storage
