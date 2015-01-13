@@ -77,22 +77,22 @@ BEGIN
             blockNum = NEW.blocknum
             AND prevFilledBlockHash = NEW.prevFilledBlockHash
         )
+        ORDER BY blockNum, proofOfWork -- (Because here is no 'window functions')
     ),
     
-    b(blockNum, blockHash, prevFilledBlockHash, recordsNum, difficulty) AS
+    b(blockNum, blockHash, prevFilledBlockHash, recordsNum) AS
     (
         SELECT
             blockNum,
             hashFunc(proofOfWork) AS blockHash,
-            prevFilledBlockHash,
             count(*) as recordsNum,
-            12345 as difficulty
+            prevFilledBlockHash
         FROM r
         GROUP BY blockNum, prevFilledBlockHash
-        ORDER BY proofOfWork
     )
     
     select * from b;
+    select * from records;
     
 END;
 `;
