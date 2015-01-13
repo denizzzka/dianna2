@@ -139,14 +139,11 @@ EOS"
         qUpdateCalculatedPoW = db.prepare("
             UPDATE recordsAwaitingPublish SET
             
-            hash = :hash,
             blockNum = :blockNum,
             prevFilledBlockHash = :prevFilledBlockHash,
             proofOfWork = :proofOfWork
                         
-            WHERE chainType = :chainType
-            AND payloadType = :payloadType
-            AND payload = :payload
+            WHERE hash = :hash
         ");
     }
     
@@ -224,9 +221,6 @@ EOS"
     {
         alias q = qUpdateCalculatedPoW;
         
-        q.bind(":chainType", r.chainType);
-        q.bind(":payloadType", r.payloadType);
-        q.bind(":payload", r.payload);
         q.bind(":hash", r.hash.getUbytes);
         q.bind(":blockNum", r.blockNum);
         q.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
