@@ -29,6 +29,9 @@ immutable string sqlCreateSchema =
 CREATE UNIQUE INDEX IF NOT EXISTS records_uniq
 ON records(proofOfWork);
 
+CREATE INDEX IF NOT EXISTS prev_block
+ON records(prevFilledBlockHash);
+
 CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 `~sqlRecordFields~`
     blockNum INT,
@@ -39,17 +42,15 @@ CREATE TABLE IF NOT EXISTS recordsAwaitingPublish (
 CREATE UNIQUE INDEX IF NOT EXISTS recordsAwaitingPublish_uniq
 ON recordsAwaitingPublish(hash);
 
-CREATE INDEX IF NOT EXISTS prev_block
-ON records(prevFilledBlockHash);
-
 CREATE TABLE IF NOT EXISTS blocks (
     hash BLOB NOT NULL,
-    blockNum INT,
+    blockNum INT NOT NULL,
     difficulty INT NOT NULL,
+    recordsNum INT NOT NULL,
     prevFilledBlockHash BLOB
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS block_num
+CREATE UNIQUE INDEX IF NOT EXISTS block_hash
 ON blocks(hash);
 `;
 
