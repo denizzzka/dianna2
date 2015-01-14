@@ -146,7 +146,7 @@ class Storage
         qUpdateCalculatedPoW,
         qDeleteRecordAwaitingPublish,
         qInsertRecord,
-        qCalcHistoricRecordsNum,
+        qCalcPreviousRecordsNum,
         BEGIN_TRANSACTION,
         COMMIT_TRANSACTION;
     
@@ -249,7 +249,7 @@ class Storage
             )`
         );
         
-        qCalcHistoricRecordsNum = db.prepare(`
+        qCalcPreviousRecordsNum = db.prepare(`
             WITH RECURSIVE r(prevFilledBlockHash, recordsNum, depth) AS
             (
                 SELECT prevFilledBlockHash, recordsNum, 0 AS depth
@@ -400,6 +400,24 @@ class Storage
         assert(db.changes() == 1);
         q.reset();
     }
+    
+    void calcPreviousRecordsNum(in BlockHash b, out uint early, out uint later)
+    {
+        alias q = qCalcPreviousRecordsNum;
+        
+        q.bind(":blockHash", b.getUbytes);
+        
+        auto answer = q.execute();
+        
+        auto r = answer.front();
+        early = r["early"].as!uint;
+        later = r["later"].as!uint;
+        
+        version(assert) answer.popFront;
+        assert(answer.empty);
+        
+        q.reset();
+    }
 }
 
 unittest
@@ -418,6 +436,12 @@ unittest
     s.Insert(r);
     r.proofOfWork.hash[0] = 3;
     s.Insert(r);
+    
+    uint early, later;
+    s.calcPreviousRecordsNum(r.hash, early, later);
+    
+    assert(early == 0);
+    assert(later == 0);
     
     s.addRecordAwaitingPoW(r);
     
