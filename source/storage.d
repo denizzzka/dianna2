@@ -77,7 +77,7 @@ BEGIN
             blockNum = NEW.blocknum
             AND prevFilledBlockHash = NEW.prevFilledBlockHash
         )
-        ORDER BY blockNum, proofOfWork -- (Because here is no 'window functions')
+        ORDER BY blockNum, proofOfWork --(Because here is no 'window functions')
     ),
     
     b(blockNum, blockHash, prevFilledBlockHash, recordsNum) AS
@@ -85,10 +85,17 @@ BEGIN
         SELECT
             blockNum,
             hashFunc(proofOfWork) AS blockHash,
-            count(*) as recordsNum,
+            count(*) AS recordsNum,
             prevFilledBlockHash
         FROM r
         GROUP BY blockNum, prevFilledBlockHash
+    ),
+    
+    c(blockHash, proofOfWork) AS
+    (
+        SELECT blockHash, proofOfWork
+        FROM b
+        JOIN r ON b.prevFilledBlockHash = r.prevFilledBlockHash
     )
     
     select * from b;
