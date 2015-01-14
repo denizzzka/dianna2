@@ -151,7 +151,7 @@ class Storage
     
     this(string filename)
     {
-        enforce(sqlite3_threadsafe(), "SQLite3 is not threadsafe");
+        enforce(threadSafe(), "SQLite3 is not threadsafe");
         
         string home = environment["HOME"];
         string appdir = home~"/.dianna2";
