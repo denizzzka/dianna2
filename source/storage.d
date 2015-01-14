@@ -146,7 +146,7 @@ class Storage
         qUpdateCalculatedPoW,
         qDeleteRecordAwaitingPublish,
         qInsertRecord,
-        qCalcNextNextDifficulty,
+        qCalcHistoricRecordsNum,
         BEGIN_TRANSACTION,
         COMMIT_TRANSACTION;
     
@@ -249,23 +249,30 @@ class Storage
             )`
         );
         
-        qCalcNextNextDifficulty = db.prepare(`
+        qCalcHistoricRecordsNum = db.prepare(`
             WITH RECURSIVE r(prevFilledBlockHash, recordsNum, depth) AS
             (
-                SELECT prevFilledBlockHash, recordsNum, 0 as depth
+                SELECT prevFilledBlockHash, recordsNum, 0 AS depth
                 FROM blocks b1
                 WHERE blockHash = :blockHash
                 UNION
-                SELECT b2.prevFilledBlockHash, b2.recordsNum, depth + 1 as depth
+                SELECT b2.prevFilledBlockHash, b2.recordsNum, depth + 1 AS depth
                 FROM blocks b2
                 JOIN r ON b2.blockHash = r.prevFilledBlockHash
-                WHERE r.depth < 1
+                WHERE r.depth < 14
+            ),
+            
+            o(recordsNum) AS
+            (
+                SELECT recordsNum
+                FROM r
+                ORDER BY depth
             )
             
-            SELECT *
-            FROM r
-            ORDER BY depth`
-        );
+            SELECT
+                (SELECT sum(recordsNum) FROM o LIMIT 7 OFFSET 7) AS early,
+                (SELECT sum(recordsNum) FROM o LIMIT 7) AS later
+        `);
     }
     
     extern (C)
