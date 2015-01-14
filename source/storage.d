@@ -146,6 +146,7 @@ class Storage
         qUpdateCalculatedPoW,
         qDeleteRecordAwaitingPublish,
         qInsertRecord,
+        qCalcNextNextDifficulty,
         BEGIN_TRANSACTION,
         COMMIT_TRANSACTION;
     
@@ -246,6 +247,24 @@ class Storage
                 :difficulty,
                 :proofOfWork
             )`
+        );
+        
+        qCalcNextNextDifficulty = db.prepare(`
+            WITH RECURSIVE r(prevFilledBlockHash, recordsNum, depth) AS
+            (
+                SELECT prevFilledBlockHash, recordsNum, 0 as depth
+                FROM blocks b1
+                WHERE blockHash = :blockHash
+                UNION
+                SELECT b2.prevFilledBlockHash, b2.recordsNum, depth + 1 as depth
+                FROM blocks b2
+                JOIN r ON b2.blockHash = r.prevFilledBlockHash
+                WHERE r.depth < 1
+            )
+            
+            SELECT *
+            FROM r
+            ORDER BY depth`
         );
     }
     
