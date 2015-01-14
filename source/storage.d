@@ -62,42 +62,53 @@ CREATE TABLE IF NOT EXISTS blocksContents (
 CREATE UNIQUE INDEX IF NOT EXISTS blocksContents_uniq
 ON blocksContents(blockHash, proofOfWork);
 
+CREATE TABLE IF NOT EXISTS AffectedRecords (
+    blockNum INT NOT NULL,
+    proofOfWork BLOB NOT NULL,
+    prevFilledBlockHash BLOB NOT NULL
+);
+
+DELETE FROM AffectedRecords;
+
+CREATE TABLE IF NOT EXISTS NewBlocks (
+    blockNum INT NOT NULL,
+    blockHash BLOB NOT NULL,
+    recordsNum INT NOT NULL,
+    prevFilledBlockHash BLOB NOT NULL
+);
+
+DELETE FROM NewBlocks;
+
 CREATE TRIGGER IF NOT EXISTS blocksFilling
 AFTER INSERT ON records FOR EACH ROW
 BEGIN
     
-    INSERT INTO blocksContents(blockHash, proofOfWork)
-    
-    WITH r(blockNum, proofOfWork, prevFilledBlockHash) AS
+    INSERT INTO AffectedRecords(blockNum, proofOfWork, prevFilledBlockHash)
+    SELECT blockNum, proofOfWork, prevFilledBlockHash
+    FROM records
+    WHERE version = NEW.version
+    AND blockNum = NEW.blocknum - 1
+    OR
     (
-        SELECT blockNum, proofOfWork, prevFilledBlockHash
-        FROM records
-        WHERE version = NEW.version
-        AND blockNum = NEW.blocknum - 1
-        OR
-        (
-            blockNum = NEW.blocknum
-            AND prevFilledBlockHash = NEW.prevFilledBlockHash
-        )
-        ORDER BY blockNum, proofOfWork --(Because here is no 'window functions')
-    ),
-    
-    b(blockNum, blockHash, recordsNum, prevFilledBlockHash) AS
-    (
-        SELECT
-            blockNum,
-            hashFunc(proofOfWork) AS blockHash,
-            count(*) AS recordsNum,
-            prevFilledBlockHash
-        FROM r
-        GROUP BY blockNum, prevFilledBlockHash
+        blockNum = NEW.blocknum
+        AND prevFilledBlockHash = NEW.prevFilledBlockHash
     )
+    ORDER BY blockNum, proofOfWork; --(Because here is no 'window functions')
     
+    INSERT INTO NewBlocks(blockNum, blockHash, recordsNum, prevFilledBlockHash)
+    SELECT
+        blockNum,
+        hashFunc(proofOfWork) AS blockHash,
+        count(*) AS recordsNum,
+        prevFilledBlockHash
+    FROM AffectedRecords r
+    GROUP BY blockNum, prevFilledBlockHash;
+    
+    INSERT INTO blocksContents(blockHash, proofOfWork)
     SELECT blockHash, proofOfWork
-    FROM b
-    JOIN r USING(prevFilledBlockHash);
+    FROM NewBlocks b
+    JOIN AffectedRecords r USING(prevFilledBlockHash);
     
-    /*
     INSERT INTO blocks
     (
         blockHash,
@@ -113,9 +124,9 @@ BEGIN
         recordsNum,
         prevFilledBlockHash
     FROM NewBlocks;
-    */
-    --DROP TABLE RecordsAffected;
-    --DROP TABLE NewBlocks;
+    
+    DELETE FROM AffectedRecords;
+    DELETE FROM NewBlocks;
     
 END;
 `;
@@ -368,6 +379,11 @@ unittest
         payload: [0x76, 0x76, 0x76, 0x76]
     };
     
+    r.proofOfWork.hash[0] = 1;
+    s.Insert(r);
+    r.proofOfWork.hash[0] = 2;
+    s.Insert(r);
+    r.proofOfWork.hash[0] = 3;
     s.Insert(r);
     
     s.addRecordAwaitingPoW(r);
