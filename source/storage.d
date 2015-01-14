@@ -24,6 +24,7 @@ immutable string sqlCreateSchema =
     version INT NOT NULL,
     blockNum INT NOT NULL,
     prevFilledBlockHash BLOB,
+    difficulty INT NOT NULL,
     proofOfWork BLOB NOT NULL
 );
 
@@ -65,7 +66,8 @@ ON blocksContents(blockHash, proofOfWork);
 CREATE TABLE IF NOT EXISTS AffectedRecords (
     blockNum INT NOT NULL,
     proofOfWork BLOB NOT NULL,
-    prevFilledBlockHash BLOB NOT NULL
+    prevFilledBlockHash BLOB NOT NULL,
+    difficulty INT NOT NULL
 );
 
 DELETE FROM AffectedRecords;
@@ -74,7 +76,8 @@ CREATE TABLE IF NOT EXISTS NewBlocks (
     blockNum INT NOT NULL,
     blockHash BLOB NOT NULL,
     recordsNum INT NOT NULL,
-    prevFilledBlockHash BLOB NOT NULL
+    prevFilledBlockHash BLOB NOT NULL,
+    difficulty INT NOT NULL
 );
 
 DELETE FROM NewBlocks;
@@ -83,8 +86,8 @@ CREATE TRIGGER IF NOT EXISTS blocksFilling
 AFTER INSERT ON records FOR EACH ROW
 BEGIN
     
-    INSERT INTO AffectedRecords(blockNum, proofOfWork, prevFilledBlockHash)
-    SELECT blockNum, proofOfWork, prevFilledBlockHash
+    INSERT INTO AffectedRecords(blockNum, proofOfWork, prevFilledBlockHash, difficulty)
+    SELECT blockNum, proofOfWork, prevFilledBlockHash, difficulty
     FROM records
     WHERE version = NEW.version
     AND blockNum = NEW.blocknum - 1
@@ -95,12 +98,13 @@ BEGIN
     )
     ORDER BY blockNum, proofOfWork; --(Because here is no 'window functions')
     
-    INSERT INTO NewBlocks(blockNum, blockHash, recordsNum, prevFilledBlockHash)
+    INSERT INTO NewBlocks(blockNum, blockHash, recordsNum, prevFilledBlockHash, difficulty)
     SELECT
         blockNum,
         hashFunc(proofOfWork) AS blockHash,
         count(*) AS recordsNum,
-        prevFilledBlockHash
+        prevFilledBlockHash,
+        difficulty
     FROM AffectedRecords r
     GROUP BY blockNum, prevFilledBlockHash;
     
@@ -120,7 +124,7 @@ BEGIN
     SELECT 
         blockHash,
         blockNum,
-        123,
+        difficulty,
         recordsNum,
         prevFilledBlockHash
     FROM NewBlocks;
@@ -228,6 +232,7 @@ class Storage
                 hash,
                 blockNum,
                 prevFilledBlockHash,
+                difficulty,
                 proofOfWork
             )
             VALUES (
@@ -238,6 +243,7 @@ class Storage
                 :recordHash,
                 :blockNum,
                 :prevFilledBlockHash,
+                :difficulty,
                 :proofOfWork
             )`
         );
@@ -286,6 +292,7 @@ class Storage
         e.bind(":recordHash", r.hash.getUbytes);
         e.bind(":blockNum", r.blockNum);
         e.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
+        e.bind(":difficulty", r.difficulty);
         e.bind(":proofOfWork", r.proofOfWork.getUbytes);
         
         e.execute();
