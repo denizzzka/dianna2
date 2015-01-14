@@ -66,6 +66,8 @@ CREATE TRIGGER IF NOT EXISTS blocksFilling
 AFTER INSERT ON records FOR EACH ROW
 BEGIN
     
+    INSERT INTO blocksContents(blockHash, proofOfWork)
+    
     WITH r(blockNum, proofOfWork, prevFilledBlockHash) AS
     (
         SELECT blockNum, proofOfWork, prevFilledBlockHash
@@ -80,7 +82,7 @@ BEGIN
         ORDER BY blockNum, proofOfWork --(Because here is no 'window functions')
     ),
     
-    b(blockNum, blockHash, prevFilledBlockHash, recordsNum) AS
+    b(blockNum, blockHash, recordsNum, prevFilledBlockHash) AS
     (
         SELECT
             blockNum,
@@ -89,17 +91,31 @@ BEGIN
             prevFilledBlockHash
         FROM r
         GROUP BY blockNum, prevFilledBlockHash
-    ),
-    
-    c(blockHash, proofOfWork) AS
-    (
-        SELECT blockHash, proofOfWork
-        FROM b
-        JOIN r ON b.prevFilledBlockHash = r.prevFilledBlockHash
     )
     
-    select * from b;
-    select * from records;
+    SELECT blockHash, proofOfWork
+    FROM b
+    JOIN r USING(prevFilledBlockHash);
+    
+    /*
+    INSERT INTO blocks
+    (
+        blockHash,
+        blockNum,
+        difficulty,
+        recordsNum,
+        prevFilledBlockHash
+    )
+    SELECT 
+        blockHash,
+        blockNum,
+        123,
+        recordsNum,
+        prevFilledBlockHash
+    FROM NewBlocks;
+    */
+    --DROP TABLE RecordsAffected;
+    --DROP TABLE NewBlocks;
     
 END;
 `;
