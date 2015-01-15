@@ -269,7 +269,7 @@ class Storage
                 (SELECT sum(recordsNum) FROM o LIMIT 7 OFFSET 7) AS early,
                 (SELECT sum(recordsNum) FROM o LIMIT 7) AS later
         `);
-        
+        /*
         qFindBranchTopFilledBlock = db.prepare(`
             WITH RECURSIVE r(blockNum, blockHash) AS
             (
@@ -290,8 +290,7 @@ class Storage
             SELECT blockNum, blockHash
             FROM r
         `);
-        
-        
+        */
     }
     
     extern (C)
