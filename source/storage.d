@@ -147,8 +147,7 @@ class Storage
         qDeleteRecordAwaitingPublish,
         qInsertRecord,
         qCalcPreviousRecordsNum,
-        BEGIN_TRANSACTION,
-        COMMIT_TRANSACTION;
+        qFindBranchTopFilledBlock;
     
     this(string filename)
     {
@@ -221,9 +220,6 @@ class Storage
             WHERE hash = :hash
         ");
         
-        BEGIN_TRANSACTION = db.prepare("BEGIN TRANSACTION");
-        COMMIT_TRANSACTION = db.prepare("COMMIT TRANSACTION");
-        
         qInsertRecord = db.prepare(
             `INSERT INTO records (
                 version,
@@ -273,6 +269,29 @@ class Storage
                 (SELECT sum(recordsNum) FROM o LIMIT 7 OFFSET 7) AS early,
                 (SELECT sum(recordsNum) FROM o LIMIT 7) AS later
         `);
+        
+        qFindBranchTopFilledBlock = db.prepare(`
+            WITH RECURSIVE r(blockNum, blockHash) AS
+            (
+                SELECT b.blockNum, b.blockHash
+                FROM blocks b
+                WHERE blockHash = :blockHash
+                
+                UNION
+                
+                SELECT b.blockNum, b.blockHash
+                FROM blocks b
+                JOIN r ON b.prevFilledBlockHash = r.blockHash
+                WHERE b.blockNum <= :blockNum
+                ORDER BY b.blockNum, b.recordsNum DESC
+                LIMIT 1
+            )
+            
+            SELECT blockNum, blockHash
+            FROM r
+        `);
+        
+        
     }
     
     extern (C)
