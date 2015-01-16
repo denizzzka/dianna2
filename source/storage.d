@@ -387,7 +387,7 @@ class Storage
         {
             ubyte[] hashRow = row["hash"].as!(ubyte[]);
             
-            immutable RecordHash hash = RecordHash(hashRow);
+            immutable RecordHash hash = RecordHash.createFrom(hashRow);
             
             Record r = {
                 chainType: chainType,
@@ -459,24 +459,28 @@ class Storage
         BlockHash[] res;
         
         foreach(a; answer)
-            res ~= BlockHash(a["blockHash"].as!(ubyte[]));
+            res ~= BlockHash.createFrom(a["blockHash"].as!(ubyte[]));
         
         return res;
     }
     
-    Block calcBlockEnclosureChainHash(inout ref Block b)
+    Block calcBlockEnclosureChainHash(in BlockHash blockHash, in PoW pow)
     {
         alias q = qCalcBlockEnclosureChainHash;
         
-        q.bind(":blockHash", b.blockHash.getUbytes);
-        q.bind(":proofOfWork", b.proofOfWork.getUbytes);
+        q.bind(":blockHash", blockHash.getUbytes);
+        q.bind(":proofOfWork", pow.getUbytes);
         
         auto answer = q.execute();
         auto r = answer.front();
         
         Block res;
-        res.blockHash = BlockHash(r["blockHash"].as!(ubyte[]));
-        res.prevIncludedBlockHash = BlockHash(r["prevIncludedBlockHash"].as!(ubyte[]));
+        
+        import std.stdio;
+        writeln("blockhash=", r["blockHash"].as!(ubyte[]));
+        
+        res.blockHash = BlockHash.createFrom(r["blockHash"].as!(ubyte[]));
+        res.prevIncludedBlockHash = BlockHash.createFrom(r["prevIncludedBlockHash"].as!(ubyte[]));
         res.recordsNum = r["recordsNum"].as!size_t;
         
         version(assert) answer.popFront;
@@ -506,7 +510,12 @@ unittest
     Storage.Block b;
     s.insertBlock(b);
     
-    assert(s.getAffectedBlocks(r).length == 1);
+    auto aff = s.getAffectedBlocks(r);
+    assert(aff.length == 1);
+    
+    PoW pow;
+    auto enc = s.calcBlockEnclosureChainHash(aff[0], pow);
+    assert(enc.recordsNum == 3);
     
     uint early, later;
     s.calcPreviousRecordsNum(r.hash, early, later);

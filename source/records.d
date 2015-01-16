@@ -7,6 +7,7 @@ import std.bitmanip;
 import std.random: uniform;
 import scrypt: calcScrypt;
 import std.file: read;
+import std.exception: enforce;
 
 
 enum ChainType: ushort
@@ -21,27 +22,32 @@ enum PayloadType: ushort
     DNS
 }
 
-struct Hash(T)
+struct HashT(T)
 {
     alias Hash = T;
     alias Salt = ubyte[8];
     
     Hash hash;
     Salt salt;
+    static immutable length = Hash.length + Salt.length;
     
     auto getUbytes() const pure
     {
-        immutable ubyte[Hash.sizeof + Salt.sizeof] res = hash ~ salt;
+        immutable ubyte[length] res = hash ~ salt;
         return res;
     }
     
-    this(ubyte[] s)
+    this(ubyte[length] s)
     {
-        immutable len = Hash.sizeof + Salt.sizeof;
-        assert(s.length == len);
+        hash = s[0..Hash.length];
+        salt = s[Hash.length..$];
+    }
+    
+    static HashT createFrom(ubyte[] s)
+    {
+        enforce(s.length == length);
         
-        hash = s[0..Hash.sizeof];
-        salt = s[Hash.sizeof..$];
+        return HashT(s[0..length]);
     }
     
     static Salt genSaltFast() @trusted
@@ -64,8 +70,8 @@ struct Hash(T)
     }
 }
 
-alias SHA1Hash = Hash!(ubyte[20]);
-alias PoW = Hash!(ubyte[32]);
+alias SHA1Hash = HashT!(ubyte[20]);
+alias PoW = HashT!(ubyte[32]);
 alias RecordHash = SHA1Hash;
 alias BlockHash = SHA1Hash;
 alias Signature = ubyte[10];
