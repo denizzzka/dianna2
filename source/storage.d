@@ -73,6 +73,7 @@ class Storage
         qInsertRecord,
         qSelectAffectedBlocks,
         qCalcBlockEnclosureChainHash,
+        qInsertBlock,
         qCalcPreviousRecordsNum,
         qFindBranchTopFilledBlock;
     
@@ -235,6 +236,25 @@ class Storage
             SELECT
                 (SELECT sum(recordsNum) FROM o LIMIT 7 OFFSET 7) AS early,
                 (SELECT sum(recordsNum) FROM o LIMIT 7) AS later
+        `);
+        
+        qInsertBlock = db.prepare(`
+            INSERT INTO blocks (
+                blockHash,
+                blockNum,
+                prevFilledBlockHash,
+                recordsNum,
+                proofOfWork,
+                prevIncludedBlockHash
+            )
+            VALUES (
+                :blockHash,
+                :blockNum,
+                :prevFilledBlockHash,
+                :recordsNum,
+                :proofOfWork,
+                :prevIncludedBlockHash
+            )
         `);
         /*
         qFindBranchTopFilledBlock = db.prepare(`
