@@ -436,8 +436,8 @@ class Storage
         q.bind(":blockHash", b.getUbytes);
         
         auto answer = q.execute();
-        
         auto r = answer.front();
+        
         early = r["early"].as!uint;
         later = r["later"].as!uint;
         
@@ -460,6 +460,27 @@ class Storage
         
         foreach(a; answer)
             res ~= BlockHash(a["blockHash"].as!(ubyte[]));
+        
+        return res;
+    }
+    
+    Block calcBlockEnclosureChainHash(inout ref Block b)
+    {
+        alias q = qCalcBlockEnclosureChainHash;
+        
+        q.bind(":blockHash", b.blockHash.getUbytes);
+        q.bind(":proofOfWork", b.proofOfWork.getUbytes);
+        
+        auto answer = q.execute();
+        auto r = answer.front();
+        
+        Block res;
+        res.blockHash = BlockHash(r["blockHash"].as!(ubyte[]));
+        res.prevIncludedBlockHash = BlockHash(r["prevIncludedBlockHash"].as!(ubyte[]));
+        res.recordsNum = r["recordsNum"].as!size_t;
+        
+        version(assert) answer.popFront;
+        assert(answer.empty);
         
         return res;
     }
