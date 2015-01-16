@@ -9,6 +9,7 @@ import std.file;
 import core.stdc.errno;
 import std.conv: to;
 import std.digest.sha;
+import std.typecons: Nullable;
 
 
 immutable string sqlRecordFields = q"EOS
@@ -177,12 +178,15 @@ class Storage
             SELECT blockHash
             FROM blocks
             WHERE prevIncludedBlockHash IS NULL
-            AND blockNum = :blockNum - 1
-            OR
+            AND 
             (
-                blockNum = :blockNum
-                AND prevFilledBlockHash = :prevFilledBlockHash
-            )        
+                blockNum = :blockNum - 1
+                OR
+                (
+                    blockNum = :blockNum
+                    AND prevFilledBlockHash = :prevFilledBlockHash
+                )
+            )
         `);
         
         qCalcBlockEnclosureChainHash = db.prepare(`
@@ -335,7 +339,7 @@ class Storage
     {
         BlockHash blockHash;
         BlockHash prevFilledBlockHash;
-        BlockHash prevIncludedBlockHash;
+        Nullable!BlockHash prevIncludedBlockHash;
         size_t blockNum;
         size_t recordsNum;
         PoW proofOfWork;
@@ -347,10 +351,14 @@ class Storage
         
         q.bind(":blockHash", b.blockHash.getUbytes);
         q.bind(":prevFilledBlockHash", b.prevFilledBlockHash.getUbytes);
-        q.bind(":prevIncludedBlockHash", b.prevIncludedBlockHash.getUbytes);
         q.bind(":blockNum", b.blockNum);
         q.bind(":recordsNum", b.recordsNum);
         q.bind(":proofOfWork", b.proofOfWork.getUbytes);
+        
+        if(b.prevIncludedBlockHash.isNull)
+            q.bind(":prevIncludedBlockHash", null);
+        else
+            q.bind(":prevIncludedBlockHash", b.prevIncludedBlockHash.getUbytes);
         
         q.execute();
         assert(db.changes() == 1);
@@ -447,7 +455,7 @@ class Storage
         q.reset();
     }
     
-    BlockHash[] getAffectedBlocks(inout ref Record r)
+    BlockHash[] getAffectedBlocksChainsStarts(inout ref Record r)
     {
         alias q = qSelectAffectedBlocks;
         
@@ -508,10 +516,19 @@ unittest
     s.Insert(r);
     
     Storage.Block b;
+    b.blockHash.hash[0] = 77;
+    b.recordsNum = 1;
     s.insertBlock(b);
     
-    auto aff = s.getAffectedBlocks(r);
+    b.prevIncludedBlockHash = b.blockHash;
+    b.blockHash.hash[0] = 111;
+    b.recordsNum = 2;
+    s.insertBlock(b);
+    
+    auto aff = s.getAffectedBlocksChainsStarts(r);
+    
     assert(aff.length == 1);
+    assert(aff[0].hash[0] == 77);
     
     PoW pow;
     auto enc = s.calcBlockEnclosureChainHash(aff[0], pow);
