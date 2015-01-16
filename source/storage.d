@@ -47,92 +47,17 @@ ON recordsAwaitingPublish(hash);
 CREATE TABLE IF NOT EXISTS blocks (
     blockHash BLOB NOT NULL,
     blockNum INT NOT NULL,
-    difficulty INT NOT NULL,
+    prevFilledBlockHash BLOB INT NOT NULL,
     recordsNum INT NOT NULL,
-    prevFilledBlockHash BLOB INT NOT NULL
+    proofOfWork BLOB NOT NULL, -- record caused this block creation
+    prevIncludedBlockHash BLOB
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS blocks_uniq
 ON blocks(blockHash);
 
-CREATE TABLE IF NOT EXISTS blocksContents (
-    blockHash BLOB NOT NULL,
-    proofOfWork BLOB NOT NULL
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS blocksContents_uniq
-ON blocksContents(blockHash, proofOfWork);
-
-CREATE TABLE IF NOT EXISTS AffectedRecords (
-    blockNum INT NOT NULL,
-    proofOfWork BLOB NOT NULL,
-    prevFilledBlockHash BLOB NOT NULL,
-    difficulty INT NOT NULL
-);
-
-DELETE FROM AffectedRecords;
-
-CREATE TABLE IF NOT EXISTS NewBlocks (
-    blockNum INT NOT NULL,
-    blockHash BLOB NOT NULL,
-    recordsNum INT NOT NULL,
-    prevFilledBlockHash BLOB NOT NULL,
-    difficulty INT NOT NULL
-);
-
-DELETE FROM NewBlocks;
-
-CREATE TRIGGER IF NOT EXISTS blocksFilling
-AFTER INSERT ON records FOR EACH ROW
-BEGIN
-    
-    INSERT INTO AffectedRecords(blockNum, proofOfWork, prevFilledBlockHash, difficulty)
-    SELECT blockNum, proofOfWork, prevFilledBlockHash, difficulty
-    FROM records
-    WHERE version = NEW.version
-    AND blockNum = NEW.blocknum - 1
-    OR
-    (
-        blockNum = NEW.blocknum
-        AND prevFilledBlockHash = NEW.prevFilledBlockHash
-    )
-    ORDER BY blockNum, proofOfWork; --(Because here is no 'window functions')
-    
-    INSERT INTO NewBlocks(blockNum, blockHash, recordsNum, prevFilledBlockHash, difficulty)
-    SELECT
-        blockNum,
-        hashFunc(proofOfWork) AS blockHash,
-        count(*) AS recordsNum,
-        prevFilledBlockHash,
-        difficulty
-    FROM AffectedRecords r
-    GROUP BY blockNum, prevFilledBlockHash;
-    
-    INSERT INTO blocksContents(blockHash, proofOfWork)
-    SELECT blockHash, proofOfWork
-    FROM NewBlocks b
-    JOIN AffectedRecords r USING(prevFilledBlockHash);
-    
-    INSERT INTO blocks
-    (
-        blockHash,
-        blockNum,
-        difficulty,
-        recordsNum,
-        prevFilledBlockHash
-    )
-    SELECT 
-        blockHash,
-        blockNum,
-        difficulty,
-        recordsNum,
-        prevFilledBlockHash
-    FROM NewBlocks;
-    
-    DELETE FROM AffectedRecords;
-    DELETE FROM NewBlocks;
-    
-END;
+CREATE UNIQUE INDEX IF NOT EXISTS blocks_prevIncludedBlockHash_uniq
+ON blocks(prevIncludedBlockHash);
 `;
 
 class Storage
@@ -146,6 +71,8 @@ class Storage
         qUpdateCalculatedPoW,
         qDeleteRecordAwaitingPublish,
         qInsertRecord,
+        qSelectAffectedBlocks,
+        qCalcBlockEnclosureChainHash,
         qCalcPreviousRecordsNum,
         qFindBranchTopFilledBlock;
     
@@ -244,6 +171,46 @@ class Storage
                 :proofOfWork
             )`
         );
+        
+        qSelectAffectedBlocks = db.prepare(`
+            SELECT blockHash
+            FROM blocks
+            WHERE prevIncludedBlockHash IS NULL
+            AND blockNum = :blockNum - 1
+            OR
+            (
+                blockNum = :blockNum
+                AND prevFilledBlockHash = :prevFilledBlockHash
+            )        
+        `);
+        
+        qCalcBlockEnclosureChainHash = db.prepare(`
+            WITH RECURSIVE r(blockHash, prevIncludedBlockHash, proofOfWork) AS
+            (
+                SELECT b.blockHash, b.prevIncludedBlockHash, b.proofOfWork
+                FROM blocks b
+                WHERE blockHash = :blockHash
+                
+                UNION
+                
+                SELECT b.blockHash, b.prevIncludedBlockHash, b.proofOfWork
+                FROM blocks b
+                JOIN r ON b.prevIncludedBlockHash = r.blockHash
+            )
+            
+            SELECT
+                hashFunc(proofOfWork) as blockHash,
+                (SELECT blockHash FROM r ORDER BY rowid DESC LIMIT 1) AS prevIncludedBlockHash,
+                (SELECT count(*) FROM r) AS recordsNum
+            FROM (
+                SELECT proofOfWork
+                FROM r
+                UNION
+                SELECT :proofOfWork AS proofOfWork
+                ORDER BY proofOfWork
+            ) orderedPoWs
+            
+        `);
         
         qCalcPreviousRecordsNum = db.prepare(`
             WITH RECURSIVE r(prevFilledBlockHash, recordsNum, depth) AS
