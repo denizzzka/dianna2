@@ -387,10 +387,7 @@ class Storage
         {
             ubyte[] hashRow = row["hash"].as!(ubyte[]);
             
-            immutable RecordHash hash = {
-                hash: hashRow[0..RecordHash.Hash.sizeof],
-                salt: hashRow[RecordHash.Hash.sizeof..RecordHash.Hash.sizeof+RecordHash.Salt.sizeof]
-            };
+            immutable RecordHash hash = RecordHash(hashRow);
             
             Record r = {
                 chainType: chainType,
@@ -449,6 +446,23 @@ class Storage
         
         q.reset();
     }
+    
+    BlockHash[] getAffectedBlocks(inout ref Record r)
+    {
+        alias q = qSelectAffectedBlocks;
+        
+        q.bind(":blockNum", r.blockNum);
+        q.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
+        
+        auto answer = q.execute();
+        
+        BlockHash[] res;
+        
+        foreach(a; answer)
+            res ~= BlockHash(a["blockHash"].as!(ubyte[]));
+        
+        return res;
+    }
 }
 
 unittest
@@ -470,6 +484,8 @@ unittest
     
     Storage.Block b;
     s.insertBlock(b);
+    
+    assert(s.getAffectedBlocks(r).length == 1);
     
     uint early, later;
     s.calcPreviousRecordsNum(r.hash, early, later);

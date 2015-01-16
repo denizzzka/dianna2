@@ -35,6 +35,15 @@ struct Hash(T)
         return res;
     }
     
+    this(ubyte[] s)
+    {
+        immutable len = Hash.sizeof + Salt.sizeof;
+        assert(s.length == len);
+        
+        hash = s[0..Hash.sizeof];
+        salt = s[Hash.sizeof..$];
+    }
+    
     static Salt genSaltFast() @trusted
     {
         Salt res;
