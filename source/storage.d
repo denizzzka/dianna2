@@ -331,6 +331,32 @@ class Storage
         e.reset();
     }
     
+    struct Block
+    {
+        BlockHash blockHash;
+        BlockHash prevFilledBlockHash;
+        BlockHash prevIncludedBlockHash;
+        size_t blockNum;
+        size_t recordsNum;
+        PoW proofOfWork;
+    }
+    
+    void insertBlock(inout Block b)
+    {
+        alias q = qInsertBlock;
+        
+        q.bind(":blockHash", b.blockHash.getUbytes);
+        q.bind(":prevFilledBlockHash", b.prevFilledBlockHash.getUbytes);
+        q.bind(":prevIncludedBlockHash", b.prevIncludedBlockHash.getUbytes);
+        q.bind(":blockNum", b.blockNum);
+        q.bind(":recordsNum", b.recordsNum);
+        q.bind(":proofOfWork", b.proofOfWork.getUbytes);
+        
+        q.execute();
+        assert(db.changes() == 1);
+        q.reset();
+    }
+    
     void addRecordAwaitingPoW(in Record r)
     {
         alias q = qInsertRecAwaitingPublish;
@@ -441,6 +467,9 @@ unittest
     s.Insert(r);
     r.proofOfWork.hash[0] = 3;
     s.Insert(r);
+    
+    Storage.Block b;
+    s.insertBlock(b);
     
     uint early, later;
     s.calcPreviousRecordsNum(r.hash, early, later);
