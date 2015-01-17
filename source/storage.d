@@ -561,11 +561,13 @@ class Storage
             
             version(assert) answer.popFront;
             assert(answer.empty);
+            
+            q.reset();
+            return true;
         }
         
         q.reset();
-        
-        return !answer.empty;
+        return false;
     }
     
     private BlockHash findBlockEnclosureChainEnd(in BlockHash from)
