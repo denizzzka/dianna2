@@ -326,7 +326,7 @@ class Storage
         e.bind(":payload", r.payload);
         e.bind(":recordHash", r.hash.getUbytes);
         e.bind(":blockNum", r.blockNum);
-        e.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
+        e.bind(":prevFilledBlockHash", r.prevFilledBlock);
         e.bind(":difficulty", r.difficulty);
         e.bind(":proofOfWork", r.proofOfWork.getUbytes);
         
@@ -349,8 +349,8 @@ class Storage
     {
         alias q = qInsertBlock;
         
-        q.bind(":blockHash", b.blockHash.getUbytes);
-        q.bind(":prevFilledBlockHash", b.prevFilledBlockHash.getUbytes);
+        q.bind(":blockHash", b.blockHash);
+        q.bind(":prevFilledBlockHash", b.prevFilledBlockHash);
         q.bind(":blockNum", b.blockNum);
         q.bind(":recordsNum", b.recordsNum);
         q.bind(":proofOfWork", b.proofOfWork.getUbytes);
@@ -358,7 +358,7 @@ class Storage
         if(b.prevIncludedBlockHash.isNull)
             q.bind(":prevIncludedBlockHash", null);
         else
-            q.bind(":prevIncludedBlockHash", b.prevIncludedBlockHash.getUbytes);
+            q.bind(":prevIncludedBlockHash", b.prevIncludedBlockHash.get);
         
         q.execute();
         assert(db.changes() == 1);
@@ -418,7 +418,7 @@ class Storage
         
         q.bind(":hash", r.hash.getUbytes);
         q.bind(":blockNum", r.blockNum);
-        q.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
+        q.bind(":prevFilledBlockHash", r.prevFilledBlock);
         q.bind(":proofOfWork", r.proofOfWork.getUbytes);
         
         q.execute();
@@ -441,7 +441,7 @@ class Storage
     {
         alias q = qCalcPreviousRecordsNum;
         
-        q.bind(":blockHash", b.getUbytes);
+        q.bind(":blockHash", b);
         
         auto answer = q.execute();
         auto r = answer.front();
@@ -460,14 +460,14 @@ class Storage
         alias q = qSelectAffectedBlocks;
         
         q.bind(":blockNum", r.blockNum);
-        q.bind(":prevFilledBlockHash", r.prevFilledBlock.getUbytes);
+        q.bind(":prevFilledBlockHash", r.prevFilledBlock);
         
         auto answer = q.execute();
         
         BlockHash[] res;
         
         foreach(a; answer)
-            res ~= BlockHash.createFrom(a["blockHash"].as!(ubyte[]));
+            res ~= (a["blockHash"].as!(ubyte[]))[0..BlockHash.length];
         
         return res;
     }
@@ -476,7 +476,7 @@ class Storage
     {
         alias q = qCalcBlockEnclosureChainHash;
         
-        q.bind(":blockHash", blockHash.getUbytes);
+        q.bind(":blockHash", blockHash);
         q.bind(":proofOfWork", pow.getUbytes);
         
         auto answer = q.execute();
@@ -484,11 +484,8 @@ class Storage
         
         Block res;
         
-        import std.stdio;
-        writeln("blockhash=", r["blockHash"].as!(ubyte[]));
-        
-        res.blockHash = BlockHash.createFrom(r["blockHash"].as!(ubyte[]));
-        res.prevIncludedBlockHash = BlockHash.createFrom(r["prevIncludedBlockHash"].as!(ubyte[]));
+        res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+        res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.recordsNum = r["recordsNum"].as!size_t;
         
         version(assert) answer.popFront;
@@ -516,29 +513,29 @@ unittest
     s.Insert(r);
     
     Storage.Block b;
-    b.blockHash.hash[0] = 77;
+    b.blockHash[0] = 77;
     b.recordsNum = 1;
     s.insertBlock(b);
     
     b.prevIncludedBlockHash = b.blockHash;
-    b.blockHash.hash[0] = 111;
+    b.blockHash[0] = 111;
     b.recordsNum = 2;
     s.insertBlock(b);
     
     auto aff = s.getAffectedBlocksChainsStarts(r);
     
     assert(aff.length == 1);
-    assert(aff[0].hash[0] == 77);
+    assert(aff[0][0] == 77);
     
     PoW pow;
     auto enc = s.calcBlockEnclosureChainHash(aff[0], pow);
-    assert(enc.recordsNum == 3);
+    assert(enc.recordsNum == 2);
     
     uint early, later;
-    s.calcPreviousRecordsNum(r.hash, early, later);
+    s.calcPreviousRecordsNum(b.blockHash, early, later);
     
     assert(early == 0);
-    assert(later == 0);
+    assert(later == 2);
     
     s.addRecordAwaitingPoW(r);
     

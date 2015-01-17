@@ -73,7 +73,7 @@ struct HashT(T)
 alias SHA1Hash = HashT!(ubyte[20]);
 alias PoW = HashT!(ubyte[32]);
 alias RecordHash = SHA1Hash;
-alias BlockHash = SHA1Hash;
+alias BlockHash = ubyte[20];
 alias Signature = ubyte[10];
 alias Difficulty = ulong;
 
@@ -140,7 +140,7 @@ struct Record
         
         res ~= hash.getUbytes;
         res ~= to!string(blockNum);
-        res ~= prevFilledBlock.getUbytes;
+        res ~= prevFilledBlock;
         res ~= to!string(difficulty);
         
         return res;
