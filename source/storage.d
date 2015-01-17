@@ -76,7 +76,7 @@ class Storage
         qCalcBlockEnclosureChainHash,
         qInsertBlock,
         qCalcPreviousRecordsNum,
-        qFindBranchTopFilledBlock;
+        qFindNextBlock;
     
     this(string filename)
     {
@@ -196,7 +196,7 @@ class Storage
                 FROM blocks b
                 WHERE blockHash = :blockHash
                 
-                UNION
+                UNION ALL
                 
                 SELECT b.blockHash, b.prevIncludedBlockHash, b.proofOfWork
                 FROM blocks b
@@ -210,7 +210,7 @@ class Storage
             FROM (
                 SELECT proofOfWork
                 FROM r
-                UNION
+                UNION ALL
                 SELECT :proofOfWork AS proofOfWork
                 ORDER BY proofOfWork
             ) orderedPoWs
@@ -223,7 +223,7 @@ class Storage
                 SELECT prevFilledBlockHash, recordsNum, 0 AS depth
                 FROM blocks b1
                 WHERE blockHash = :blockHash
-                UNION
+                UNION ALL
                 SELECT b2.prevFilledBlockHash, b2.recordsNum, depth + 1 AS depth
                 FROM blocks b2
                 JOIN r ON b2.blockHash = r.prevFilledBlockHash
@@ -260,28 +260,15 @@ class Storage
                 :prevIncludedBlockHash
             )
         `);
-        /*
-        qFindBranchTopFilledBlock = db.prepare(`
-            WITH RECURSIVE r(blockNum, blockHash) AS
-            (
-                SELECT b.blockNum, b.blockHash
-                FROM blocks b
-                WHERE blockHash = :blockHash
-                
-                UNION
-                
-                SELECT b.blockNum, b.blockHash
-                FROM blocks b
-                JOIN r ON b.prevFilledBlockHash = r.blockHash
-                WHERE b.blockNum <= :blockNum
-                ORDER BY b.blockNum, b.recordsNum DESC
-                LIMIT 1
-            )
-            
-            SELECT blockNum, blockHash
-            FROM r
+        
+        qFindNextBlock = db.prepare(`
+            SELECT blockNum, blockHash, recordsNum
+            FROM blocks
+            WHERE prevFilledBlockHash = :blockHash
+            AND blockNum <= :blockNum
+            ORDER BY blockNum, recordsNum DESC
+            LIMIT 1
         `);
-        */
     }
     
     extern (C)
