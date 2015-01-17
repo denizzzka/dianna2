@@ -262,7 +262,7 @@ class Storage
         `);
         
         qFindNextBlock = db.prepare(`
-            SELECT blockNum, blockHash, recordsNum
+            SELECT blockNum, blockHash
             FROM blocks
             WHERE prevFilledBlockHash = :blockHash
             AND blockNum <= :blockNum
@@ -442,7 +442,7 @@ class Storage
         q.reset();
     }
     
-    BlockHash[] getAffectedBlocksChainsStarts(inout ref Record r)
+    private BlockHash[] getAffectedBlocksChainsStarts(inout ref Record r)
     {
         alias q = qSelectAffectedBlocks;
         
@@ -459,7 +459,7 @@ class Storage
         return res;
     }
     
-    Block calcBlockEnclosureChainHash(in BlockHash blockHash, in PoW pow)
+    private Block calcBlockEnclosureChainHash(in BlockHash blockHash, in PoW pow)
     {
         alias q = qCalcBlockEnclosureChainHash;
         
@@ -480,16 +480,51 @@ class Storage
         
         return res;
     }
+    
+    private bool findNextBlock(
+        in BlockHash blockHash,
+        in size_t blockNum,
+        out BlockHash blockHashRes,
+        out size_t blockNumRes
+    )
+    {
+        alias q = qFindNextBlock;
+        
+        q.bind(":blockHash", blockHash);
+        q.bind(":blockNum", blockNum);
+        
+        auto answer = q.execute();
+        
+        if(!answer.empty)
+        {
+            auto r = answer.front();
+            
+            blockNumRes = r["blockNum"].as!size_t;
+            blockHashRes = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+            
+            version(assert) answer.popFront;
+            assert(answer.empty);
+            
+            return true;
+        }
+        
+        return false;
+    }
 }
 
 unittest
 {
     auto s = new Storage("_unittest_storage.sqlite");
     
+    BlockHash prevFilledBlock;
+    prevFilledBlock[0] = 88;
+    
     Record r = {
         chainType: ChainType.Test,
         payloadType: PayloadType.Test,
-        payload: [0x76, 0x76, 0x76, 0x76]
+        payload: [0x76, 0x76, 0x76, 0x76],
+        blockNum: 1,
+        prevFilledBlock: prevFilledBlock
     };
     
     r.proofOfWork.hash[0] = 1;
@@ -501,13 +536,18 @@ unittest
     
     Storage.Block b;
     b.blockHash[0] = 77;
+    b.blockNum = 1;
     b.recordsNum = 1;
+    b.prevFilledBlockHash = prevFilledBlock;
     s.insertBlock(b);
     
-    b.prevIncludedBlockHash = b.blockHash;
-    b.blockHash[0] = 111;
-    b.recordsNum = 2;
-    s.insertBlock(b);
+    Storage.Block b2;
+    b2.prevIncludedBlockHash = b.blockHash;
+    b2.blockHash[0] = 111;
+    b2.blockNum = 1;
+    b2.recordsNum = 2;
+    b2.prevFilledBlockHash = prevFilledBlock;
+    s.insertBlock(b2);
     
     auto aff = s.getAffectedBlocksChainsStarts(r);
     
@@ -518,12 +558,20 @@ unittest
     auto enc = s.calcBlockEnclosureChainHash(aff[0], pow);
     assert(enc.recordsNum == 2);
     
+    BlockHash fNBlockHash;
+    size_t fNBlockNum;
+    auto fN = s.findNextBlock(prevFilledBlock, 1, fNBlockHash, fNBlockNum);
+    assert(fN);
+    assert(fNBlockNum == 1);
+    assert(fNBlockHash == b2.blockHash);
+    
+    /*
     uint early, later;
     s.calcPreviousRecordsNum(b.blockHash, early, later);
     
     assert(early == 0);
-    assert(later == 2);
-    
+    assert(later == 3);
+    */
     s.addRecordAwaitingPoW(r);
     
     r.proofOfWork.hash[0..3] = [0x48, 0x48, 0x48];
