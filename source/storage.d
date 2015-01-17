@@ -76,7 +76,8 @@ class Storage
         qCalcBlockEnclosureChainHash,
         qInsertBlock,
         qCalcPreviousRecordsNum,
-        qFindNextBlock;
+        qFindNextBlock,
+        qFindBlockEnclosureChainEnd;
     
     this(string filename)
     {
@@ -217,6 +218,25 @@ class Storage
             
         `);
         
+        qFindBlockEnclosureChainEnd = db.prepare(`
+            WITH RECURSIVE r(blockHash, prevIncludedBlockHash) AS
+            (
+                SELECT b.blockHash, b.prevIncludedBlockHash
+                FROM blocks b
+                WHERE blockHash = :blockHash
+                
+                UNION ALL
+                
+                SELECT b.blockHash, b.prevIncludedBlockHash
+                FROM blocks b
+                JOIN r ON b.prevIncludedBlockHash = r.blockHash
+            )
+            
+            SELECT blockHash
+            FROM r
+            LIMIT 1
+        `);
+        
         qCalcPreviousRecordsNum = db.prepare(`
             WITH RECURSIVE r(prevFilledBlockHash, recordsNum, depth) AS
             (
@@ -265,7 +285,7 @@ class Storage
             SELECT blockNum, blockHash
             FROM blocks
             WHERE prevFilledBlockHash = :blockHash
-            AND blockNum <= :blockNum
+            AND blockNum <= :limitBlockNum
             ORDER BY blockNum, recordsNum DESC
             LIMIT 1
         `);
@@ -483,15 +503,15 @@ class Storage
     
     private bool findNextBlock(
         in BlockHash blockHash,
-        in size_t blockNum,
-        out BlockHash blockHashRes,
-        out size_t blockNumRes
+        in size_t limitBlockNum,
+        ref BlockHash blockHashRes,
+        ref size_t blockNumRes
     )
     {
         alias q = qFindNextBlock;
         
         q.bind(":blockHash", blockHash);
-        q.bind(":blockNum", blockNum);
+        q.bind(":limitBlockNum", limitBlockNum);
         
         auto answer = q.execute();
         
@@ -509,6 +529,43 @@ class Storage
         }
         
         return false;
+    }
+    
+    private BlockHash findBlockEnclosureChainEnd(in BlockHash from)
+    {
+        alias q = qFindBlockEnclosureChainEnd;
+        
+        q.bind(":blockHash", from);
+        
+        auto answer = q.execute();
+        auto r = answer.front();
+        
+        BlockHash res = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+        
+        version(assert) answer.popFront;
+        assert(answer.empty);
+        
+        return res;
+    }
+    
+    BlockHash findLatestBlock(in BlockHash from, in size_t limitBlockNum)
+    {
+        BlockHash currBlock = from;
+        size_t currBlockNum = limitBlockNum;
+        
+        while(
+            findNextBlock(currBlock, currBlockNum, currBlock, currBlockNum)
+        ){}
+        
+        if(currBlockNum == limitBlockNum - 1)
+        {
+            // Trying to get parallel chain thread block
+            immutable enclEnd = findBlockEnclosureChainEnd(currBlock);
+            
+            
+        }
+        
+        return currBlock;
     }
 }
 
