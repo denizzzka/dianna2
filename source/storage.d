@@ -75,6 +75,7 @@ class Storage
         qSelectAffectedBlocks,
         qCalcBlockEnclosureChainHash,
         qInsertBlock,
+        qSelectBlock,
         qCalcPreviousRecordsNum,
         qFindNextBlock,
         qFindBlockEnclosureChainEnd;
@@ -281,6 +282,16 @@ class Storage
             )
         `);
         
+        qSelectBlock = db.prepare(`
+            SELECT
+                blockNum,
+                prevFilledBlockHash,
+                recordsNum,
+                prevIncludedBlockHash
+            FROM blocks
+            WHERE blockHash = :blockHash
+        `);
+        
         qFindNextBlock = db.prepare(`
             SELECT blockNum, blockHash
             FROM blocks
@@ -370,6 +381,32 @@ class Storage
         q.execute();
         assert(db.changes() == 1);
         q.reset();
+    }
+    
+    private Block getBlock(inout BlockHash blockHash)
+    {
+        alias q = qSelectBlock;
+        
+        q.bind(":blockHash", blockHash);
+        
+        auto answer = q.execute();
+        auto r = answer.front();
+        
+        Block res;
+        res.blockHash = blockHash;
+        res.blockNum = r["blockNum"].as!size_t;
+        res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+        res.recordsNum = r["recordsNum"].as!size_t;
+        
+        if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
+            res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+        
+        version(assert) answer.popFront;
+        assert(answer.empty);
+        
+        q.reset();
+        
+        return res;
     }
     
     void addRecordAwaitingPoW(in Record r)
@@ -524,11 +561,11 @@ class Storage
             
             version(assert) answer.popFront;
             assert(answer.empty);
-            
-            return true;
         }
         
-        return false;
+        q.reset();
+        
+        return !answer.empty;
     }
     
     private BlockHash findBlockEnclosureChainEnd(in BlockHash from)
@@ -544,6 +581,8 @@ class Storage
         
         version(assert) answer.popFront;
         assert(answer.empty);
+        
+        q.reset();
         
         return res;
     }
@@ -562,7 +601,7 @@ class Storage
             // Trying to get parallel chain thread block
             immutable enclEnd = findBlockEnclosureChainEnd(currBlock);
             
-            
+            immutable parallelBlock = getBlock(enclEnd);
         }
         
         return currBlock;
@@ -597,6 +636,7 @@ unittest
     b.recordsNum = 1;
     b.prevFilledBlockHash = prevFilledBlock;
     s.insertBlock(b);
+    assert(s.getBlock(b.blockHash) == b);
     
     Storage.Block b2;
     b2.prevIncludedBlockHash = b.blockHash;
