@@ -589,21 +589,33 @@ class Storage
         return res;
     }
     
-    BlockHash findLatestBlock(in BlockHash from, in size_t limitBlockNum)
+    BlockHash findLatestHonestBlock(in BlockHash from, in size_t limitBlockNum)
     {
         BlockHash currBlock = from;
         size_t currBlockNum = limitBlockNum;
         
         while(
-            findNextBlock(currBlock, currBlockNum, currBlock, currBlockNum)
+            findNextBlock(currBlock, limitBlockNum, currBlock, currBlockNum)
         ){}
         
         if(currBlockNum == limitBlockNum - 1)
         {
-            // Trying to get parallel chain thread block
+            // Necessary block can be next in the parallel chain thread
             immutable enclEnd = findBlockEnclosureChainEnd(currBlock);
+            immutable parallel = getBlock(enclEnd);
             
-            immutable parallelBlock = getBlock(enclEnd);
+            if(parallel.blockNum != currBlockNum)
+            {
+                // Parallel block is available!
+                currBlock = findNextBlock(
+                    parallel.prevFilledBlockHash,
+                    limitBlockNum,
+                    currBlock,
+                    currBlockNum
+                );
+                
+                assert(currBlockNum == limitBlockNum);
+            }
         }
         
         return currBlock;
@@ -663,6 +675,12 @@ unittest
     assert(fN);
     assert(fNBlockNum == 1);
     assert(fNBlockHash == b2.blockHash);
+    
+    immutable latest1 = s.findLatestHonestBlock(prevFilledBlock, 3);
+    assert(latest1 == b2.blockHash);
+    
+    immutable latest2 = s.findLatestHonestBlock(prevFilledBlock, 1);
+    assert(latest1 == latest2);
     
     /*
     uint early, later;
