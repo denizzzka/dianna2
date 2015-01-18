@@ -695,14 +695,31 @@ class Storage
         return res;
     }
     
-    private Block[] findParallelBlocks
+    private BlockHash[] findParallelBlocks
     (
         in BlockHash fromBlockHash,
         in BlockHash nextBlockHash,
-        in size_t limitBlockNum
+        in size_t parallelBlockNum
     )
     {
-        Block[] res;
+        alias q = qFindParallelBlocks;
+        
+        q.bind(":fromBlockHash", fromBlockHash);
+        q.bind(":nextBlockHash", fromBlockHash);
+        q.bind(":parallelBlockNum", parallelBlockNum);
+        
+        auto answer = q.execute();
+        
+        BlockHash[] res;
+        
+        foreach(ref r; answer)
+        {
+            BlockHash b = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+            
+            res ~= b;
+        }
+        
+        q.reset();
         
         return res;
     }
@@ -821,6 +838,9 @@ unittest
     
     const blocks = s.findNextBlocks(prevFilledBlock, 8);
     assert(blocks.length == 2);
+    
+    const parallel = s.findParallelBlocks(b.blockHash, b2.blockHash, 1);
+    assert(parallel.length == 0);
     
     /*
     uint early, later;
