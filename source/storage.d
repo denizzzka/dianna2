@@ -343,10 +343,53 @@ class Storage
         `);
         
         qFindParallelBlocks = db.prepare(`
+            WITH b(blockNum, blockHash, proofOfWork) AS
+            (
+                SELECT blockNum, blockHash, c.proofOfWork
+                FROM blocks
+                JOIN BlocksContents c USING(blockHash)
+            ),
             
-            SELECT *
-            FROM BlocksContents
-            WHERE proofOfWork
+            parallelBlocks(blockHash, proofOfWork) AS
+            (
+                SELECT blockHash, proofOfWork
+                FROM b
+                WHERE blockNum = :parallelBlockNum
+            ),
+            
+            intersectFrom(blockHash, proofOfWork) AS
+            (
+                SELECT p.blockHash, proofOfWork
+                FROM parallelBlocks p
+                JOIN b USING(proofOfWork)
+                WHERE b.blockHash = :fromBlockHash
+            ),
+            
+            intersectNext(blockHash, proofOfWork) AS
+            (
+                SELECT blockHash, proofOfWork
+                FROM parallelBlocks
+                
+                EXCEPT
+                
+                SELECT blockHash, proofOfWork
+                FROM intersectFrom
+                
+                INTERSECT
+                
+                SELECT p.blockHash, proofOfWork
+                FROM parallelBlocks p
+                JOIN b USING(proofOfWork)
+                WHERE b.blockHash = :nextBlockHash
+            )
+            
+            SELECT blockHash, proofOfWork
+            FROM intersectFrom
+            
+            INTERSECT
+            
+            SELECT blockHash, proofOfWork
+            FROM intersectNext            
         `);
     }
     
