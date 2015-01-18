@@ -59,6 +59,45 @@ ON blocks(blockHash);
 
 CREATE UNIQUE INDEX IF NOT EXISTS blocks_prevIncludedBlockHash_uniq
 ON blocks(prevIncludedBlockHash);
+
+CREATE VIEW IF NOT EXISTS BlocksContents AS
+WITH RECURSIVE r(
+    blockHash,
+    blockNum,
+    prevFilledBlockHash,
+    recordsNum,
+    proofOfWork,
+    prevIncludedBlockHash
+) AS (
+    SELECT
+        blockHash,
+        blockNum,
+        prevFilledBlockHash,
+        recordsNum,
+        proofOfWork,
+        prevIncludedBlockHash
+    FROM blocks b
+    
+    UNION ALL
+    
+    SELECT
+        r.blockHash,
+        r.blockNum,
+        r.prevFilledBlockHash,
+        r.recordsNum,
+        b.proofOfWork,
+        b.prevIncludedBlockHash
+    FROM blocks b
+    JOIN r ON b.blockHash = r.prevIncludedBlockHash
+)
+
+SELECT
+    blockHash,
+    blockNum,
+    prevFilledBlockHash,
+    recordsNum,
+    proofOfWork
+FROM r
 `;
 
 class Storage
@@ -79,6 +118,7 @@ class Storage
         qCalcPreviousRecordsNum,
         qFindNextBlock,
         qFindNextBlocks,
+        qFindParallelBlocks,
         qFindBlockEnclosureChainEnd;
     
     this(string filename)
@@ -312,6 +352,13 @@ class Storage
             FROM blocks
             WHERE prevFilledBlockHash = :fromBlockHash
             AND blockNum <= :limitBlockNum
+        `);
+        
+        qFindParallelBlocks = db.prepare(`
+            
+            SELECT *
+            FROM BlocksContents
+            WHERE proofOfWork
         `);
     }
     
@@ -583,7 +630,8 @@ class Storage
         return false;
     }
     
-    private Block[] findNextBlocks(
+    private Block[] findNextBlocks
+    (
         in BlockHash fromBlockHash,
         in size_t limitBlockNum
     )
@@ -612,6 +660,18 @@ class Storage
         }
         
         q.reset();
+        
+        return res;
+    }
+    
+    private Block[] findParallelBlocks
+    (
+        in BlockHash fromBlockHash,
+        in BlockHash nextBlockHash,
+        in size_t limitBlockNum
+    )
+    {
+        Block[] res;
         
         return res;
     }
