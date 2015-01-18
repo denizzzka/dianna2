@@ -78,6 +78,7 @@ class Storage
         qSelectBlock,
         qCalcPreviousRecordsNum,
         qFindNextBlock,
+        qFindNextBlocks,
         qFindBlockEnclosureChainEnd;
     
     this(string filename)
@@ -299,6 +300,18 @@ class Storage
             AND blockNum <= :limitBlockNum
             ORDER BY blockNum, recordsNum DESC
             LIMIT 1
+        `);
+        
+        qFindNextBlocks = db.prepare(`
+            SELECT
+                blockHash,
+                blockNum,
+                prevFilledBlockHash,
+                recordsNum,
+                prevIncludedBlockHash
+            FROM blocks
+            WHERE prevFilledBlockHash = :fromBlockHash
+            AND blockNum <= :limitBlockNum
         `);
     }
     
@@ -570,6 +583,39 @@ class Storage
         return false;
     }
     
+    private Block[] findNextBlocks(
+        in BlockHash fromBlockHash,
+        in size_t limitBlockNum
+    )
+    {
+        alias q = qFindNextBlocks;
+        
+        q.bind(":fromBlockHash", fromBlockHash);
+        q.bind(":limitBlockNum", limitBlockNum);
+        
+        auto answer = q.execute();
+        
+        Block[] res;
+        
+        foreach(ref r; answer)
+        {
+            Block b;
+            b.blockNum = r["blockNum"].as!size_t;
+            b.recordsNum = r["recordsNum"].as!size_t;
+            b.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+            b.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+            
+            if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
+                b.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+            
+            res ~= b;
+        }
+        
+        q.reset();
+        
+        return res;
+    }
+    
     private BlockHash findBlockEnclosureChainEnd(in BlockHash from)
     {
         alias q = qFindBlockEnclosureChainEnd;
@@ -681,6 +727,9 @@ unittest
     
     immutable latest2 = s.findLatestHonestBlock(prevFilledBlock, 1);
     assert(latest1 == latest2);
+    
+    const blocks = s.findNextBlocks(prevFilledBlock, 8);
+    assert(blocks.length == 2);
     
     /*
     uint early, later;
