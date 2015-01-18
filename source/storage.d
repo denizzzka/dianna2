@@ -63,17 +63,11 @@ ON blocks(prevIncludedBlockHash);
 CREATE VIEW IF NOT EXISTS BlocksContents AS
 WITH RECURSIVE r(
     blockHash,
-    blockNum,
-    prevFilledBlockHash,
-    recordsNum,
     proofOfWork,
     prevIncludedBlockHash
 ) AS (
     SELECT
         blockHash,
-        blockNum,
-        prevFilledBlockHash,
-        recordsNum,
         proofOfWork,
         prevIncludedBlockHash
     FROM blocks b
@@ -82,9 +76,6 @@ WITH RECURSIVE r(
     
     SELECT
         r.blockHash,
-        r.blockNum,
-        r.prevFilledBlockHash,
-        r.recordsNum,
         b.proofOfWork,
         b.prevIncludedBlockHash
     FROM blocks b
@@ -93,9 +84,6 @@ WITH RECURSIVE r(
 
 SELECT
     blockHash,
-    blockNum,
-    prevFilledBlockHash,
-    recordsNum,
     proofOfWork
 FROM r
 `;
