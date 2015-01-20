@@ -683,23 +683,67 @@ unittest
 {
     auto s = new Storage("_unittest_storage.sqlite");
     
-    BlockHash prevFilledBlock;
-    prevFilledBlock[0] = 88;
+    Storage.Block prevFilledBlock;
+    prevFilledBlock.blockHash[0] = 88;
+    
+    const latest1 = s.findLatestHonestBlock(prevFilledBlock, 8);
+    assert(latest1 == prevFilledBlock.blockHash);
     
     Record r = {
         chainType: ChainType.Test,
         payloadType: PayloadType.Test,
         payload: [0x76, 0x76, 0x76, 0x76],
         blockNum: 1,
-        prevFilledBlock: prevFilledBlock
+        prevFilledBlock: prevFilledBlock.blockHash
     };
     
     r.proofOfWork.hash[5] = 0x31;
     s.addRecord(r);
+    
+    const latest2 = s.findLatestHonestBlock(prevFilledBlock, 8);
+    assert(latest2 != latest1);
+    
     r.proofOfWork.hash[5] = 0x32;
     s.addRecord(r);
-    r.proofOfWork.hash[5] = 0x33;
-    s.addRecord(r);
+    
+    const latest3 = s.findLatestHonestBlock(prevFilledBlock, 8);
+    assert(latest3 != latest2);
+    assert(latest3 != latest1);
+    
+    Record r2 = r; // parallel block
+    r2.blockNum = 2;
+    r2.proofOfWork.hash[5] = 0x34;
+    s.addRecord(r2);
+    
+    const latest4 = s.findLatestHonestBlock(prevFilledBlock, 8);
+    assert(latest4 != latest3);
+    
+    Record r3 = r; // next block
+    r3.prevFilledBlock = latest3;
+    r3.blockNum = 3;
+    r3.proofOfWork.hash[5] = 0x35;
+    s.addRecord(r3);
+    
+    const latest5_1 = s.findLatestHonestBlock(prevFilledBlock, 8);
+    assert(latest5_1 != latest4);
+    
+    // next block again
+    r3.prevFilledBlock = latest3;
+    r3.proofOfWork.hash[5] = 0x39;
+    s.addRecord(r3);
+    
+    const latest5 = s.findLatestHonestBlock(prevFilledBlock, 8);
+    assert(latest5 != latest5_1);
+    
+    Record r4 = r; // parallel block
+    r4.prevFilledBlock = latest4;
+    r4.blockNum = 4;
+    r4.proofOfWork.hash[5] = 0x36;
+    s.addRecord(r4);
+    
+    const latest6 = s.findLatestHonestBlock(prevFilledBlock, 8);
+    assert(latest6 != latest5);
+    
     /*
     Storage.Block b;
     b.blockHash[0] = 77;
