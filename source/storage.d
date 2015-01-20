@@ -623,10 +623,11 @@ class Storage
     private struct Weight
     {
         size_t nodesNum;
+        size_t recordsNum;
         BlockHash blockHash;
     }
     
-    private Weight findRecursively(in Block from, in size_t limitBlockNum, in Weight weight)
+    private Weight findRecursively(in Block from, in size_t limitBlockNum)
     {
         Block[] toProcess;
         
@@ -645,26 +646,39 @@ class Storage
         if(toProcess.length == 0)
         {
             // Current block is a leaf
-            return weight;
+            const Weight currWeight = {
+                recordsNum: from.recordsNum,
+                blockHash: from.blockHash
+            };
+            
+            return currWeight;
         }
         else
         {
             Weight[] res = new Weight[toProcess.length];
             
             foreach(size_t i, ref b; toProcess)
-            {
-                const Weight currWeight = {
-                    nodesNum: weight.nodesNum + 1,
-                    blockHash: b.blockHash
-                };
-                
-                res[i] = findRecursively(b, limitBlockNum, currWeight);
-            }
+                res[i] = findRecursively(b, limitBlockNum);
             
             size_t maxKey;
             
             foreach(size_t i, ref w; res)
-                if(w.nodesNum >= res[maxKey].nodesNum) maxKey = i;
+            {
+                // Longest branch?
+                if(w.nodesNum > res[maxKey].nodesNum)
+                {
+                    maxKey = i;
+                }
+                else
+                {
+                    // More leaf nodes for equal branches
+                    if(w.nodesNum == res[maxKey].nodesNum)
+                        if(w.recordsNum > res[maxKey].recordsNum)
+                            maxKey = i;
+                }
+            }
+            
+            res[maxKey].nodesNum++;
             
             return res[maxKey];
         }
@@ -672,11 +686,7 @@ class Storage
     
     BlockHash findLatestHonestBlock(in Block from, in size_t limitBlockNum)
     {
-        const Weight currWeight = {
-            blockHash: from.blockHash
-        };
-        
-        return findRecursively(from, limitBlockNum, currWeight).blockHash;
+        return findRecursively(from, limitBlockNum).blockHash;
     }
 }
 
