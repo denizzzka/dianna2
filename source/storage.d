@@ -743,36 +743,71 @@ class Storage
         return res;
     }
     
-    BlockHash findLatestHonestBlock(in BlockHash from, in size_t limitBlockNum)
+    private struct Weight
     {
-        BlockHash currBlock = from;
-        size_t currBlockNum = limitBlockNum;
+        size_t nodesNum;
+        BlockHash blockHash;
+    }
+    
+    private Weight findRecursively(in Block from, in size_t limitBlockNum, in Weight weight)
+    {
+        const nextBlocks = findNextBlocks(from.blockHash, limitBlockNum);
+        Block[] toProcess;
         
-        while(
-            findNextBlock(currBlock, limitBlockNum, currBlock, currBlockNum)
-        ){}
-        
-        if(currBlockNum == limitBlockNum - 1)
+        foreach(ref nb; nextBlocks)
         {
-            // Necessary block can be next in the parallel chain thread
-            immutable enclEnd = findBlockEnclosureChainEnd(currBlock);
-            immutable parallel = getBlock(enclEnd);
+            toProcess ~= nb;
             
-            if(parallel.blockNum != currBlockNum)
+            if(from.blockNum == nb.blockNum - 2)
             {
-                // Parallel block is available!
-                currBlock = findNextBlock(
-                    parallel.prevFilledBlockHash,
-                    limitBlockNum,
-                    currBlock,
-                    currBlockNum
+                // There is can be a parallel blocks
+                const parallelBlocks = findParallelBlocks(
+                    from.blockHash,
+                    nb.blockHash,
+                    nb.blockNum - 1
                 );
                 
-                assert(currBlockNum == limitBlockNum);
+                foreach(ref h; parallelBlocks)
+                    toProcess ~= getBlock(h);
             }
         }
         
-        return currBlock;
+        // Path finding
+        if(toProcess.length == 0)
+        {
+            // Current block is a leaf
+            return weight;
+        }
+        else
+        {
+            Weight[] res = new Weight[toProcess.length];
+            
+            foreach(size_t i, ref b; toProcess)
+            {
+                const Weight currWeight = {
+                    nodesNum: weight.nodesNum + 1,
+                    blockHash: b.blockHash
+                };
+                
+                res[i] = findRecursively(b, limitBlockNum, currWeight);
+            }
+            
+            size_t maxKey;
+            
+            foreach(size_t i, ref w; res)
+                if(w.nodesNum >= res[maxKey].nodesNum) maxKey = i;
+            
+            return res[maxKey];
+        }
+    }
+    
+    BlockHash findLatestHonestBlock(in Block from, in size_t limitBlockNum)
+    {
+        const Weight currWeight = {
+            blockHash: from.blockHash
+        };
+        
+        return findRecursively(from, limitBlockNum, currWeight).blockHash;
     }
 }
 
@@ -830,11 +865,11 @@ unittest
     assert(fNBlockNum == 1);
     assert(fNBlockHash == b2.blockHash);
     
-    immutable latest1 = s.findLatestHonestBlock(prevFilledBlock, 3);
-    assert(latest1 == b2.blockHash);
+    immutable latest1 = s.findLatestHonestBlock(b, 3);
+    assert(latest1 == b.blockHash);
     
-    immutable latest2 = s.findLatestHonestBlock(prevFilledBlock, 1);
-    assert(latest1 == latest2);
+    immutable latest2 = s.findLatestHonestBlock(b2, 1);
+    assert(latest2 == b2.blockHash);
     
     const blocks = s.findNextBlocks(prevFilledBlock, 8);
     assert(blocks.length == 2);
