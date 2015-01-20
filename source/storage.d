@@ -820,6 +820,17 @@ class Storage
                 foreach(ref h; parallelBlocks)
                     toProcess ~= getBlock(h);
             }
+            else
+            {
+                // There also can be a parallel blocks
+                const parallelBlocks = findParallelBlocks(
+                    from.blockHash,
+                    from.blockNum + 1
+                );
+                
+                foreach(ref h; parallelBlocks)
+                    toProcess ~= getBlock(h);
+            }
         }
         
         // Path finding
