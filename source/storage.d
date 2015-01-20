@@ -374,6 +374,7 @@ class Storage
         db.begin;
         
         insertRecord(r);
+        // FIXME: Add creation of num-1 block too
         createBlock(r);
         
         db.commit;
