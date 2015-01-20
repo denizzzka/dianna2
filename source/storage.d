@@ -678,7 +678,7 @@ class Storage
                 }
             }
             
-            res[maxKey].nodesNum++;
+            ++res[maxKey].nodesNum;
             
             return res[maxKey];
         }
