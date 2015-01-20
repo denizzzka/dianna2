@@ -107,6 +107,7 @@ class Storage
         qFindNextBlock,
         qFindNextBlocks,
         qFindParallelBlocks,
+        qFindParallelBlocksWithoutNextBlock,
         qFindBlockEnclosureChainEnd;
     
     this(string filename)
@@ -390,6 +391,27 @@ class Storage
             
             SELECT blockHash, proofOfWork
             FROM intersectNext            
+        `);
+        
+        qFindParallelBlocksWithoutNextBlock = db.prepare(`
+            WITH b(blockNum, blockHash, proofOfWork) AS
+            (
+                SELECT blockNum, blockHash, c.proofOfWork
+                FROM blocks
+                JOIN BlocksContents c USING(blockHash)
+            ),
+            
+            parallelBlocks(blockHash, proofOfWork) AS
+            (
+                SELECT blockHash, proofOfWork
+                FROM b
+                WHERE blockNum = :parallelBlockNum
+            )
+            
+            SELECT DISTINCT p.blockHash
+            FROM parallelBlocks p
+            JOIN b USING(proofOfWork)
+            WHERE b.blockHash = :fromBlockHash
         `);
     }
     
@@ -695,6 +717,7 @@ class Storage
         return res;
     }
     
+    /// For parallel blocks between two another
     private BlockHash[] findParallelBlocks
     (
         in BlockHash fromBlockHash,
@@ -706,6 +729,33 @@ class Storage
         
         q.bind(":fromBlockHash", fromBlockHash);
         q.bind(":nextBlockHash", fromBlockHash);
+        q.bind(":parallelBlockNum", parallelBlockNum);
+        
+        auto answer = q.execute();
+        
+        BlockHash[] res;
+        
+        foreach(ref r; answer)
+        {
+            BlockHash b = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+            
+            res ~= b;
+        }
+        
+        q.reset();
+        
+        return res;
+    }
+    
+    private BlockHash[] findParallelBlocks
+    (
+        in BlockHash fromBlockHash,
+        in size_t parallelBlockNum
+    )
+    {
+        alias q = qFindParallelBlocksWithoutNextBlock;
+        
+        q.bind(":fromBlockHash", fromBlockHash);
         q.bind(":parallelBlockNum", parallelBlockNum);
         
         auto answer = q.execute();
