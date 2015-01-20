@@ -408,7 +408,7 @@ class Storage
                 WHERE blockNum = :parallelBlockNum
             )
             
-            SELECT DISTINCT p.blockHash
+            SELECT DISTINCT p.blockHash AS blockHash
             FROM parallelBlocks p
             JOIN b USING(proofOfWork)
             WHERE b.blockHash = :fromBlockHash
@@ -717,7 +717,6 @@ class Storage
         return res;
     }
     
-    /// For parallel blocks between two another
     private BlockHash[] findParallelBlocks
     (
         in BlockHash fromBlockHash,
@@ -801,22 +800,18 @@ class Storage
     
     private Weight findRecursively(in Block from, in size_t limitBlockNum, in Weight weight)
     {
-        const nextBlocks = findNextBlocks(from.blockHash, limitBlockNum);
         Block[] toProcess;
         
-        foreach(ref nb; nextBlocks)
+        if(from.blockNum < limitBlockNum)
         {
-            toProcess ~= nb;
+            const pb = findParallelBlocks(from.blockHash, from.blockNum + 1);
             
-            // There also can be a parallel blocks
-            const parallelBlocks = findParallelBlocks(
-                from.blockHash,
-                from.blockNum + 1
-            );
-            
-            foreach(ref h; parallelBlocks)
+            foreach(ref h; pb)
                 toProcess ~= getBlock(h);
         }
+        
+        if(toProcess.length == 0)
+            toProcess = findNextBlocks(from.blockHash, limitBlockNum);
         
         // Path finding
         if(toProcess.length == 0)
@@ -925,11 +920,11 @@ unittest
     assert(fNBlockNum == 1);
     assert(fNBlockHash == b2.blockHash);
     
-    immutable latest1 = s.findLatestHonestBlock(b, 3);
+    immutable latest1 = s.findLatestHonestBlock(b, 8);
     assert(latest1 == b.blockHash);
     
     immutable latest2 = s.findLatestHonestBlock(b2, 1);
-    assert(latest2 == b2.blockHash);
+    assert(latest2 == b4.blockHash);
     
     const blocks = s.findNextBlocks(prevFilledBlock, 8);
     assert(blocks.length == 3);
