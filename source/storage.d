@@ -99,16 +99,11 @@ class Storage
         qUpdateCalculatedPoW,
         qDeleteRecordAwaitingPublish,
         qInsertRecord,
-        qSelectAffectedBlocks,
-        qCalcBlockEnclosureChainHash,
         qInsertBlock,
         qSelectBlock,
         qCalcPreviousRecordsNum,
-        qFindNextBlock,
         qFindNextBlocks,
         qFindParallelBlocks,
-        qFindParallelBlocksWithoutNextBlock,
-        qFindBlockEnclosureChainEnd,
         qCreateBlockFromRecord;
     
     this(string filename)
@@ -207,68 +202,6 @@ class Storage
             )`
         );
         
-        qSelectAffectedBlocks = db.prepare(`
-            SELECT blockHash
-            FROM blocks
-            WHERE prevIncludedBlockHash IS NULL
-            AND 
-            (
-                blockNum = :blockNum - 1
-                OR
-                (
-                    blockNum = :blockNum
-                    AND prevFilledBlockHash = :prevFilledBlockHash
-                )
-            )
-        `);
-        
-        qCalcBlockEnclosureChainHash = db.prepare(`
-            WITH RECURSIVE r(blockHash, prevIncludedBlockHash, proofOfWork) AS
-            (
-                SELECT b.blockHash, b.prevIncludedBlockHash, b.proofOfWork
-                FROM blocks b
-                WHERE blockHash = :blockHash
-                
-                UNION ALL
-                
-                SELECT b.blockHash, b.prevIncludedBlockHash, b.proofOfWork
-                FROM blocks b
-                JOIN r ON b.prevIncludedBlockHash = r.blockHash
-            )
-            
-            SELECT
-                hashFunc(proofOfWork) as blockHash,
-                (SELECT blockHash FROM r ORDER BY rowid DESC LIMIT 1) AS prevIncludedBlockHash,
-                (SELECT count(*) FROM r) AS recordsNum
-            FROM (
-                SELECT proofOfWork
-                FROM r
-                UNION ALL
-                SELECT :proofOfWork AS proofOfWork
-                ORDER BY proofOfWork
-            ) orderedPoWs
-            
-        `);
-        
-        qFindBlockEnclosureChainEnd = db.prepare(`
-            WITH RECURSIVE r(blockHash, prevIncludedBlockHash) AS
-            (
-                SELECT b.blockHash, b.prevIncludedBlockHash
-                FROM blocks b
-                WHERE blockHash = :blockHash
-                
-                UNION ALL
-                
-                SELECT b.blockHash, b.prevIncludedBlockHash
-                FROM blocks b
-                JOIN r ON b.prevIncludedBlockHash = r.blockHash
-            )
-            
-            SELECT blockHash
-            FROM r
-            LIMIT 1
-        `);
-        
         qCalcPreviousRecordsNum = db.prepare(`
             WITH RECURSIVE r(prevFilledBlockHash, recordsNum, depth) AS
             (
@@ -323,15 +256,6 @@ class Storage
             WHERE blockHash = :blockHash
         `);
         
-        qFindNextBlock = db.prepare(`
-            SELECT blockNum, blockHash
-            FROM blocks
-            WHERE prevFilledBlockHash = :blockHash
-            AND blockNum <= :limitBlockNum
-            ORDER BY blockNum, recordsNum DESC
-            LIMIT 1
-        `);
-        
         qFindNextBlocks = db.prepare(`
             SELECT
                 blockHash,
@@ -345,56 +269,6 @@ class Storage
         `);
         
         qFindParallelBlocks = db.prepare(`
-            WITH b(blockNum, blockHash, proofOfWork) AS
-            (
-                SELECT blockNum, blockHash, c.proofOfWork
-                FROM blocks
-                JOIN BlocksContents c USING(blockHash)
-            ),
-            
-            parallelBlocks(blockHash, proofOfWork) AS
-            (
-                SELECT blockHash, proofOfWork
-                FROM b
-                WHERE blockNum = :parallelBlockNum
-            ),
-            
-            intersectFrom(blockHash, proofOfWork) AS
-            (
-                SELECT p.blockHash, proofOfWork
-                FROM parallelBlocks p
-                JOIN b USING(proofOfWork)
-                WHERE b.blockHash = :fromBlockHash
-            ),
-            
-            intersectNext(blockHash, proofOfWork) AS
-            (
-                SELECT blockHash, proofOfWork
-                FROM parallelBlocks
-                
-                EXCEPT
-                
-                SELECT blockHash, proofOfWork
-                FROM intersectFrom
-                
-                INTERSECT
-                
-                SELECT p.blockHash, proofOfWork
-                FROM parallelBlocks p
-                JOIN b USING(proofOfWork)
-                WHERE b.blockHash = :nextBlockHash
-            )
-            
-            SELECT blockHash, proofOfWork
-            FROM intersectFrom
-            
-            INTERSECT
-            
-            SELECT blockHash, proofOfWork
-            FROM intersectNext            
-        `);
-        
-        qFindParallelBlocksWithoutNextBlock = db.prepare(`
             WITH b(blockNum, blockHash, proofOfWork) AS
             (
                 SELECT blockNum, blockHash, c.proofOfWork
@@ -495,6 +369,16 @@ class Storage
         remove(path);
     }
     
+    void addRecord(in Record r)
+    {
+        db.begin;
+        
+        insertRecord(r);
+        createBlock(r);
+        
+        db.commit;
+    }
+    
     private void createBlock(in Record r)
     {
         alias q = qCreateBlockFromRecord;
@@ -508,7 +392,7 @@ class Storage
         q.reset();
     }
     
-    void Insert(in Record r)
+    private void insertRecord(in Record r)
     {
         alias e = qInsertRecord;
         
@@ -536,7 +420,8 @@ class Storage
         PoW proofOfWork;
     }
     
-    void insertBlock(inout Block b)
+    deprecated
+    private void insertBlock(inout Block b)
     {
         alias q = qInsertBlock;
         
@@ -654,6 +539,7 @@ class Storage
         q.reset();
     }
     
+    deprecated
     void calcPreviousRecordsNum(in BlockHash b, out uint early, out uint later)
     {
         alias q = qCalcPreviousRecordsNum;
@@ -670,77 +556,6 @@ class Storage
         assert(answer.empty);
         
         q.reset();
-    }
-    
-    private BlockHash[] getAffectedBlocksChainsStarts(inout ref Record r)
-    {
-        alias q = qSelectAffectedBlocks;
-        
-        q.bind(":blockNum", r.blockNum);
-        q.bind(":prevFilledBlockHash", r.prevFilledBlock);
-        
-        auto answer = q.execute();
-        
-        BlockHash[] res;
-        
-        foreach(a; answer)
-            res ~= (a["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-        
-        return res;
-    }
-    
-    private Block calcBlockEnclosureChainHash(in BlockHash blockHash, in PoW pow)
-    {
-        alias q = qCalcBlockEnclosureChainHash;
-        
-        q.bind(":blockHash", blockHash);
-        q.bind(":proofOfWork", pow.getUbytes);
-        
-        auto answer = q.execute();
-        auto r = answer.front();
-        
-        Block res;
-        
-        res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-        res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
-        res.recordsNum = r["recordsNum"].as!size_t;
-        
-        version(assert) answer.popFront;
-        assert(answer.empty);
-        
-        return res;
-    }
-    
-    private bool findNextBlock(
-        in BlockHash blockHash,
-        in size_t limitBlockNum,
-        ref BlockHash blockHashRes,
-        ref size_t blockNumRes
-    )
-    {
-        alias q = qFindNextBlock;
-        
-        q.bind(":blockHash", blockHash);
-        q.bind(":limitBlockNum", limitBlockNum);
-        
-        auto answer = q.execute();
-        
-        if(!answer.empty)
-        {
-            auto r = answer.front();
-            
-            blockNumRes = r["blockNum"].as!size_t;
-            blockHashRes = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-            
-            version(assert) answer.popFront;
-            assert(answer.empty);
-            
-            q.reset();
-            return true;
-        }
-        
-        q.reset();
-        return false;
     }
     
     private Block[] findNextBlocks
@@ -780,14 +595,12 @@ class Storage
     private BlockHash[] findParallelBlocks
     (
         in BlockHash fromBlockHash,
-        in BlockHash nextBlockHash,
         in size_t parallelBlockNum
     )
     {
         alias q = qFindParallelBlocks;
         
         q.bind(":fromBlockHash", fromBlockHash);
-        q.bind(":nextBlockHash", fromBlockHash);
         q.bind(":parallelBlockNum", parallelBlockNum);
         
         auto answer = q.execute();
@@ -800,52 +613,6 @@ class Storage
             
             res ~= b;
         }
-        
-        q.reset();
-        
-        return res;
-    }
-    
-    private BlockHash[] findParallelBlocks
-    (
-        in BlockHash fromBlockHash,
-        in size_t parallelBlockNum
-    )
-    {
-        alias q = qFindParallelBlocksWithoutNextBlock;
-        
-        q.bind(":fromBlockHash", fromBlockHash);
-        q.bind(":parallelBlockNum", parallelBlockNum);
-        
-        auto answer = q.execute();
-        
-        BlockHash[] res;
-        
-        foreach(ref r; answer)
-        {
-            BlockHash b = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-            
-            res ~= b;
-        }
-        
-        q.reset();
-        
-        return res;
-    }
-    
-    private BlockHash findBlockEnclosureChainEnd(in BlockHash from)
-    {
-        alias q = qFindBlockEnclosureChainEnd;
-        
-        q.bind(":blockHash", from);
-        
-        auto answer = q.execute();
-        auto r = answer.front();
-        
-        BlockHash res = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-        
-        version(assert) answer.popFront;
-        assert(answer.empty);
         
         q.reset();
         
@@ -927,13 +694,13 @@ unittest
         prevFilledBlock: prevFilledBlock
     };
     
-    r.proofOfWork.hash[0] = 1;
-    s.Insert(r);
-    r.proofOfWork.hash[0] = 2;
-    s.Insert(r);
-    r.proofOfWork.hash[0] = 3;
-    s.Insert(r);
-    
+    r.proofOfWork.hash[5] = 0x31;
+    s.addRecord(r);
+    r.proofOfWork.hash[5] = 0x32;
+    s.addRecord(r);
+    r.proofOfWork.hash[5] = 0x33;
+    s.addRecord(r);
+    /*
     Storage.Block b;
     b.blockHash[0] = 77;
     b.blockNum = 1;
@@ -941,44 +708,6 @@ unittest
     b.prevFilledBlockHash = prevFilledBlock;
     s.insertBlock(b);
     assert(s.getBlock(b.blockHash) == b);
-    
-    Storage.Block b2;
-    b2.prevIncludedBlockHash = b.blockHash;
-    b2.blockHash[0] = 111;
-    b2.blockNum = 1;
-    b2.recordsNum = 2;
-    b2.prevFilledBlockHash = prevFilledBlock;
-    s.insertBlock(b2);
-    
-    Storage.Block b3; // parallel block between b2 and b4
-    b3.blockHash[0] = 222;
-    b3.blockNum = 2;
-    b3.recordsNum = 1;
-    b3.prevFilledBlockHash = prevFilledBlock;
-    s.insertBlock(b3);
-    
-    Storage.Block b4; // next block from b2
-    b4.blockHash[0] = 223;
-    b4.blockNum = 3;
-    b4.recordsNum = 1;
-    b4.prevFilledBlockHash = b2.blockHash;
-    s.insertBlock(b4);
-    
-    auto aff = s.getAffectedBlocksChainsStarts(r);
-    
-    assert(aff.length == 1);
-    assert(aff[0][0] == 77);
-    
-    PoW pow;
-    auto enc = s.calcBlockEnclosureChainHash(aff[0], pow);
-    assert(enc.recordsNum == 2);
-    
-    BlockHash fNBlockHash;
-    size_t fNBlockNum;
-    auto fN = s.findNextBlock(prevFilledBlock, 1, fNBlockHash, fNBlockNum);
-    assert(fN);
-    assert(fNBlockNum == 1);
-    assert(fNBlockHash == b2.blockHash);
     
     immutable latest1 = s.findLatestHonestBlock(b, 8);
     assert(latest1 == b.blockHash);
@@ -991,8 +720,8 @@ unittest
     
     const parallel = s.findParallelBlocks(b.blockHash, b2.blockHash, 1);
     assert(parallel.length == 0);
-    
-    s.createBlock(r);
+    */
+    //s.createBlock(r);
     
     /*
     uint early, later;
