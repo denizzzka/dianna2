@@ -808,29 +808,14 @@ class Storage
         {
             toProcess ~= nb;
             
-            if(from.blockNum == nb.blockNum - 2)
-            {
-                // There is can be a parallel blocks
-                const parallelBlocks = findParallelBlocks(
-                    from.blockHash,
-                    nb.blockHash,
-                    nb.blockNum - 1
-                );
-                
-                foreach(ref h; parallelBlocks)
-                    toProcess ~= getBlock(h);
-            }
-            else
-            {
-                // There also can be a parallel blocks
-                const parallelBlocks = findParallelBlocks(
-                    from.blockHash,
-                    from.blockNum + 1
-                );
-                
-                foreach(ref h; parallelBlocks)
-                    toProcess ~= getBlock(h);
-            }
+            // There also can be a parallel blocks
+            const parallelBlocks = findParallelBlocks(
+                from.blockHash,
+                from.blockNum + 1
+            );
+            
+            foreach(ref h; parallelBlocks)
+                toProcess ~= getBlock(h);
         }
         
         // Path finding
