@@ -744,36 +744,6 @@ unittest
     const latest6 = s.findLatestHonestBlock(prevFilledBlock, 8);
     assert(latest6 != latest5);
     
-    /*
-    Storage.Block b;
-    b.blockHash[0] = 77;
-    b.blockNum = 1;
-    b.recordsNum = 1;
-    b.prevFilledBlockHash = prevFilledBlock;
-    s.insertBlock(b);
-    assert(s.getBlock(b.blockHash) == b);
-    
-    immutable latest1 = s.findLatestHonestBlock(b, 8);
-    assert(latest1 == b.blockHash);
-    
-    immutable latest2 = s.findLatestHonestBlock(b2, 1);
-    assert(latest2 == b4.blockHash);
-    
-    const blocks = s.findNextBlocks(prevFilledBlock, 8);
-    assert(blocks.length == 3);
-    
-    const parallel = s.findParallelBlocks(b.blockHash, b2.blockHash, 1);
-    assert(parallel.length == 0);
-    */
-    //s.createBlock(r);
-    
-    /*
-    uint early, later;
-    s.calcPreviousRecordsNum(b.blockHash, early, later);
-    
-    assert(early == 0);
-    assert(later == 3);
-    */
     s.addRecordAwaitingPoW(r);
     
     r.proofOfWork.hash[0..3] = [0x48, 0x48, 0x48];
