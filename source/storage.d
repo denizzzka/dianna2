@@ -849,6 +849,20 @@ unittest
     b2.prevFilledBlockHash = prevFilledBlock;
     s.insertBlock(b2);
     
+    Storage.Block b3; // parallel block between b2 and b4
+    b3.blockHash[0] = 222;
+    b3.blockNum = 2;
+    b3.recordsNum = 1;
+    b3.prevFilledBlockHash = prevFilledBlock;
+    s.insertBlock(b3);
+    
+    Storage.Block b4; // next block from b2
+    b4.blockHash[0] = 223;
+    b4.blockNum = 3;
+    b4.recordsNum = 1;
+    b4.prevFilledBlockHash = b2.blockHash;
+    s.insertBlock(b4);
+    
     auto aff = s.getAffectedBlocksChainsStarts(r);
     
     assert(aff.length == 1);
@@ -872,7 +886,7 @@ unittest
     assert(latest2 == b2.blockHash);
     
     const blocks = s.findNextBlocks(prevFilledBlock, 8);
-    assert(blocks.length == 2);
+    assert(blocks.length == 3);
     
     const parallel = s.findParallelBlocks(b.blockHash, b2.blockHash, 1);
     assert(parallel.length == 0);
