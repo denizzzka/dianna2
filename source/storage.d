@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS blocks (
     blockHash BLOB NOT NULL,
     blockNum INT NOT NULL,
     prevFilledBlockHash BLOB INT NOT NULL,
-    recordsNum INT NOT NULL,
+    recordsNum INT NOT NULL CHECK (recordsNum > 0),
     proofOfWork BLOB NOT NULL, -- record caused this block creation
     prevIncludedBlockHash BLOB
 );
