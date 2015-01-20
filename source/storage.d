@@ -108,7 +108,8 @@ class Storage
         qFindNextBlocks,
         qFindParallelBlocks,
         qFindParallelBlocksWithoutNextBlock,
-        qFindBlockEnclosureChainEnd;
+        qFindBlockEnclosureChainEnd,
+        qCreateBlockFromRecord;
     
     this(string filename)
     {
@@ -413,6 +414,52 @@ class Storage
             JOIN b USING(proofOfWork)
             WHERE b.blockHash = :fromBlockHash
         `);
+        
+        qCreateBlockFromRecord = db.prepare(`
+            INSERT INTO blocks(
+                blockHash,
+                blockNum,
+                prevFilledBlockHash,
+                recordsNum,
+                proofOfWork,
+                prevIncludedBlockHash
+            )
+            
+            WITH hashSrc(proofOfWork) AS
+            (
+                SELECT c.proofOfWork
+                FROM blocks
+                JOIN BlocksContents c USING(blockHash)
+                WHERE prevFilledBlockHash = :prevFilledBlockHash
+                AND blockNum = :blockNum
+                
+                UNION ALL
+                
+                SELECT :proofOfWork
+            )
+            
+            SELECT
+                (
+                    SELECT hashFunc(proofOfWork) AS blockHash
+                    FROM hashSrc
+                    ORDER BY proofOfWork
+                ) AS blockHash,
+                :blockNum,
+                :prevFilledBlockHash,
+                (
+                    SELECT count(proofOfWork)
+                    FROM hashSrc
+                ) AS recordsNum,
+                :proofOfWork,
+                (
+                    SELECT blockHash
+                    FROM blocks
+                    WHERE prevFilledBlockHash = :prevFilledBlockHash
+                    AND blockNum = :blockNum
+                    ORDER BY recordsNum DESC
+                    LIMIT 1
+                ) AS prevIncludedBlockHash
+        `);
     }
     
     extern (C)
@@ -446,6 +493,19 @@ class Storage
     void purge()
     {
         remove(path);
+    }
+    
+    private void createBlock(in Record r)
+    {
+        alias q = qCreateBlockFromRecord;
+        
+        q.bind(":prevFilledBlockHash", r.prevFilledBlock);
+        q.bind(":blockNum", r.blockNum);
+        q.bind(":proofOfWork", r.proofOfWork.getUbytes);
+        
+        q.execute();
+        assert(db.changes() == 1);
+        q.reset();
     }
     
     void Insert(in Record r)
@@ -931,6 +991,8 @@ unittest
     
     const parallel = s.findParallelBlocks(b.blockHash, b2.blockHash, 1);
     assert(parallel.length == 0);
+    
+    s.createBlock(r);
     
     /*
     uint early, later;
