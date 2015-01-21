@@ -495,7 +495,7 @@ class Storage
         return res;
     }
     
-    private Block getMostFilledBlock(in size_t blockNum)
+    private bool getMostFilledBlock(in size_t blockNum, out Block res)
     {
         alias q = qSelectMostFilledBlock;
         
@@ -504,7 +504,8 @@ class Storage
         auto answer = q.execute();
         auto r = answer.front();
         
-        Block res;
+        if(answer.empty) return false;
+        
         res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.blockNum = blockNum;
         res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
@@ -518,7 +519,7 @@ class Storage
         
         q.reset();
         
-        return res;
+        return true;
     }
     
     private Block[] getBlock(in size_t blockNum)
