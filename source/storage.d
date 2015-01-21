@@ -48,6 +48,7 @@ ON recordsAwaitingPublish(hash);
 CREATE TABLE IF NOT EXISTS blocks (
     blockHash BLOB NOT NULL,
     blockNum INT NOT NULL,
+    difficulty INT NOT NULL,
     prevFilledBlockHash BLOB INT NOT NULL,
     recordsNum INT NOT NULL CHECK (recordsNum > 0),
     proofOfWork BLOB NOT NULL, -- record caused this block creation
@@ -233,6 +234,7 @@ class Storage
             INSERT INTO blocks (
                 blockHash,
                 blockNum,
+                difficulty,
                 prevFilledBlockHash,
                 recordsNum,
                 proofOfWork,
@@ -241,6 +243,7 @@ class Storage
             VALUES (
                 :blockHash,
                 :blockNum,
+                :difficulty,
                 :prevFilledBlockHash,
                 :recordsNum,
                 :proofOfWork,
@@ -253,6 +256,7 @@ class Storage
                 blockNum,
                 prevFilledBlockHash,
                 recordsNum,
+                difficulty,
                 prevIncludedBlockHash
             FROM blocks
             WHERE blockHash = :blockHash
@@ -263,6 +267,7 @@ class Storage
                 blockHash,
                 prevFilledBlockHash,
                 recordsNum,
+                difficulty,
                 prevIncludedBlockHash
             FROM blocks
             WHERE blockNum = :blockNum
@@ -275,6 +280,7 @@ class Storage
                 blockHash,
                 prevFilledBlockHash,
                 recordsNum,
+                difficulty,
                 prevIncludedBlockHash
             FROM blocks
             WHERE blockNum = :blockNum
@@ -289,6 +295,7 @@ class Storage
                 blockNum,
                 prevFilledBlockHash,
                 recordsNum,
+                difficulty,
                 prevIncludedBlockHash
             FROM blocks
             WHERE prevFilledBlockHash = :fromBlockHash
@@ -387,6 +394,7 @@ class Storage
             b.prevFilledBlockHash = r.prevFilledBlock;
             b.blockNum = r.blockNum;
             b.proofOfWork = r.proofOfWork;
+            b.difficulty = r.difficulty;
             
             Block curr;
             
@@ -398,7 +406,7 @@ class Storage
             
             if(isNewBlock)
             {
-                b.blockHash = calcHash(r.proofOfWork);
+                b.blockHash = calcHashForOneRecord(r.proofOfWork);
                 b.recordsNum = 1;
             }
             else
@@ -431,6 +439,7 @@ class Storage
                 b.blockHash = calcHash(prev.blockHash, r.proofOfWork);
                 b.recordsNum = prev.recordsNum + 1;
                 b.proofOfWork = r.proofOfWork;
+                b.difficulty = prev.difficulty;
                 
                 insertBlock(b);
             }
@@ -455,7 +464,7 @@ class Storage
         return res;
     }
     
-    private BlockHash calcHash(in PoW proofOfWork)
+    private BlockHash calcHashForOneRecord(in PoW proofOfWork)
     {
         alias q = qCalcHash;
         
@@ -500,6 +509,7 @@ class Storage
         BlockHash prevFilledBlockHash;
         Nullable!BlockHash prevIncludedBlockHash;
         size_t blockNum;
+        Difficulty difficulty;
         size_t recordsNum;
         PoW proofOfWork;
     }
@@ -511,6 +521,7 @@ class Storage
         q.bind(":blockHash", b.blockHash);
         q.bind(":prevFilledBlockHash", b.prevFilledBlockHash);
         q.bind(":blockNum", b.blockNum);
+        q.bind(":difficulty", b.difficulty);
         q.bind(":recordsNum", b.recordsNum);
         q.bind(":proofOfWork", b.proofOfWork.getUbytes);
         
@@ -536,6 +547,7 @@ class Storage
         Block res;
         res.blockHash = blockHash;
         res.blockNum = r["blockNum"].as!size_t;
+        res.difficulty = r["difficulty"].as!Difficulty;
         res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.recordsNum = r["recordsNum"].as!size_t;
         
@@ -569,6 +581,7 @@ class Storage
         
         res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.blockNum = blockNum;
+        res.difficulty = r["difficulty"].as!Difficulty;
         res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.recordsNum = r["recordsNum"].as!size_t;
         
@@ -603,6 +616,7 @@ class Storage
         
         res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.blockNum = blockNum;
+        res.difficulty = r["difficulty"].as!Difficulty;
         res.prevFilledBlockHash = prevFilledBlock;
         res.recordsNum = r["recordsNum"].as!size_t;
         
@@ -689,8 +703,7 @@ class Storage
         q.reset();
     }
     
-    deprecated
-    void calcPreviousRecordsNum(in BlockHash b, out uint early, out uint later)
+    private void calcPreviousRecordsNum(in BlockHash b, out uint early, out uint later)
     {
         alias q = qCalcPreviousRecordsNum;
         
@@ -706,6 +719,16 @@ class Storage
         assert(answer.empty);
         
         q.reset();
+    }
+    
+    uint calcDifficulty(in BlockHash from)
+    {
+        uint early;
+        uint later;
+        
+        calcPreviousRecordsNum(from, early, later);
+        
+        return early;
     }
     
     private Block[] findNextBlocks
@@ -728,6 +751,7 @@ class Storage
             Block b;
             b.blockNum = r["blockNum"].as!size_t;
             b.recordsNum = r["recordsNum"].as!size_t;
+            b.difficulty = r["difficulty"].as!Difficulty;
             b.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
             b.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
             
@@ -771,8 +795,7 @@ class Storage
     
     private struct Weight
     {
-        size_t nodesNum;
-        size_t recordsNum;
+        ulong spentCPU;
         BlockHash blockHash;
     }
     
@@ -791,14 +814,14 @@ class Storage
         if(toProcess.length == 0)
             toProcess = findNextBlocks(from.blockHash, limitBlockNum);
         
+        const Weight currWeight = {
+            spentCPU: from.recordsNum * from.difficulty,
+            blockHash: from.blockHash
+        };
+        
         // Path finding
         if(toProcess.length == 0)
         {
-            // Current block is a leaf
-            const Weight currWeight = {
-                recordsNum: from.recordsNum,
-                blockHash: from.blockHash
-            };
             
             return currWeight;
         }
@@ -813,21 +836,12 @@ class Storage
             
             foreach(size_t i, ref w; res)
             {
-                // Longest branch?
-                if(w.nodesNum > res[maxKey].nodesNum)
-                {
+                // Most CPU spent branch
+                if(w.spentCPU > res[maxKey].spentCPU)
                     maxKey = i;
-                }
-                else
-                {
-                    // More leaf nodes for equal branches
-                    if(w.nodesNum == res[maxKey].nodesNum)
-                        if(w.recordsNum > res[maxKey].recordsNum)
-                            maxKey = i;
-                }
             }
             
-            ++res[maxKey].nodesNum;
+            res[maxKey].spentCPU += currWeight.spentCPU;
             
             return res[maxKey];
         }
@@ -854,6 +868,7 @@ unittest
         payloadType: PayloadType.Test,
         payload: [0x76, 0x76, 0x76, 0x76],
         blockNum: 1,
+        difficulty: 1,
         prevFilledBlock: prevFilledBlock.blockHash
     };
     
