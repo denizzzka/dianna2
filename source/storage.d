@@ -101,6 +101,7 @@ class Storage
         qInsertRecord,
         qInsertBlock,
         qSelectBlock,
+        qSelectBlocks,
         qCalcPreviousRecordsNum,
         qFindNextBlocks,
         qFindParallelBlocks,
@@ -256,6 +257,16 @@ class Storage
             WHERE blockHash = :blockHash
         `);
         
+        qSelectBlocks = db.prepare(`
+            SELECT
+                blockHash,
+                prevFilledBlockHash,
+                recordsNum,
+                prevIncludedBlockHash
+            FROM blocks
+            WHERE blockNum = :blockNum
+        `);
+        
         qFindNextBlocks = db.prepare(`
             SELECT
                 blockHash,
@@ -322,8 +333,6 @@ class Storage
                     LIMIT 1
                 ) AS prevIncludedBlockHash
         `);
-        
-        // TODO: qCreateBlockFromRecordWithoutPrevRecord
     }
     
     extern (C)
@@ -467,6 +476,35 @@ class Storage
         
         version(assert) answer.popFront;
         assert(answer.empty);
+        
+        q.reset();
+        
+        return res;
+    }
+    
+    private Block[] getBlocks(in size_t blockNum)
+    {
+        alias q = qSelectBlocks;
+        
+        q.bind(":blockNum", blockNum);
+        
+        auto answer = q.execute();
+        
+        Block[] res;
+        
+        foreach(r; answer)
+        {
+            Block b;
+            b.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+            b.blockNum = blockNum;
+            b.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+            b.recordsNum = r["recordsNum"].as!size_t;
+            
+            if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
+                b.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+            
+            res ~= b;
+        }
         
         q.reset();
         
