@@ -721,12 +721,16 @@ class Storage
         q.reset();
     }
     
-    uint calcDifficulty(in BlockHash from)
+    // TODO:
+    uint calcDifficulty(in Block from)
     {
         uint early;
         uint later;
         
-        calcPreviousRecordsNum(from, early, later);
+        immutable BlockHash zeroes;
+        
+        if(from.prevFilledBlockHash != zeroes)
+            calcPreviousRecordsNum(from.prevFilledBlockHash, early, later);
         
         return early;
     }
