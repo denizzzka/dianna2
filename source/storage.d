@@ -101,6 +101,7 @@ class Storage
         qInsertRecord,
         qInsertBlock,
         qSelectBlock,
+        qSelectMostFilledBlock,
         qSelectBlocks,
         qCalcPreviousRecordsNum,
         qFindNextBlocks,
@@ -255,6 +256,18 @@ class Storage
                 prevIncludedBlockHash
             FROM blocks
             WHERE blockHash = :blockHash
+        `);
+        
+        qSelectMostFilledBlock = db.prepare(`
+            SELECT
+                blockHash,
+                prevFilledBlockHash,
+                recordsNum,
+                prevIncludedBlockHash
+            FROM blocks
+            WHERE blockNum = :blockNum
+            ORDER BY recordsNum DESC
+            LIMIT 1
         `);
         
         qSelectBlocks = db.prepare(`
@@ -482,7 +495,33 @@ class Storage
         return res;
     }
     
-    private Block[] getBlocks(in size_t blockNum)
+    private Block getMostFilledBlock(in size_t blockNum)
+    {
+        alias q = qSelectMostFilledBlock;
+        
+        q.bind(":blockNum", blockNum);
+        
+        auto answer = q.execute();
+        auto r = answer.front();
+        
+        Block res;
+        res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+        res.blockNum = blockNum;
+        res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+        res.recordsNum = r["recordsNum"].as!size_t;
+        
+        if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
+            res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+        
+        version(assert) answer.popFront;
+        assert(answer.empty);
+        
+        q.reset();
+        
+        return res;
+    }
+    
+    private Block[] getBlock(in size_t blockNum)
     {
         alias q = qSelectBlocks;
         
