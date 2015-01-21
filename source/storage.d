@@ -103,11 +103,9 @@ class Storage
         qSelectBlock,
         qSelectMostFilledBlock,
         qSelectMostFilledBlockWithPrevHash,
-        qSelectBlocks,
         qCalcPreviousRecordsNum,
         qFindNextBlocks,
         qFindParallelBlocks,
-        qCreateBlockFromRecord,
         qCalcHash;
     
     this(string filename)
@@ -285,16 +283,6 @@ class Storage
             LIMIT 1
         `);
         
-        qSelectBlocks = db.prepare(`
-            SELECT
-                blockHash,
-                prevFilledBlockHash,
-                recordsNum,
-                prevIncludedBlockHash
-            FROM blocks
-            WHERE blockNum = :blockNum
-        `);
-        
         qFindNextBlocks = db.prepare(`
             SELECT
                 blockHash,
@@ -326,40 +314,6 @@ class Storage
             FROM parallelBlocks p
             JOIN b USING(proofOfWork)
             WHERE b.blockHash = :fromBlockHash
-        `);
-        
-        qCreateBlockFromRecord = db.prepare(`
-            WITH hashSrc(proofOfWork) AS
-            (
-                SELECT c.proofOfWork
-                FROM blocks
-                JOIN BlocksContents c USING(blockHash)
-                WHERE prevFilledBlockHash = :prevFilledBlockHash
-                AND blockNum = :blockNum
-                
-                UNION ALL
-                
-                SELECT :proofOfWork
-            )
-            
-            SELECT
-                (
-                    SELECT hashFunc(proofOfWork) AS blockHash
-                    FROM hashSrc
-                    ORDER BY proofOfWork
-                ) AS blockHash,
-                (
-                    SELECT count(proofOfWork)
-                    FROM hashSrc
-                ) AS recordsNum,
-                (
-                    SELECT blockHash
-                    FROM blocks
-                    WHERE prevFilledBlockHash = :prevFilledBlockHash
-                    AND blockNum = :blockNum
-                    ORDER BY recordsNum DESC
-                    LIMIT 1
-                ) AS prevIncludedBlockHash
         `);
         
         qCalcHash = db.prepare(`
@@ -483,34 +437,6 @@ class Storage
         }
         
         db.commit;
-    }
-    
-    private Block createBlock(in Record rec)
-    {
-        alias q = qCreateBlockFromRecord;
-        
-        q.bind(":prevFilledBlockHash", rec.prevFilledBlock);
-        q.bind(":blockNum", rec.blockNum);
-        q.bind(":proofOfWork", rec.proofOfWork.getUbytes);
-        
-        auto answer = q.execute();
-        auto r = answer.front();
-        
-        Block res;
-        res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-        res.blockNum = rec.blockNum;
-        res.prevFilledBlockHash = rec.prevFilledBlock;
-        res.recordsNum = r["recordsNum"].as!size_t;
-        
-        if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
-            res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
-        
-        version(assert) answer.popFront;
-        assert(answer.empty);
-        
-        q.reset();
-        
-        return res;
     }
     
     private BlockHash calcHash(in BlockHash blockHash, in PoW proofOfWork)
@@ -689,35 +615,6 @@ class Storage
         q.reset();
         
         return true;
-    }
-    
-    private Block[] getBlock(in size_t blockNum)
-    {
-        alias q = qSelectBlocks;
-        
-        q.bind(":blockNum", blockNum);
-        
-        auto answer = q.execute();
-        
-        Block[] res;
-        
-        foreach(r; answer)
-        {
-            Block b;
-            b.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-            b.blockNum = blockNum;
-            b.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
-            b.recordsNum = r["recordsNum"].as!size_t;
-            
-            if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
-                b.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
-            
-            res ~= b;
-        }
-        
-        q.reset();
-        
-        return res;
     }
     
     void addRecordAwaitingPoW(in Record r)
