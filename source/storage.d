@@ -290,15 +290,6 @@ class Storage
         `);
         
         qCreateBlockFromRecord = db.prepare(`
-            INSERT INTO blocks(
-                blockHash,
-                blockNum,
-                prevFilledBlockHash,
-                recordsNum,
-                proofOfWork,
-                prevIncludedBlockHash
-            )
-            
             WITH hashSrc(proofOfWork) AS
             (
                 SELECT c.proofOfWork
@@ -318,13 +309,10 @@ class Storage
                     FROM hashSrc
                     ORDER BY proofOfWork
                 ) AS blockHash,
-                :blockNum,
-                :prevFilledBlockHash,
                 (
                     SELECT count(proofOfWork)
                     FROM hashSrc
                 ) AS recordsNum,
-                :proofOfWork,
                 (
                     SELECT blockHash
                     FROM blocks
@@ -377,22 +365,38 @@ class Storage
         
         insertRecord(r);
         // FIXME: Add creation of num-1 block too
-        createBlock(r);
+        const b = createBlock(r);
+        insertBlock(b);
         
         db.commit;
     }
     
-    private void createBlock(in Record r)
+    private Block createBlock(in Record rec)
     {
         alias q = qCreateBlockFromRecord;
         
-        q.bind(":prevFilledBlockHash", r.prevFilledBlock);
-        q.bind(":blockNum", r.blockNum);
-        q.bind(":proofOfWork", r.proofOfWork.getUbytes);
+        q.bind(":prevFilledBlockHash", rec.prevFilledBlock);
+        q.bind(":blockNum", rec.blockNum);
+        q.bind(":proofOfWork", rec.proofOfWork.getUbytes);
         
-        q.execute();
-        assert(db.changes() == 1);
+        auto answer = q.execute();
+        auto r = answer.front();
+        
+        Block res;
+        res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+        res.blockNum = rec.blockNum;
+        res.prevFilledBlockHash = rec.prevFilledBlock;
+        res.recordsNum = r["recordsNum"].as!size_t;
+        
+        if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
+            res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+        
+        version(assert) answer.popFront;
+        assert(answer.empty);
+        
         q.reset();
+        
+        return res;
     }
     
     private void insertRecord(in Record r)
@@ -423,7 +427,6 @@ class Storage
         PoW proofOfWork;
     }
     
-    deprecated
     private void insertBlock(inout Block b)
     {
         alias q = qInsertBlock;
