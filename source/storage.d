@@ -373,7 +373,7 @@ class Storage
                 UNION ALL
                 
                 SELECT :proofOfWork
-            )
+            ),
             
             ordered(proofOfWork) AS
             (
@@ -426,25 +426,39 @@ class Storage
         
         insertRecord(r);
         
-        Block currBlock;
-        if(
-            !getMostFilledBlockWithPrevBlock(
-                r.prevFilledBlock,
-                r.blockNum,
-                currBlock
-            )
-        )
+        Block b;
+        Block curr;
+        
+        const bool isNewBlock = !getMostFilledBlockWithPrevBlock(
+            r.prevFilledBlock,
+            r.blockNum,
+            curr
+        );
+        
+        if(isNewBlock)
         {
-            // New block creation
+            b.blockHash = calcHash(r.proofOfWork);
+            b.prevFilledBlockHash = r.prevFilledBlock;
+            b.blockNum = r.blockNum;
+            b.recordsNum = 1;
+            b.proofOfWork = r.proofOfWork;
+            
+            insertBlock(b);
         }
         else
         {
-            // Adding to existing block
+            b.blockHash = calcHash(curr.blockHash, r.proofOfWork);
+            b.prevFilledBlockHash = r.prevFilledBlock;
+            b.blockNum = r.blockNum;
+            b.recordsNum = curr.recordsNum + 1;
+            b.proofOfWork = r.proofOfWork;
+            
+            insertBlock(b);            
         }
         
         // FIXME: Add creation of num-1 block too
-        const b = createBlock(r);
-        insertBlock(b);
+        //const b = createBlock(r);
+        //insertBlock(b);
         
         db.commit;
     }
@@ -482,6 +496,27 @@ class Storage
         alias q = qCalcHash;
         
         q.bind(":blockHash", blockHash);
+        q.bind(":proofOfWork", proofOfWork.getUbytes);
+        
+        auto answer = q.execute();
+        
+        const BlockHash res = (answer.oneValue!(ubyte[]))[0..BlockHash.length];
+        
+        q.reset();
+        
+        return res;
+    }
+    
+    private BlockHash calcHash(in PoW proofOfWork)
+    {
+        alias q = qCalcHash;
+        
+        BlockHash unavailable;
+        
+        foreach(ref e; unavailable)
+            e = 0xFF;
+        
+        q.bind(":blockHash", unavailable);
         q.bind(":proofOfWork", proofOfWork.getUbytes);
         
         auto answer = q.execute();
@@ -574,9 +609,15 @@ class Storage
         q.bind(":blockNum", blockNum);
         
         auto answer = q.execute();
-        auto r = answer.front();
         
-        if(answer.empty) return false;
+        if(answer.empty)
+        {
+            q.reset();
+            
+            return false;
+        }
+        
+        auto r = answer.front();
         
         res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.blockNum = blockNum;
@@ -602,9 +643,15 @@ class Storage
         q.bind(":prevFilledBlockHash", prevFilledBlock);
         
         auto answer = q.execute();
-        auto r = answer.front();
         
-        if(answer.empty) return false;
+        if(answer.empty)
+        {
+            q.reset();
+            
+            return false;
+        }
+        
+        auto r = answer.front();
         
         res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.blockNum = blockNum;
