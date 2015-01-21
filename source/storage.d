@@ -426,39 +426,61 @@ class Storage
         
         insertRecord(r);
         
-        Block b;
-        Block curr;
-        
-        const bool isNewBlock = !getMostFilledBlockWithPrevBlock(
-            r.prevFilledBlock,
-            r.blockNum,
-            curr
-        );
-        
-        if(isNewBlock)
+        // Add to the current block
         {
-            b.blockHash = calcHash(r.proofOfWork);
+            Block b;
+            
             b.prevFilledBlockHash = r.prevFilledBlock;
             b.blockNum = r.blockNum;
-            b.recordsNum = 1;
             b.proofOfWork = r.proofOfWork;
+            
+            Block curr;
+            
+            const bool isNewBlock = !getMostFilledBlockWithPrevBlock(
+                b.prevFilledBlockHash,
+                b.blockNum,
+                curr
+            );
+            
+            if(isNewBlock)
+            {
+                b.blockHash = calcHash(r.proofOfWork);
+                b.recordsNum = 1;
+            }
+            else
+            {
+                b.prevIncludedBlockHash = curr.blockHash;
+                b.blockHash = calcHash(curr.blockHash, r.proofOfWork);
+                b.recordsNum = curr.recordsNum + 1;
+            }
             
             insertBlock(b);
         }
-        else
-        {
-            b.blockHash = calcHash(curr.blockHash, r.proofOfWork);
-            b.prevFilledBlockHash = r.prevFilledBlock;
-            b.blockNum = r.blockNum;
-            b.recordsNum = curr.recordsNum + 1;
-            b.proofOfWork = r.proofOfWork;
-            
-            insertBlock(b);            
-        }
         
-        // FIXME: Add creation of num-1 block too
-        //const b = createBlock(r);
-        //insertBlock(b);
+        // Add to current-1 block
+        {
+            Block b;
+            
+            b.blockNum = r.blockNum - 1;
+            
+            Block prev;
+            
+            const bool prevBlockFound = getMostFilledBlock(
+                b.blockNum,
+                prev
+            );
+            
+            if(prevBlockFound)
+            {
+                b.prevFilledBlockHash = prev.prevFilledBlockHash;
+                b.prevIncludedBlockHash = prev.blockHash;
+                b.blockHash = calcHash(prev.blockHash, r.proofOfWork);
+                b.recordsNum = prev.recordsNum + 1;
+                b.proofOfWork = r.proofOfWork;
+                
+                insertBlock(b);
+            }
+        }
         
         db.commit;
     }
