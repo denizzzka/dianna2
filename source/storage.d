@@ -334,6 +334,8 @@ class Storage
                     LIMIT 1
                 ) AS prevIncludedBlockHash
         `);
+        
+        // TODO: qCreateBlockFromRecordWithoutPrevRecord
     }
     
     extern (C)
