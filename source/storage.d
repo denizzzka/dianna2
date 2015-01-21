@@ -102,11 +102,13 @@ class Storage
         qInsertBlock,
         qSelectBlock,
         qSelectMostFilledBlock,
+        qSelectMostFilledBlockWithPrevHash,
         qSelectBlocks,
         qCalcPreviousRecordsNum,
         qFindNextBlocks,
         qFindParallelBlocks,
-        qCreateBlockFromRecord;
+        qCreateBlockFromRecord,
+        qCalcHash;
     
     this(string filename)
     {
@@ -270,6 +272,19 @@ class Storage
             LIMIT 1
         `);
         
+        qSelectMostFilledBlockWithPrevHash = db.prepare(`
+            SELECT
+                blockHash,
+                prevFilledBlockHash,
+                recordsNum,
+                prevIncludedBlockHash
+            FROM blocks
+            WHERE blockNum = :blockNum
+            AND prevFilledBlockHash = :prevFilledBlockHash
+            ORDER BY recordsNum DESC
+            LIMIT 1
+        `);
+        
         qSelectBlocks = db.prepare(`
             SELECT
                 blockHash,
@@ -346,6 +361,30 @@ class Storage
                     LIMIT 1
                 ) AS prevIncludedBlockHash
         `);
+        
+        qCalcHash = db.prepare(`
+            WITH hashes(proofOfWork) AS
+            (
+                SELECT c.proofOfWork
+                FROM blocks
+                JOIN BlocksContents c USING(blockHash)
+                WHERE blockHash = :blockHash
+                
+                UNION ALL
+                
+                SELECT :proofOfWork
+            )
+            
+            ordered(proofOfWork) AS
+            (
+                SELECT proofOfWork
+                FROM hashes
+                ORDER BY proofOfWork
+            )
+            
+            SELECT hashFunc(proofOfWork) AS blockHash
+            FROM ordered
+        `);
     }
     
     extern (C)
@@ -386,6 +425,23 @@ class Storage
         db.begin;
         
         insertRecord(r);
+        
+        Block currBlock;
+        if(
+            !getMostFilledBlockWithPrevBlock(
+                r.prevFilledBlock,
+                r.blockNum,
+                currBlock
+            )
+        )
+        {
+            // New block creation
+        }
+        else
+        {
+            // Adding to existing block
+        }
+        
         // FIXME: Add creation of num-1 block too
         const b = createBlock(r);
         insertBlock(b);
@@ -415,6 +471,22 @@ class Storage
         
         version(assert) answer.popFront;
         assert(answer.empty);
+        
+        q.reset();
+        
+        return res;
+    }
+    
+    private BlockHash calcHash(in BlockHash blockHash, in PoW proofOfWork)
+    {
+        alias q = qCalcHash;
+        
+        q.bind(":blockHash", blockHash);
+        q.bind(":proofOfWork", proofOfWork.getUbytes);
+        
+        auto answer = q.execute();
+        
+        const BlockHash res = (answer.oneValue!(ubyte[]))[0..BlockHash.length];
         
         q.reset();
         
@@ -509,6 +581,34 @@ class Storage
         res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.blockNum = blockNum;
         res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+        res.recordsNum = r["recordsNum"].as!size_t;
+        
+        if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
+            res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+        
+        version(assert) answer.popFront;
+        assert(answer.empty);
+        
+        q.reset();
+        
+        return true;
+    }
+    
+    private bool getMostFilledBlockWithPrevBlock(in BlockHash prevFilledBlock, in size_t blockNum, out Block res)
+    {
+        alias q = qSelectMostFilledBlockWithPrevHash;
+        
+        q.bind(":blockNum", blockNum);
+        q.bind(":prevFilledBlockHash", prevFilledBlock);
+        
+        auto answer = q.execute();
+        auto r = answer.front();
+        
+        if(answer.empty) return false;
+        
+        res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+        res.blockNum = blockNum;
+        res.prevFilledBlockHash = prevFilledBlock;
         res.recordsNum = r["recordsNum"].as!size_t;
         
         if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
