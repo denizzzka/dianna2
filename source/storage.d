@@ -822,7 +822,6 @@ class Storage
         // Path finding
         if(toProcess.length == 0)
         {
-            
             return currWeight;
         }
         else
