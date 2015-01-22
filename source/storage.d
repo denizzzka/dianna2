@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS blocks (
     prevParallelBlockHash BLOB INT,
     prevFilledBlockHash BLOB INT NOT NULL,
     recordsNum INT NOT NULL CHECK (recordsNum > 0),
+    primaryRecordsNum INT NOT NULL CHECK (recordsNum >= 0),
     proofOfWork BLOB NOT NULL, -- record caused this block creation
     isParallelRecord INT NOT NULL, -- boolean: 0 = not parallel, 1 = parallel
     prevIncludedBlockHash BLOB
@@ -108,7 +109,8 @@ class Storage
         qInsertRecord,
         qInsertBlock,
         qSelectBlock,
-        qSelectNextParallelBlockHash,
+        qSelectNextMostFilledBlockHash,
+        qSelectNextParallelMostFilledBlockHash,
         qSelectMostFilledBlock,
         qSelectMostFilledBlockWithPrevHash,
         qCalcPreviousRecordsNum,
@@ -269,16 +271,29 @@ class Storage
                 prevFilledBlockHash,
                 prevParallelBlockHash,
                 recordsNum,
+                primaryRecordsNum,
                 difficulty,
                 prevIncludedBlockHash
             FROM blocks
             WHERE blockHash = :blockHash
         `);
         
-        qSelectNextParallelBlockHash = db.prepare(`
+        qSelectNextParallelMostFilledBlockHash = db.prepare(`
             SELECT blockHash
             FROM blocks
             WHERE prevParallelBlockHash = :blockHash
+            AND blockNum <= :blockNum
+            ORDER BY recordsNum DESC
+            LIMIT 1
+        `);
+        
+        qSelectNextMostFilledBlockHash = db.prepare(`
+            SELECT blockHash
+            FROM blocks
+            WHERE prevFilledBlockHash = :blockHash
+            AND blockNum <= :blockNum
+            ORDER BY recordsNum DESC
+            LIMIT 1
         `);
         
         qSelectMostFilledBlock = db.prepare(`
@@ -432,12 +447,29 @@ class Storage
         nb.proofOfWork = r.proofOfWork;
         nb.difficulty = r.difficulty;
         
-        const honest = findLatestHonestBlock( // TODO: replace to getNext()
-            getBlock(r.prevFilledBlock),
-            nb.blockNum
-        );
+        const curr = getNextMostFilledBlock(nb.prevFilledBlockHash, nb.blockNum);
         
-        const bool isParallelAvailable = honest != nb.prevFilledBlockHash;
+        if(curr.isNull)
+        {
+            // New block with one record
+            nb.blockHash = calcHashForOneRecord(nb.proofOfWork);
+            nb.recordsNum = 1;
+        }
+        else
+        {
+            // Next record to current block
+            const b = getBlock(curr);
+            
+            nb.blockHash = calcHash(curr, nb.proofOfWork);
+            nb.recordsNum = b.recordsNum + 1;
+            nb.primaryRecordsNum = b.primaryRecordsNum + 1;
+        }
+        
+        const parallel = getNextParallelMostFilledBlock(nb.prevFilledBlockHash, nb.blockNum);
+        
+        
+        
+        //const bool isParallelAvailable = honest != nb.prevFilledBlockHash;
         /*
         if(isParallelAvailable)
         {
@@ -600,6 +632,7 @@ class Storage
         size_t blockNum;
         Difficulty difficulty;
         size_t recordsNum;
+        size_t primaryRecordsNum;
         Nullable!PoW proofOfWork;
         Nullable!bool isParallelRecord;
     }
@@ -613,6 +646,7 @@ class Storage
         q.bind(":blockNum", b.blockNum);
         q.bind(":difficulty", b.difficulty);
         q.bind(":recordsNum", b.recordsNum);
+        q.bind(":primaryRecordsNum", b.primaryRecordsNum);
         q.bind(":isParallelRecord", b.isParallelRecord ? 1 : 0);
         q.bind(":proofOfWork", b.proofOfWork.getUbytes);
         
@@ -646,6 +680,7 @@ class Storage
         res.difficulty = r["difficulty"].as!Difficulty;
         res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.recordsNum = r["recordsNum"].as!size_t;
+        res.primaryRecordsNum = r["primaryRecordsNum"].as!size_t;
         
         if(r["prevParallelBlockHash"].as!(ubyte[]).length)
             res.prevParallelBlockHash = (r["prevParallelBlockHash"].as!(ubyte[]))[0..BlockHash.length];
@@ -661,11 +696,31 @@ class Storage
         return res;
     }
     
-    private Nullable!BlockHash getNextParallelBlock(in BlockHash blockHash)
+    private Nullable!BlockHash getNextMostFilledBlock(in BlockHash blockHash, in size_t blockNumLimit)
     {
-        alias q = qSelectNextParallelBlockHash;
+        alias q = qSelectNextMostFilledBlockHash;
         
         q.bind(":blockHash", blockHash);
+        q.bind(":blockNumLimit", blockNumLimit);
+        
+        auto answer = q.execute();
+        
+        Nullable!BlockHash res;
+        
+        if(!answer.empty)
+            res = (answer.oneValue!(ubyte[]))[0..BlockHash.length];
+        
+        q.reset();
+        
+        return res;
+    }
+    
+    private Nullable!BlockHash getNextParallelMostFilledBlock(in BlockHash blockHash, in size_t blockNumLimit)
+    {
+        alias q = qSelectNextParallelMostFilledBlockHash;
+        
+        q.bind(":blockHash", blockHash);
+        q.bind(":blockNumLimit", blockNumLimit);
         
         auto answer = q.execute();
         
