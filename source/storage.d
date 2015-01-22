@@ -454,6 +454,7 @@ class Storage
             // New block with one record
             nb.blockHash = calcHashForOneRecord(nb.proofOfWork);
             nb.recordsNum = 1;
+            nb.primaryRecordsNum = 1;
         }
         else
         {
