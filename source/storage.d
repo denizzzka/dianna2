@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS blocks (
     prevFilledBlockHash BLOB INT NOT NULL,
     recordsNum INT NOT NULL CHECK (recordsNum > 0),
     proofOfWork BLOB NOT NULL, -- record caused this block creation
+    isParallelRecord INT NOT NULL, -- boolean: 0 = not parallel, 1 = parallel
     prevIncludedBlockHash BLOB
 );
 
@@ -66,11 +67,13 @@ CREATE VIEW IF NOT EXISTS BlocksContents AS
 WITH RECURSIVE r(
     blockHash,
     proofOfWork,
+    isParallelRecord,
     prevIncludedBlockHash
 ) AS (
     SELECT
         blockHash,
         proofOfWork,
+        isParallelRecord,
         prevIncludedBlockHash
     FROM blocks b
     
@@ -79,6 +82,7 @@ WITH RECURSIVE r(
     SELECT
         r.blockHash,
         b.proofOfWork,
+        b.isParallelRecord,
         b.prevIncludedBlockHash
     FROM blocks b
     JOIN r ON b.blockHash = r.prevIncludedBlockHash
@@ -86,6 +90,7 @@ WITH RECURSIVE r(
 
 SELECT
     blockHash,
+    isParallelRecord,
     proofOfWork
 FROM r
 `;
@@ -239,6 +244,7 @@ class Storage
                 prevFilledBlockHash,
                 prevParallelBlockHash,
                 recordsNum,
+                isParallelRecord,
                 proofOfWork,
                 prevIncludedBlockHash
             )
@@ -249,6 +255,7 @@ class Storage
                 :prevFilledBlockHash,
                 :prevParallelBlockHash,
                 :recordsNum,
+                :isParallelRecord,
                 :proofOfWork,
                 :prevIncludedBlockHash
             )
@@ -501,6 +508,7 @@ class Storage
         Difficulty difficulty;
         size_t recordsNum;
         PoW proofOfWork;
+        bool isParallelRecord;
     }
     
     private void insertBlock(inout Block b)
@@ -512,6 +520,7 @@ class Storage
         q.bind(":blockNum", b.blockNum);
         q.bind(":difficulty", b.difficulty);
         q.bind(":recordsNum", b.recordsNum);
+        q.bind(":isParallelRecord", b.isParallelRecord ? 1 : 0);
         q.bind(":proofOfWork", b.proofOfWork.getUbytes);
         
         if(b.prevParallelBlockHash.isNull)
