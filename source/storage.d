@@ -439,15 +439,15 @@ class Storage
         
         insertRecord(r);
         
-        Block nb; // New current block
+        const curr = getNextMostFilledBlock(r.prevFilledBlock, r.blockNum);
+        
+        Block nb; /// New current block
         
         nb.prevFilledBlockHash = r.prevFilledBlock;
         nb.blockNum = r.blockNum;
         nb.isParallelRecord = false;
         nb.proofOfWork = r.proofOfWork;
         nb.difficulty = r.difficulty;
-        
-        const curr = getNextMostFilledBlock(nb.prevFilledBlockHash, nb.blockNum);
         
         if(curr.isNull)
         {
@@ -466,92 +466,19 @@ class Storage
             nb.primaryRecordsNum = b.primaryRecordsNum + 1;
         }
         
-        const parallel = getNextParallelMostFilledBlock(nb.prevFilledBlockHash, nb.blockNum);
+        const parallel = getNextParallelMostFilledBlock(r.prevFilledBlock, r.blockNum);
         
-        
-        
-        //const bool isParallelAvailable = honest != nb.prevFilledBlockHash;
-        /*
-        if(isParallelAvailable)
+        if(!parallel.isNull)
         {
-            // Not new block is created
+            // Next record to parallel block
+            Block npb = getBlock(parallel); /// New paralell block
             
+            npb.blockHash = calcHash(parallel, r.proofOfWork);
+            npb.recordsNum++;
+            npb.isParallelRecord = true;
+            npb.proofOfWork = r.proofOfWork;
         }
         
-        if(isParallelAvailable)
-        {
-            // New block with one record
-            nb.blockHash = calcHashForOneRecord(nb.proofOfWork);
-            nb.recordsNum = 1;
-        }
-        else
-        {
-            // Next record to current block
-            nb.blockHash = calcHash(honest, nb.proofOfWork);
-            nb.recordsNum = getBlock(honest).recordsNum + 1;
-        }
-        
-        Block curr;
-        
-        // Add parallel block to block blockNum-1?
-        if(!isNewCurrBlock && !curr.prevParallelBlockHash.isNull)
-        {
-            Block pb = getBlock(curr.prevParallelBlockHash);
-            
-            pb.blockHash = calcHash(pb.blockHash, r.proofOfWork);
-            pb.isParallelRecord = true;
-            
-            insertBlock(pb);
-        }
-        
-        const prevFilledBlock = getBlock(nb.prevFilledBlockHash);
-        
-        if(prevFilledBlock.blockNum + 1 == nb.blockNum)
-        {
-            const currParallel = calcHypotheticalParallelBlockHash(
-                curr.prevFilledBlockHash,
-                curr.blockHash
-            );
-            
-            Block pb;
-            
-            pb.blockNum = r.blockNum - 1;
-            pb.isParallelRecord = true;
-            
-            Block prev;
-            
-            const bool prevBlockFound = getMostFilledBlock(
-                pb.blockNum,
-                prev
-            );
-            
-            if(prevBlockFound)
-            {
-                pb.prevFilledBlockHash = prev.prevFilledBlockHash;
-                pb.prevIncludedBlockHash = prev.blockHash;
-                pb.blockHash = calcHash(prev.blockHash, r.proofOfWork);
-                pb.recordsNum = prev.recordsNum + 1;
-                pb.proofOfWork = r.proofOfWork;
-                pb.difficulty = prev.difficulty;
-                
-                insertBlock(pb);
-            }
-        }
-        
-        if(isNewCurrBlock)
-        {
-            nb.blockHash = calcHashForOneRecord(r.proofOfWork);
-            nb.recordsNum = 1;
-        }
-        else
-        {
-            nb.prevIncludedBlockHash = curr.blockHash;
-            nb.blockHash = calcHash(curr.blockHash, r.proofOfWork);
-            nb.recordsNum = curr.recordsNum + 1;
-        }
-        
-        insertBlock(nb);
-        */
         db.commit;
     }
     
@@ -702,7 +629,7 @@ class Storage
         alias q = qSelectNextMostFilledBlockHash;
         
         q.bind(":blockHash", blockHash);
-        q.bind(":blockNumLimit", blockNumLimit);
+        q.bind(":blockNum", blockNumLimit);
         
         auto answer = q.execute();
         
@@ -721,7 +648,7 @@ class Storage
         alias q = qSelectNextParallelMostFilledBlockHash;
         
         q.bind(":blockHash", blockHash);
-        q.bind(":blockNumLimit", blockNumLimit);
+        q.bind(":blockNum", blockNumLimit);
         
         auto answer = q.execute();
         
