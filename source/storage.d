@@ -344,12 +344,18 @@ class Storage
         `);
         
         qCalcHypotheticalParallelBlockHash = db.prepare(`
-            WITH hashes(proofOfWork) AS
+            WITH firstHashes(proofOfWork) AS
             (
                 SELECT proofOfWork
                 FROM BlocksContents
                 WHERE blockHash = :fromBlockHash
                 AND isParallelRecord
+            ),
+            
+            hashes(proofOfWork) AS
+            (
+                SELECT proofOfWork
+                FROM firstHashes
                 
                 UNION ALL
                 
@@ -368,6 +374,7 @@ class Storage
             
             SELECT hashFunc(proofOfWork) AS blockHash
             FROM ordered
+            WHERE (SELECT count(*) FROM firstHashes) > 0
         `);
     }
     
