@@ -248,6 +248,7 @@ class Storage
                 prevFilledBlockHash,
                 prevParallelBlockHash,
                 recordsNum,
+                primaryRecordsNum,
                 isParallelRecord,
                 proofOfWork,
                 prevIncludedBlockHash
@@ -259,6 +260,7 @@ class Storage
                 :prevFilledBlockHash,
                 :prevParallelBlockHash,
                 :recordsNum,
+                :primaryRecordsNum,
                 :isParallelRecord,
                 :proofOfWork,
                 :prevIncludedBlockHash
@@ -477,7 +479,13 @@ class Storage
             npb.recordsNum++;
             npb.isParallelRecord = true;
             npb.proofOfWork = r.proofOfWork;
+            
+            insertBlock(npb);
+            
+            nb.prevParallelBlockHash = npb.blockHash;
         }
+        
+        insertBlock(nb);
         
         db.commit;
     }
