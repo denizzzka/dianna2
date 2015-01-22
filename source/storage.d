@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS blocks (
     blockHash BLOB NOT NULL,
     blockNum INT NOT NULL,
     difficulty INT NOT NULL,
+    prevParallelBlockHash BLOB INT,
     prevFilledBlockHash BLOB INT NOT NULL,
     recordsNum INT NOT NULL CHECK (recordsNum > 0),
     proofOfWork BLOB NOT NULL, -- record caused this block creation
@@ -236,6 +237,7 @@ class Storage
                 blockNum,
                 difficulty,
                 prevFilledBlockHash,
+                prevParallelBlockHash,
                 recordsNum,
                 proofOfWork,
                 prevIncludedBlockHash
@@ -245,6 +247,7 @@ class Storage
                 :blockNum,
                 :difficulty,
                 :prevFilledBlockHash,
+                :prevParallelBlockHash,
                 :recordsNum,
                 :proofOfWork,
                 :prevIncludedBlockHash
@@ -255,6 +258,7 @@ class Storage
             SELECT
                 blockNum,
                 prevFilledBlockHash,
+                prevParallelBlockHash,
                 recordsNum,
                 difficulty,
                 prevIncludedBlockHash
@@ -263,12 +267,7 @@ class Storage
         `);
         
         qSelectMostFilledBlock = db.prepare(`
-            SELECT
-                blockHash,
-                prevFilledBlockHash,
-                recordsNum,
-                difficulty,
-                prevIncludedBlockHash
+            SELECT blockHash
             FROM blocks
             WHERE blockNum = :blockNum
             ORDER BY recordsNum DESC
@@ -276,12 +275,7 @@ class Storage
         `);
         
         qSelectMostFilledBlockWithPrevHash = db.prepare(`
-            SELECT
-                blockHash,
-                prevFilledBlockHash,
-                recordsNum,
-                difficulty,
-                prevIncludedBlockHash
+            SELECT blockHash
             FROM blocks
             WHERE blockNum = :blockNum
             AND prevFilledBlockHash = :prevFilledBlockHash
@@ -290,13 +284,7 @@ class Storage
         `);
         
         qFindNextBlocks = db.prepare(`
-            SELECT
-                blockHash,
-                blockNum,
-                prevFilledBlockHash,
-                recordsNum,
-                difficulty,
-                prevIncludedBlockHash
+            SELECT blockHash
             FROM blocks
             WHERE prevFilledBlockHash = :fromBlockHash
             AND blockNum <= :limitBlockNum
@@ -507,6 +495,7 @@ class Storage
     {
         BlockHash blockHash;
         BlockHash prevFilledBlockHash;
+        Nullable!BlockHash prevParallelBlockHash;
         Nullable!BlockHash prevIncludedBlockHash;
         size_t blockNum;
         Difficulty difficulty;
@@ -524,6 +513,11 @@ class Storage
         q.bind(":difficulty", b.difficulty);
         q.bind(":recordsNum", b.recordsNum);
         q.bind(":proofOfWork", b.proofOfWork.getUbytes);
+        
+        if(b.prevParallelBlockHash.isNull)
+            q.bind(":prevParallelBlockHash", null);
+        else
+            q.bind(":prevParallelBlockHash", b.prevParallelBlockHash.get);
         
         if(b.prevIncludedBlockHash.isNull)
             q.bind(":prevIncludedBlockHash", null);
@@ -550,6 +544,9 @@ class Storage
         res.difficulty = r["difficulty"].as!Difficulty;
         res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.recordsNum = r["recordsNum"].as!size_t;
+        
+        if(r["prevParallelBlockHash"].as!(ubyte[]).length)
+            res.prevParallelBlockHash = (r["prevParallelBlockHash"].as!(ubyte[]))[0..BlockHash.length];
         
         if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
             res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
@@ -579,14 +576,9 @@ class Storage
         
         auto r = answer.front();
         
-        res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-        res.blockNum = blockNum;
-        res.difficulty = r["difficulty"].as!Difficulty;
-        res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
-        res.recordsNum = r["recordsNum"].as!size_t;
+        const BlockHash h = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
         
-        if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
-            res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+        res = getBlock(h);
         
         version(assert) answer.popFront;
         assert(answer.empty);
@@ -614,14 +606,9 @@ class Storage
         
         auto r = answer.front();
         
-        res.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-        res.blockNum = blockNum;
-        res.difficulty = r["difficulty"].as!Difficulty;
-        res.prevFilledBlockHash = prevFilledBlock;
-        res.recordsNum = r["recordsNum"].as!size_t;
+        const BlockHash h = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
         
-        if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
-            res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+        res = getBlock(h);
         
         version(assert) answer.popFront;
         assert(answer.empty);
@@ -752,17 +739,9 @@ class Storage
         
         foreach(ref r; answer)
         {
-            Block b;
-            b.blockNum = r["blockNum"].as!size_t;
-            b.recordsNum = r["recordsNum"].as!size_t;
-            b.difficulty = r["difficulty"].as!Difficulty;
-            b.blockHash = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-            b.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+            const BlockHash h = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
             
-            if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
-                b.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
-            
-            res ~= b;
+            res ~= getBlock(h);
         }
         
         q.reset();
@@ -787,9 +766,9 @@ class Storage
         
         foreach(ref r; answer)
         {
-            BlockHash b = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
+            BlockHash h = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
             
-            res ~= b;
+            res ~= h;
         }
         
         q.reset();
