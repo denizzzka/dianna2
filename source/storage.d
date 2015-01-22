@@ -108,6 +108,7 @@ class Storage
         qInsertRecord,
         qInsertBlock,
         qSelectBlock,
+        qSelectNextParallelBlockHash,
         qSelectMostFilledBlock,
         qSelectMostFilledBlockWithPrevHash,
         qCalcPreviousRecordsNum,
@@ -274,6 +275,12 @@ class Storage
             WHERE blockHash = :blockHash
         `);
         
+        qSelectNextParallelBlockHash = db.prepare(`
+            SELECT blockHash
+            FROM blocks
+            WHERE prevParallelBlockHash = :blockHash
+        `);
+        
         qSelectMostFilledBlock = db.prepare(`
             SELECT blockHash
             FROM blocks
@@ -417,66 +424,101 @@ class Storage
         
         insertRecord(r);
         
-        // Add to the current block
+        Block nb; // New current block
+        
+        nb.prevFilledBlockHash = r.prevFilledBlock;
+        nb.blockNum = r.blockNum;
+        nb.isParallelRecord = false;
+        nb.proofOfWork = r.proofOfWork;
+        nb.difficulty = r.difficulty;
+        
+        const honest = findLatestHonestBlock( // TODO: replace to getNext()
+            getBlock(r.prevFilledBlock),
+            nb.blockNum
+        );
+        
+        const bool isParallelAvailable = honest != nb.prevFilledBlockHash;
+        /*
+        if(isParallelAvailable)
         {
-            Block b;
+            // Not new block is created
             
-            b.prevFilledBlockHash = r.prevFilledBlock;
-            b.blockNum = r.blockNum;
-            b.isParallelRecord = false;
-            b.proofOfWork = r.proofOfWork;
-            b.difficulty = r.difficulty;
-            
-            Block curr;
-            
-            const bool isNewBlock = !getMostFilledBlockWithPrevBlock(
-                b.prevFilledBlockHash,
-                b.blockNum,
-                curr
-            );
-            
-            if(isNewBlock)
-            {
-                b.blockHash = calcHashForOneRecord(r.proofOfWork);
-                b.recordsNum = 1;
-            }
-            else
-            {
-                b.prevIncludedBlockHash = curr.blockHash;
-                b.blockHash = calcHash(curr.blockHash, r.proofOfWork);
-                b.recordsNum = curr.recordsNum + 1;
-            }
-            
-            insertBlock(b);
         }
         
-        // Add to current-1 block
+        if(isParallelAvailable)
         {
-            Block b;
+            // New block with one record
+            nb.blockHash = calcHashForOneRecord(nb.proofOfWork);
+            nb.recordsNum = 1;
+        }
+        else
+        {
+            // Next record to current block
+            nb.blockHash = calcHash(honest, nb.proofOfWork);
+            nb.recordsNum = getBlock(honest).recordsNum + 1;
+        }
+        
+        Block curr;
+        
+        // Add parallel block to block blockNum-1?
+        if(!isNewCurrBlock && !curr.prevParallelBlockHash.isNull)
+        {
+            Block pb = getBlock(curr.prevParallelBlockHash);
             
-            b.blockNum = r.blockNum - 1;
-            b.isParallelRecord = true;
+            pb.blockHash = calcHash(pb.blockHash, r.proofOfWork);
+            pb.isParallelRecord = true;
+            
+            insertBlock(pb);
+        }
+        
+        const prevFilledBlock = getBlock(nb.prevFilledBlockHash);
+        
+        if(prevFilledBlock.blockNum + 1 == nb.blockNum)
+        {
+            const currParallel = calcHypotheticalParallelBlockHash(
+                curr.prevFilledBlockHash,
+                curr.blockHash
+            );
+            
+            Block pb;
+            
+            pb.blockNum = r.blockNum - 1;
+            pb.isParallelRecord = true;
             
             Block prev;
             
             const bool prevBlockFound = getMostFilledBlock(
-                b.blockNum,
+                pb.blockNum,
                 prev
             );
             
             if(prevBlockFound)
             {
-                b.prevFilledBlockHash = prev.prevFilledBlockHash;
-                b.prevIncludedBlockHash = prev.blockHash;
-                b.blockHash = calcHash(prev.blockHash, r.proofOfWork);
-                b.recordsNum = prev.recordsNum + 1;
-                b.proofOfWork = r.proofOfWork;
-                b.difficulty = prev.difficulty;
+                pb.prevFilledBlockHash = prev.prevFilledBlockHash;
+                pb.prevIncludedBlockHash = prev.blockHash;
+                pb.blockHash = calcHash(prev.blockHash, r.proofOfWork);
+                pb.recordsNum = prev.recordsNum + 1;
+                pb.proofOfWork = r.proofOfWork;
+                pb.difficulty = prev.difficulty;
                 
-                insertBlock(b);
+                insertBlock(pb);
             }
         }
         
+        if(isNewCurrBlock)
+        {
+            nb.blockHash = calcHashForOneRecord(r.proofOfWork);
+            nb.recordsNum = 1;
+        }
+        else
+        {
+            nb.prevIncludedBlockHash = curr.blockHash;
+            nb.blockHash = calcHash(curr.blockHash, r.proofOfWork);
+            nb.recordsNum = curr.recordsNum + 1;
+        }
+        
+        insertBlock(nb);
+        */
         db.commit;
     }
     
@@ -613,6 +655,24 @@ class Storage
         
         version(assert) answer.popFront;
         assert(answer.empty);
+        
+        q.reset();
+        
+        return res;
+    }
+    
+    private Nullable!BlockHash getNextParallelBlock(in BlockHash blockHash)
+    {
+        alias q = qSelectNextParallelBlockHash;
+        
+        q.bind(":blockHash", blockHash);
+        
+        auto answer = q.execute();
+        
+        Nullable!BlockHash res;
+        
+        if(!answer.empty)
+            res = (answer.oneValue!(ubyte[]))[0..BlockHash.length];
         
         q.reset();
         
