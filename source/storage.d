@@ -388,6 +388,7 @@ class Storage
             
             b.prevFilledBlockHash = r.prevFilledBlock;
             b.blockNum = r.blockNum;
+            b.isParallelRecord = false;
             b.proofOfWork = r.proofOfWork;
             b.difficulty = r.difficulty;
             
@@ -419,6 +420,7 @@ class Storage
             Block b;
             
             b.blockNum = r.blockNum - 1;
+            b.isParallelRecord = true;
             
             Block prev;
             
@@ -507,8 +509,8 @@ class Storage
         size_t blockNum;
         Difficulty difficulty;
         size_t recordsNum;
-        PoW proofOfWork;
-        bool isParallelRecord;
+        Nullable!PoW proofOfWork;
+        Nullable!bool isParallelRecord;
     }
     
     private void insertBlock(inout Block b)
