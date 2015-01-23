@@ -451,7 +451,12 @@ class Storage
         nb.proofOfWork = r.proofOfWork;
         nb.difficulty = r.difficulty;
         
-        if(curr.isNull)
+        Block currBlock;
+        if(!curr.isNull) currBlock = getBlock(curr);
+        
+        const bool needNewBlock = curr.isNull || currBlock.blockNum < r.blockNum;
+        
+        if(needNewBlock)
         {
             // New block with one record
             nb.blockHash = calcHashForOneRecord(nb.proofOfWork);
@@ -461,21 +466,27 @@ class Storage
         else
         {
             // Next record to current block
-            const b = getBlock(curr);
-            
             nb.blockHash = calcHash(curr, nb.proofOfWork);
-            nb.recordsNum = b.recordsNum + 1;
-            nb.primaryRecordsNum = b.primaryRecordsNum + 1;
+            nb.recordsNum = currBlock.recordsNum + 1;
+            nb.primaryRecordsNum = currBlock.primaryRecordsNum + 1;
         }
         
-        const parallel = getNextParallelMostFilledBlock(r.prevFilledBlock, r.blockNum);
+        Nullable!BlockHash para;
         
-        if(!parallel.isNull)
+        if(currBlock.blockNum + 1 == r.blockNum)
+            para = curr;
+        else
+            para = getNextParallelMostFilledBlock(r.prevFilledBlock, r.blockNum);
+        
+        Block npb; /// New parallel block
+        if(!para.isNull) npb = getBlock(para);
+        
+        if(!para.isNull && npb.blockNum + 1 == r.blockNum)
         {
             // Next record to parallel block
-            Block npb = getBlock(parallel); /// New paralell block
+            npb = getBlock(para);
             
-            npb.blockHash = calcHash(parallel, r.proofOfWork);
+            npb.blockHash = calcHash(para, r.proofOfWork);
             npb.recordsNum++;
             npb.isParallelRecord = true;
             npb.proofOfWork = r.proofOfWork;
