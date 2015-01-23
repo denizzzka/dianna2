@@ -915,21 +915,20 @@ unittest
     assert(latest5_1 != latest4);
     
     // next block again
-    r3.prevFilledBlock = latest3;
     r3.proofOfWork.hash[5] = 0x39;
     s.addRecord(r3);
     
     const latest5 = s.findLatestHonestBlock(prevFilledBlock, 8);
     assert(latest5 != latest5_1);
     
-    Record r4 = r; // parallel block
+    Record r4 = r; // not relevant parallel block
     r4.prevFilledBlock = latest4;
     r4.blockNum = 4;
     r4.proofOfWork.hash[5] = 0x36;
     s.addRecord(r4);
     
     const latest6 = s.findLatestHonestBlock(prevFilledBlock, 8);
-    assert(latest6 != latest5);
+    assert(latest6 == latest5);
     
     s.addRecordAwaitingPoW(r);
     
