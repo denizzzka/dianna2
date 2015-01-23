@@ -752,7 +752,7 @@ class Storage
         return early;
     }
     
-    private Block[] findNextBlocks
+    private Block[] getNextBlocks
     (
         in BlockHash fromBlockHash,
         in size_t limitBlockNum
@@ -779,7 +779,7 @@ class Storage
         return res;
     }
     
-    private BlockHash[] findParallelBlocks
+    private BlockHash[] getParallelBlocks
     (
         in BlockHash fromBlockHash,
         in size_t parallelBlockNum
@@ -818,14 +818,14 @@ class Storage
         
         if(from.blockNum < limitBlockNum)
         {
-            const pb = findParallelBlocks(from.blockHash, from.blockNum + 1);
+            const pb = getParallelBlocks(from.blockHash, from.blockNum + 1);
             
             foreach(ref h; pb)
                 toProcess ~= getBlock(h);
         }
         
         if(toProcess.length == 0)
-            toProcess = findNextBlocks(from.blockHash, limitBlockNum);
+            toProcess = getNextBlocks(from.blockHash, limitBlockNum);
         
         const Weight currWeight = {
             spentCPU: from.primaryRecordsNum * from.difficulty,
