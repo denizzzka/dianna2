@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS blocks (
     prevParallelBlockHash BLOB INT,
     prevFilledBlockHash BLOB INT NOT NULL,
     recordsNum INT NOT NULL CHECK (recordsNum > 0),
-    primaryRecordsNum INT NOT NULL CHECK (recordsNum >= 0),
+    primaryRecordsNum INT NOT NULL CHECK (primaryRecordsNum <= recordsNum),
     proofOfWork BLOB NOT NULL, -- record caused this block creation
     isParallelRecord INT NOT NULL, -- boolean: 0 = not parallel, 1 = parallel
     prevIncludedBlockHash BLOB
