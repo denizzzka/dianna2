@@ -111,11 +111,9 @@ class Storage
         qSelectBlock,
         qSelectNextMostFilledBlockHash,
         qSelectNextParallelMostFilledBlockHash,
-        qSelectMostFilledBlock,
-        qSelectMostFilledBlockWithPrevHash,
         qCalcPreviousRecordsNum,
-        qFindNextBlocks,
-        qFindParallelBlocks,
+        qSelectNextBlocks,
+        qSelectNextParallelBlocks,
         qCalcHash,
         qCalcHypotheticalParallelBlockHash;
     
@@ -298,49 +296,18 @@ class Storage
             LIMIT 1
         `);
         
-        qSelectMostFilledBlock = db.prepare(`
-            SELECT blockHash
-            FROM blocks
-            WHERE blockNum = :blockNum
-            ORDER BY recordsNum DESC
-            LIMIT 1
-        `);
-        
-        qSelectMostFilledBlockWithPrevHash = db.prepare(`
-            SELECT blockHash
-            FROM blocks
-            WHERE blockNum = :blockNum
-            AND prevFilledBlockHash = :prevFilledBlockHash
-            ORDER BY recordsNum DESC
-            LIMIT 1
-        `);
-        
-        qFindNextBlocks = db.prepare(`
+        qSelectNextBlocks = db.prepare(`
             SELECT blockHash
             FROM blocks
             WHERE prevFilledBlockHash = :fromBlockHash
             AND blockNum <= :limitBlockNum
         `);
         
-        qFindParallelBlocks = db.prepare(`
-            WITH b(blockNum, blockHash, proofOfWork) AS
-            (
-                SELECT blockNum, blockHash, c.proofOfWork
-                FROM blocks
-                JOIN BlocksContents c USING(blockHash)
-            ),
-            
-            parallelBlocks(blockHash, proofOfWork) AS
-            (
-                SELECT blockHash, proofOfWork
-                FROM b
-                WHERE blockNum = :parallelBlockNum
-            )
-            
-            SELECT DISTINCT p.blockHash AS blockHash
-            FROM parallelBlocks p
-            JOIN b USING(proofOfWork)
-            WHERE b.blockHash = :fromBlockHash
+        qSelectNextParallelBlocks = db.prepare(`
+            SELECT blockHash
+            FROM blocks
+            WHERE prevParallelBlockHash = :fromBlockHash
+            AND blockNum <= :limitBlockNum
         `);
         
         qCalcHash = db.prepare(`
@@ -681,65 +648,6 @@ class Storage
         return res;
     }
     
-    private bool getMostFilledBlock(in size_t blockNum, out Block res)
-    {
-        alias q = qSelectMostFilledBlock;
-        
-        q.bind(":blockNum", blockNum);
-        
-        auto answer = q.execute();
-        
-        if(answer.empty)
-        {
-            q.reset();
-            
-            return false;
-        }
-        
-        auto r = answer.front();
-        
-        const BlockHash h = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-        
-        res = getBlock(h);
-        
-        version(assert) answer.popFront;
-        assert(answer.empty);
-        
-        q.reset();
-        
-        return true;
-    }
-    
-    private bool getMostFilledBlockWithPrevBlock(in BlockHash prevFilledBlock, in size_t blockNum, out Block res)
-    {
-        alias q = qSelectMostFilledBlockWithPrevHash;
-        
-        q.bind(":blockNum", blockNum);
-        q.bind(":prevFilledBlockHash", prevFilledBlock);
-        
-        auto answer = q.execute();
-        
-        if(answer.empty)
-        {
-            q.reset();
-            
-            return false;
-        }
-        
-        auto r = answer.front();
-        
-        const BlockHash h = (r["blockHash"].as!(ubyte[]))[0..BlockHash.length];
-        
-        res = getBlock(h);
-        
-        version(assert) answer.popFront;
-        assert(answer.empty);
-        
-        q.reset();
-        
-        return true;
-    }
-    
     void addRecordAwaitingPoW(in Record r)
     {
         alias q = qInsertRecAwaitingPublish;
@@ -850,7 +758,7 @@ class Storage
         in size_t limitBlockNum
     )
     {
-        alias q = qFindNextBlocks;
+        alias q = qSelectNextBlocks;
         
         q.bind(":fromBlockHash", fromBlockHash);
         q.bind(":limitBlockNum", limitBlockNum);
@@ -877,10 +785,10 @@ class Storage
         in size_t parallelBlockNum
     )
     {
-        alias q = qFindParallelBlocks;
+        alias q = qSelectNextParallelBlocks;
         
         q.bind(":fromBlockHash", fromBlockHash);
-        q.bind(":parallelBlockNum", parallelBlockNum);
+        q.bind(":limitBlockNum", parallelBlockNum);
         
         auto answer = q.execute();
         
