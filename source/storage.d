@@ -920,7 +920,7 @@ class Storage
             toProcess = findNextBlocks(from.blockHash, limitBlockNum);
         
         const Weight currWeight = {
-            spentCPU: from.recordsNum * from.difficulty,
+            spentCPU: from.primaryRecordsNum * from.difficulty,
             blockHash: from.blockHash
         };
         
