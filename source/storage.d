@@ -229,7 +229,7 @@ class Storage
                     blockNum
                 FROM blocks
                 WHERE blockHash = :blockHash
-                AND blockNum <= :blockNumLimit
+                AND blockNum >= :blockNumLimit
                 
                 UNION
                 
@@ -244,19 +244,19 @@ class Storage
                     WHEN r.prevParallelBlockHash IS NULL THEN r.prevFilledBlockHash
                     ELSE r.prevParallelBlockHash
                 END
-                WHERE b.blockNum <= :blockNumLimit
+                WHERE b.blockNum >= :blockNumLimit
             )
             
             SELECT
             (
                 SELECT total(primaryRecordsNum)
                 FROM r
-                WHERE blockNum <= :blockNumDelimiter
+                WHERE blockNum < :blockNumDelimiter
             ) AS early,
             (
                 SELECT total(primaryRecordsNum)
                 FROM r
-                WHERE blockNum > :blockNumDelimiter
+                WHERE blockNum >= :blockNumDelimiter
             ) AS later
         `);
         
@@ -518,7 +518,7 @@ class Storage
         BlockHash prevFilledBlockHash;
         Nullable!BlockHash prevParallelBlockHash;
         Nullable!BlockHash prevIncludedBlockHash;
-        size_t blockNum;
+        uint blockNum;
         Difficulty difficulty;
         size_t recordsNum;
         size_t primaryRecordsNum;
@@ -565,7 +565,7 @@ class Storage
         
         Block res;
         res.blockHash = blockHash;
-        res.blockNum = r["blockNum"].as!size_t;
+        res.blockNum = r["blockNum"].as!uint;
         res.difficulty = r["difficulty"].as!Difficulty;
         res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
         res.recordsNum = r["recordsNum"].as!size_t;
@@ -704,13 +704,13 @@ class Storage
         out uint later
     )
     {
-        assert(blockNumDelimiter < blockNumLimit);
+        assert(blockNumDelimiter >= blockNumLimit);
         
         alias q = qCalcPreviousRecordsNum;
         
         q.bind(":blockHash", b);
-        q.bind(":blockNumDelimiter", b);
-        q.bind(":blockNumLimit", b);
+        q.bind(":blockNumDelimiter", blockNumDelimiter);
+        q.bind(":blockNumLimit", blockNumLimit);
         
         auto answer = q.execute();
         auto r = answer.front();
@@ -726,13 +726,24 @@ class Storage
     
     uint calcDifficulty(in Block from)
     {
+        assert(from.blockNum >= 1);
+        
         uint early;
         uint later;
         
-        immutable BlockHash zeroes;
+        int delimiter = from.blockNum - 14;
+        int limit = from.blockNum - 28;
         
-        if(from.prevFilledBlockHash != zeroes)
-            calcPreviousRecordsNum(from.prevFilledBlockHash, 14, 28, early, later);
+        calcPreviousRecordsNum(
+            from.blockHash,
+            delimiter < 0 ? 0 : delimiter,
+            limit < 0 ? 0 : limit,
+            early,
+            later
+        );
+        
+        const f = later / early;
+        const m = later / early - later % early;
         
         return early;
     }
@@ -914,6 +925,8 @@ unittest
     
     const latest6 = s.findLatestHonestBlock(prevFilledBlock, 8);
     assert(latest6 == latest5);
+    
+    const difficulty = s.calcDifficulty(s.getBlock(latest6));
     
     s.addRecordAwaitingPoW(r);
     
