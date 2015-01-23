@@ -78,7 +78,7 @@ WITH RECURSIVE r(
         prevIncludedBlockHash
     FROM blocks b
     
-    UNION ALL
+    UNION
     
     SELECT
         r.blockHash,
@@ -213,28 +213,51 @@ class Storage
         );
         
         qCalcPreviousRecordsNum = db.prepare(`
-            WITH RECURSIVE r(prevFilledBlockHash, recordsNum, depth) AS
+            WITH RECURSIVE r(
+                blockHash,
+                prevFilledBlockHash,
+                prevParallelBlockHash,
+                primaryRecordsNum,
+                blockNum
+            ) AS
             (
-                SELECT prevFilledBlockHash, recordsNum, 0 AS depth
-                FROM blocks b1
+                SELECT
+                    blockHash,
+                    prevFilledBlockHash,
+                    prevParallelBlockHash,
+                    primaryRecordsNum,
+                    blockNum
+                FROM blocks
                 WHERE blockHash = :blockHash
-                UNION ALL
-                SELECT b2.prevFilledBlockHash, b2.recordsNum, depth + 1 AS depth
-                FROM blocks b2
-                JOIN r ON b2.blockHash = r.prevFilledBlockHash
-                WHERE r.depth < 14
-            ),
-            
-            o(recordsNum) AS
-            (
-                SELECT recordsNum
-                FROM r
-                ORDER BY depth
+                AND blockNum <= :blockNumLimit
+                
+                UNION
+                
+                SELECT
+                    b.blockHash,
+                    b.prevFilledBlockHash,
+                    b.prevParallelBlockHash,
+                    b.primaryRecordsNum,
+                    b.blockNum
+                FROM blocks b
+                JOIN r ON b.blockHash = CASE
+                    WHEN r.prevParallelBlockHash IS NULL THEN r.prevFilledBlockHash
+                    ELSE r.prevParallelBlockHash
+                END
+                WHERE b.blockNum <= :blockNumLimit
             )
             
             SELECT
-                (SELECT sum(recordsNum) FROM o LIMIT 7 OFFSET 7) AS early,
-                (SELECT sum(recordsNum) FROM o LIMIT 7) AS later
+            (
+                SELECT total(primaryRecordsNum)
+                FROM r
+                WHERE blockNum <= :blockNumDelimiter
+            ) AS early,
+            (
+                SELECT total(primaryRecordsNum)
+                FROM r
+                WHERE blockNum > :blockNumDelimiter
+            ) AS later
         `);
         
         qInsertBlock = db.prepare(`
@@ -672,11 +695,22 @@ class Storage
         q.reset();
     }
     
-    private void calcPreviousRecordsNum(in BlockHash b, out uint early, out uint later)
+    private void calcPreviousRecordsNum
+    (
+        in BlockHash b,
+        in uint blockNumDelimiter,
+        in uint blockNumLimit,
+        out uint early,
+        out uint later
+    )
     {
+        assert(blockNumDelimiter < blockNumLimit);
+        
         alias q = qCalcPreviousRecordsNum;
         
         q.bind(":blockHash", b);
+        q.bind(":blockNumDelimiter", b);
+        q.bind(":blockNumLimit", b);
         
         auto answer = q.execute();
         auto r = answer.front();
@@ -690,7 +724,6 @@ class Storage
         q.reset();
     }
     
-    // TODO:
     uint calcDifficulty(in Block from)
     {
         uint early;
@@ -699,7 +732,7 @@ class Storage
         immutable BlockHash zeroes;
         
         if(from.prevFilledBlockHash != zeroes)
-            calcPreviousRecordsNum(from.prevFilledBlockHash, early, later);
+            calcPreviousRecordsNum(from.prevFilledBlockHash, 14, 28, early, later);
         
         return early;
     }
