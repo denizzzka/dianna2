@@ -524,6 +524,9 @@ class Storage
         size_t primaryRecordsNum;
         Nullable!PoW proofOfWork;
         Nullable!bool isParallelRecord;
+        
+        static immutable blockDurationHours = 12;
+        static immutable difficultyWindowBlocks = blockDurationHours * 2 * 7; /// One week
     }
     
     private void insertBlock(inout Block b)
@@ -724,15 +727,19 @@ class Storage
         q.reset();
     }
     
-    uint calcDifficulty(in Block from)
+    Difficulty calcDifficulty(in Block from)
     {
         assert(from.blockNum >= 1);
+        
+        // Initial difficulty
+        if(from.blockNum <= Block.difficultyWindowBlocks)
+            return 0;
         
         uint early;
         uint later;
         
-        int delimiter = from.blockNum - 14;
-        int limit = from.blockNum - 28;
+        int delimiter = from.blockNum - Block.difficultyWindowBlocks;
+        int limit = from.blockNum - Block.difficultyWindowBlocks * 2;
         
         calcPreviousRecordsNum(
             from.blockHash,
@@ -742,10 +749,9 @@ class Storage
             later
         );
         
-        const f = later / early;
-        const m = later / early - later % early;
+        enforce(early);
         
-        return early;
+        return from.difficulty * (later / early);
     }
     
     private Block[] getNextBlocks
