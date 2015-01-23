@@ -114,8 +114,7 @@ class Storage
         qCalcPreviousRecordsNum,
         qSelectNextBlocks,
         qSelectNextParallelBlocks,
-        qCalcHash,
-        qCalcHypotheticalParallelBlockHash;
+        qCalcHash;
     
     this(string filename)
     {
@@ -334,39 +333,6 @@ class Storage
             FROM ordered
         `);
         
-        qCalcHypotheticalParallelBlockHash = db.prepare(`
-            WITH firstHashes(proofOfWork) AS
-            (
-                SELECT proofOfWork
-                FROM BlocksContents
-                WHERE blockHash = :fromBlockHash
-                AND isParallelRecord
-            ),
-            
-            hashes(proofOfWork) AS
-            (
-                SELECT proofOfWork
-                FROM firstHashes
-                
-                UNION ALL
-                
-                SELECT proofOfWork
-                FROM BlocksContents
-                WHERE blockHash = :toBlockHash
-                AND NOT isParallelRecord
-            ),
-            
-            ordered(proofOfWork) AS
-            (
-                SELECT proofOfWork
-                FROM hashes
-                ORDER BY proofOfWork
-            )
-            
-            SELECT hashFunc(proofOfWork) AS blockHash
-            FROM ordered
-            WHERE (SELECT count(*) FROM firstHashes) > 0
-        `);
     }
     
     extern (C)
@@ -501,20 +467,6 @@ class Storage
         const BlockHash res = (answer.oneValue!(ubyte[]))[0..BlockHash.length];
         
         q.reset();
-        
-        return res;
-    }
-    
-    private BlockHash calcHypotheticalParallelBlockHash(in BlockHash from, in BlockHash to)
-    {
-        alias q = qCalcHypotheticalParallelBlockHash;
-        
-        q.bind(":fromBlockhash", from);
-        q.bind(":toBlockhash", from);
-        
-        auto answer = q.execute();
-        
-        const BlockHash res = (answer.oneValue!(ubyte[]))[0..BlockHash.length];
         
         return res;
     }
