@@ -826,9 +826,14 @@ class Storage
     // TODO:
     bool validate(in Record r)
     {
+        if(!isSatisfyDifficulty(r.proofOfWork.hash, r.difficulty)) return false;
+        
+        const src = r.getFullRecordHashSource();
+        if(!isValidPoW(src, r.proofOfWork)) return false;
+        
         const b = getBlock(r.prevFilledBlock);
         
-        if(b.isNull) return true; // can't be validated
+        if(b.isNull) return false; // can't be validated
         if(b.blockNum >= r.blockNum) return false;
         
         const difficulty = calcDifficulty(b);
@@ -928,7 +933,7 @@ unittest
     assert(difficulty2 == 0);
     
     auto isValid = s.validate(r6);
-    assert(isValid);
+    //assert(isValid);
     
     s.addRecordAwaitingPoW(r);
     
