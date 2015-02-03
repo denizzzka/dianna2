@@ -48,7 +48,7 @@ ON recordsAwaitingPublish(hash);
 CREATE TABLE IF NOT EXISTS blocks (
     blockHash BLOB NOT NULL,
     blockNum INT NOT NULL,
-    difficulty INT NOT NULL,
+    difficulty INT NOT NULL CHECK (difficulty > 0),
     prevParallelBlockHash BLOB INT,
     prevFilledBlockHash BLOB INT NOT NULL,
     recordsNum INT NOT NULL CHECK (recordsNum > 0),
@@ -665,15 +665,20 @@ class Storage
         Difficulty oldDifficulty = 0;
         
         // Initial difficulty
-        if(from.blockNum <= window)
+        if(from.blockNum < window * 2)
             return oldDifficulty;
+        
+        const uint start = from.blockNum / window * window;
+        
+        assert(start >= window * 2);
+        
+        const uint delimiter = start - window;        
+        const uint limit = start - window * 2;
+        
+        assert(delimiter > 0);
         
         uint early;
         uint later;
-        
-        const uint start = from.blockNum / window * window;
-        const int delimiter = start - window;
-        const int limit = start - window * 2;
         
         BlockHash currBlockHash = from.blockHash;
         
@@ -883,7 +888,29 @@ unittest
     const latest6 = s.findLatestHonestBlock(prevFilledBlock, 8);
     assert(latest6 == latest5);
     
-    const difficulty = s.calcDifficulty(s.getBlock(latest6));
+    const difficulty1 = s.calcDifficulty(s.getBlock(latest6));
+    assert(difficulty1 == 0);
+    
+    Record r5 = r4;
+    r5.proofOfWork.hash[5] = 0x37;
+    r5.prevFilledBlock = latest5;
+    r5.blockNum = Storage.Block.difficultyWindowBlocks * 2;
+    s.addRecord(r5);
+    
+    const latest7 = s.findLatestHonestBlock(prevFilledBlock, Storage.Block.difficultyWindowBlocks * 50);
+    assert(latest7 != latest5);
+    
+    Record r6 = r4;
+    r6.proofOfWork.hash[5] = 0x38;
+    r6.prevFilledBlock = latest7;
+    r6.blockNum = Storage.Block.difficultyWindowBlocks * 2 + 1;
+    s.addRecord(r6);
+    
+    const latest8 = s.findLatestHonestBlock(prevFilledBlock, Storage.Block.difficultyWindowBlocks * 50);
+    assert(latest8 != latest7);
+    
+    const difficulty2 = s.calcDifficulty(s.getBlock(latest8));
+    assert(difficulty2 != 0);
     
     s.addRecordAwaitingPoW(r);
     
