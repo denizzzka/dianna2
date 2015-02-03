@@ -784,19 +784,7 @@ class Storage
                 currBlockHash = cb.prevFilledBlockHash;
             else
                 currBlockHash = cb.prevParallelBlockHash;
-            
         }
-        
-        /*
-        calcPreviousRecordsNum(
-            from.blockHash,
-            start,
-            delimiter < 0 ? 0 : delimiter,
-            limit < 0 ? 0 : limit,
-            early,
-            later
-        );
-        */
         
         enforce(early);
         
