@@ -508,7 +508,7 @@ class Storage
         q.reset();
     }
     
-    private Nullable!Block getBlock(inout BlockHash blockHash)
+    private Nullable!Block getBlock(in BlockHash blockHash)
     {
         alias q = qSelectBlock;
         
@@ -518,28 +518,29 @@ class Storage
         
         Nullable!Block nullableResult;
         
-        if(answer.empty) return nullableResult;
-        
-        auto r = answer.front();
-        
-        Block res;
-        res.blockHash = blockHash;
-        res.blockNum = r["blockNum"].as!uint;
-        res.difficulty = r["difficulty"].as!Difficulty;
-        res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
-        res.recordsNum = r["recordsNum"].as!size_t;
-        res.primaryRecordsNum = r["primaryRecordsNum"].as!size_t;
-        
-        if(r["prevParallelBlockHash"].as!(ubyte[]).length)
-            res.prevParallelBlockHash = (r["prevParallelBlockHash"].as!(ubyte[]))[0..BlockHash.length];
-        
-        if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
-            res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
-        
-        nullableResult = res;
-        
-        version(assert) answer.popFront;
-        assert(answer.empty);
+        if(!answer.empty)
+        {
+            auto r = answer.front();
+            
+            Block res;
+            res.blockHash = blockHash;
+            res.blockNum = r["blockNum"].as!uint;
+            res.difficulty = r["difficulty"].as!Difficulty;
+            res.prevFilledBlockHash = (r["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+            res.recordsNum = r["recordsNum"].as!size_t;
+            res.primaryRecordsNum = r["primaryRecordsNum"].as!size_t;
+            
+            if(r["prevParallelBlockHash"].as!(ubyte[]).length)
+                res.prevParallelBlockHash = (r["prevParallelBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+            
+            if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
+                res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
+            
+            nullableResult = res;
+            
+            version(assert) answer.popFront;
+            assert(answer.empty);
+        }
         
         q.reset();
         
@@ -821,6 +822,20 @@ class Storage
     {
         return findRecursively(from, limitBlockNum).blockHash;
     }
+    
+    // TODO:
+    bool validate(in Record r)
+    {
+        const b = getBlock(r.prevFilledBlock);
+        
+        if(b.isNull) return true; // can't be validated
+        if(b.blockNum >= r.blockNum) return false;
+        
+        const difficulty = calcDifficulty(b);
+        if(difficulty != r.difficulty) return false;
+        
+        return true;
+    }
 }
 
 unittest
@@ -911,6 +926,9 @@ unittest
     
     const difficulty2 = s.calcDifficulty(s.getBlock(latest8));
     assert(difficulty2 == 0);
+    
+    auto isValid = s.validate(r6);
+    assert(isValid);
     
     s.addRecordAwaitingPoW(r);
     
