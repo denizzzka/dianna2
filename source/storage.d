@@ -111,7 +111,6 @@ class Storage
         qSelectBlock,
         qSelectNextMostFilledBlockHash,
         qSelectNextParallelMostFilledBlockHash,
-        qCalcPreviousRecordsNum,
         qSelectNextBlocks,
         qSelectNextParallelBlocks,
         qCalcHash;
@@ -211,61 +210,6 @@ class Storage
                 :proofOfWork
             )`
         );
-        
-        qCalcPreviousRecordsNum = db.prepare(`
-            WITH RECURSIVE r(
-                blockHash,
-                prevFilledBlockHash,
-                prevParallelBlockHash,
-                primaryRecordsNum,
-                blockNum
-            ) AS
-            (
-                SELECT
-                    blockHash,
-                    prevFilledBlockHash,
-                    prevParallelBlockHash,
-                    primaryRecordsNum,
-                    blockNum
-                FROM blocks
-                WHERE blockHash = :blockHash
-                AND blockNum >= :blockNumLimit
-                
-                UNION
-                
-                SELECT
-                    b.blockHash,
-                    b.prevFilledBlockHash,
-                    b.prevParallelBlockHash,
-                    b.primaryRecordsNum,
-                    b.blockNum
-                FROM blocks b
-                JOIN r ON b.blockHash = CASE
-                    WHEN r.prevParallelBlockHash IS NULL THEN r.prevFilledBlockHash
-                    ELSE r.prevParallelBlockHash
-                END
-                WHERE b.blockNum >= :blockNumLimit
-            ),
-            
-            WithoutLatest(primaryRecordsNum, blockNum) AS
-            (
-                SELECT primaryRecordsNum, blockNum
-                FROM r
-                WHERE blockNum <= :blockNumStart
-            )
-            
-            SELECT
-            (
-                SELECT total(primaryRecordsNum)
-                FROM WithoutLatest
-                WHERE blockNum < :blockNumDelimiter
-            ) AS early,
-            (
-                SELECT total(primaryRecordsNum)
-                FROM WithoutLatest
-                WHERE blockNum >= :blockNumDelimiter
-            ) AS later
-        `);
         
         qInsertBlock = db.prepare(`
             INSERT INTO blocks (
@@ -709,37 +653,6 @@ class Storage
         
         q.execute();
         assert(db.changes() == 1);
-        q.reset();
-    }
-    
-    private void calcPreviousRecordsNum
-    (
-        in BlockHash b,
-        in uint blockNumStart,
-        in uint blockNumDelimiter,
-        in uint blockNumLimit,
-        out uint early,
-        out uint later
-    )
-    {
-        assert(blockNumDelimiter >= blockNumLimit);
-        
-        alias q = qCalcPreviousRecordsNum;
-        
-        q.bind(":blockHash", b);
-        q.bind(":blockNumStart", blockNumStart);
-        q.bind(":blockNumDelimiter", blockNumDelimiter);
-        q.bind(":blockNumLimit", blockNumLimit);
-        
-        auto answer = q.execute();
-        auto r = answer.front();
-        
-        early = r["early"].as!uint;
-        later = r["later"].as!uint;
-        
-        version(assert) answer.popFront;
-        assert(answer.empty);
-        
         q.reset();
     }
     
