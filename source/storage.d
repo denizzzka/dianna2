@@ -765,11 +765,9 @@ class Storage
         
         while(true)
         {
-            const Block cb = getBlock(currBlockHash); /// current block
+            const cb = getBlock(currBlockHash); /// current block
             
-            // currBlock.isNull ? break
-            
-            if(cb.blockNum < limit) break;
+            if(cb.isNull || cb.blockNum < limit) break;
             
             if(cb.blockNum <= start)
             {
