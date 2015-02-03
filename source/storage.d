@@ -749,9 +749,11 @@ class Storage
         
         alias window = Block.difficultyWindowBlocks;
         
+        Difficulty oldDifficulty = 0;
+        
         // Initial difficulty
         if(from.blockNum <= window)
-            return 0;
+            return oldDifficulty;
         
         uint early;
         uint later;
@@ -761,7 +763,6 @@ class Storage
         const int limit = start - window * 2;
         
         BlockHash currBlockHash = from.blockHash;
-        Difficulty oldDifficulty;
         
         while(true)
         {
