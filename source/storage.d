@@ -564,13 +564,18 @@ class Storage
         q.reset();
     }
     
-    private Block getBlock(inout BlockHash blockHash)
+    private Nullable!Block getBlock(inout BlockHash blockHash)
     {
         alias q = qSelectBlock;
         
         q.bind(":blockHash", blockHash);
         
         auto answer = q.execute();
+        
+        Nullable!Block nullableResult;
+        
+        if(answer.empty) return nullableResult;
+        
         auto r = answer.front();
         
         Block res;
@@ -587,12 +592,14 @@ class Storage
         if(r["prevIncludedBlockHash"].as!(ubyte[]).length)
             res.prevIncludedBlockHash = (r["prevIncludedBlockHash"].as!(ubyte[]))[0..BlockHash.length];
         
+        nullableResult = res;
+        
         version(assert) answer.popFront;
         assert(answer.empty);
         
         q.reset();
         
-        return res;
+        return nullableResult;
     }
     
     private Nullable!BlockHash getNextMostFilledBlock(in BlockHash blockHash, in size_t blockNumLimit)
