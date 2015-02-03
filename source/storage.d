@@ -22,10 +22,10 @@ EOS";
 immutable string sqlCreateSchema =
 `CREATE TABLE IF NOT EXISTS records (
 `~sqlRecordFields~`
-    version INT NOT NULL,
-    blockNum INT NOT NULL,
+    version INT NOT NULL CHECK (version >= 0),
+    blockNum INT NOT NULL CHECK (blockNum >= 0),
     prevFilledBlockHash BLOB,
-    difficulty INT NOT NULL,
+    difficulty INT NOT NULL CHECK (difficulty >= 0),
     proofOfWork BLOB NOT NULL
 );
 
@@ -47,8 +47,8 @@ ON recordsAwaitingPublish(hash);
 
 CREATE TABLE IF NOT EXISTS blocks (
     blockHash BLOB NOT NULL,
-    blockNum INT NOT NULL,
-    difficulty INT NOT NULL CHECK (difficulty > 0),
+    blockNum INT NOT NULL CHECK (blockNum >= 0),
+    difficulty INT NOT NULL CHECK (difficulty >= 0),
     prevParallelBlockHash BLOB INT,
     prevFilledBlockHash BLOB INT NOT NULL,
     recordsNum INT NOT NULL CHECK (recordsNum > 0),
@@ -675,8 +675,6 @@ class Storage
         const uint delimiter = start - window;        
         const uint limit = start - window * 2;
         
-        assert(delimiter > 0);
-        
         uint early;
         uint later;
         
@@ -707,7 +705,9 @@ class Storage
         
         enforce(early);
         
-        return oldDifficulty * (later / early);
+        if(!oldDifficulty) oldDifficulty = 1;
+        
+        return oldDifficulty * later / early;
     }
     
     private Block[] getNextBlocks
@@ -910,7 +910,7 @@ unittest
     assert(latest8 != latest7);
     
     const difficulty2 = s.calcDifficulty(s.getBlock(latest8));
-    assert(difficulty2 != 0);
+    assert(difficulty2 == 0);
     
     s.addRecordAwaitingPoW(r);
     
