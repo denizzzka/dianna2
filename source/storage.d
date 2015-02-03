@@ -753,6 +753,36 @@ class Storage
         const int delimiter = start - window;
         const int limit = start - window * 2;
         
+        BlockHash currBlockHash = from.blockHash;
+        Difficulty oldDifficulty;
+        
+        while(true)
+        {
+            const Block cb = getBlock(currBlockHash); /// current block
+            
+            // currBlock.isNull ? break
+            
+            if(cb.blockNum < limit) break;
+            
+            if(cb.blockNum <= start)
+            {
+                if(cb.blockNum < delimiter)
+                {
+                    early += cb.primaryRecordsNum;
+                    oldDifficulty = cb.difficulty;
+                }
+                else
+                    later += cb.primaryRecordsNum;
+            }
+            
+            if(cb.prevParallelBlockHash.isNull)
+                currBlockHash = cb.prevFilledBlockHash;
+            else
+                currBlockHash = cb.prevParallelBlockHash;
+            
+        }
+        
+        /*
         calcPreviousRecordsNum(
             from.blockHash,
             start,
@@ -761,10 +791,11 @@ class Storage
             early,
             later
         );
+        */
         
         enforce(early);
         
-        return from.difficulty * (later / early);
+        return oldDifficulty * (later / early);
     }
     
     private Block[] getNextBlocks
