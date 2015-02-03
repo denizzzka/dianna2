@@ -245,17 +245,24 @@ class Storage
                     ELSE r.prevParallelBlockHash
                 END
                 WHERE b.blockNum >= :blockNumLimit
+            ),
+            
+            WithoutLatest(primaryRecordsNum, blockNum) AS
+            (
+                SELECT primaryRecordsNum, blockNum
+                FROM r
+                WHERE blockNum <= :blockNumStart
             )
             
             SELECT
             (
                 SELECT total(primaryRecordsNum)
-                FROM r
+                FROM WithoutLatest
                 WHERE blockNum < :blockNumDelimiter
             ) AS early,
             (
                 SELECT total(primaryRecordsNum)
-                FROM r
+                FROM WithoutLatest
                 WHERE blockNum >= :blockNumDelimiter
             ) AS later
         `);
@@ -701,6 +708,7 @@ class Storage
     private void calcPreviousRecordsNum
     (
         in BlockHash b,
+        in uint blockNumStart,
         in uint blockNumDelimiter,
         in uint blockNumLimit,
         out uint early,
@@ -712,6 +720,7 @@ class Storage
         alias q = qCalcPreviousRecordsNum;
         
         q.bind(":blockHash", b);
+        q.bind(":blockNumStart", blockNumStart);
         q.bind(":blockNumDelimiter", blockNumDelimiter);
         q.bind(":blockNumLimit", blockNumLimit);
         
@@ -735,14 +744,18 @@ class Storage
         if(from.blockNum <= Block.difficultyWindowBlocks)
             return 0;
         
+        alias window = Block.difficultyWindowBlocks;
+        
         uint early;
         uint later;
         
-        int delimiter = from.blockNum - Block.difficultyWindowBlocks;
-        int limit = from.blockNum - Block.difficultyWindowBlocks * 2;
+        const uint start = from.blockNum / window * window;
+        const int delimiter = start - window;
+        const int limit = start - window * 2;
         
         calcPreviousRecordsNum(
             from.blockHash,
+            start,
             delimiter < 0 ? 0 : delimiter,
             limit < 0 ? 0 : limit,
             early,
