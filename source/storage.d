@@ -747,11 +747,11 @@ class Storage
     {
         assert(from.blockNum >= 1);
         
-        // Initial difficulty
-        if(from.blockNum <= Block.difficultyWindowBlocks)
-            return 0;
-        
         alias window = Block.difficultyWindowBlocks;
+        
+        // Initial difficulty
+        if(from.blockNum <= window)
+            return 0;
         
         uint early;
         uint later;
