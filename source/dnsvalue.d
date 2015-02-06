@@ -1,5 +1,7 @@
 @safe:
 
+import ecdsa;
+
 
 struct Signature
 {
