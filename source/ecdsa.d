@@ -43,10 +43,12 @@ Key newKey(in string name)
     
     enforce(EVP_PKEY_keygen(kctx, &key));
     
-    // FIXME: need exit scope
-    if(pctx) EVP_PKEY_CTX_free(pctx);
-    if(kctx) EVP_PKEY_CTX_free(kctx);
-    if(params) EVP_PKEY_free(params);
+    scope(exit)
+    {
+        if(pctx) EVP_PKEY_CTX_free(pctx);
+        if(kctx) EVP_PKEY_CTX_free(kctx);
+        if(params) EVP_PKEY_free(params);
+    }
     
     return res;
 }
