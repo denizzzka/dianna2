@@ -73,5 +73,11 @@ void createKey(in string name)
 
 unittest
 {
-    createKey("123");
+    import std.file: remove;
+    
+    immutable key_name = "_unittest_key";
+    
+    createKey(key_name);
+    
+    remove(expandTilde("~/.dianna2/key_"~key_name~".pem"));
 }
