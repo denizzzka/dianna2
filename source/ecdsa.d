@@ -6,7 +6,7 @@ import deimos.openssl.pem;
 
 import std.exception: enforce;
 import std.stdio: File;
-import std.file: setAttributes;
+import std.file: exists, setAttributes;
 import std.path: expandTilde;
 import std.conv: octal;
 
@@ -57,10 +57,13 @@ private EVP_PKEY* generatePrivateKey()
 void createKey(in string name)
 {
     const filename = expandTilde("~/.dianna2/key_"~name~".pem");
+    
+    enforce(!exists(filename), "Key file already exists");
+    
     auto file = File(filename, "w");
     setAttributes(filename, octal!"600"); // chmod 600
     
-    auto key = generatePrivateKey();
+    EVP_PKEY* key = generatePrivateKey();
     
     const res = PEM_write_PrivateKey(file.getFP, key, null, null, 0, null, null);
     
@@ -71,13 +74,29 @@ void createKey(in string name)
     file.close();
 }
 
+EVP_PKEY* readKey(in string filename)
+{
+    auto file = File(filename, "r");
+    
+    EVP_PKEY* res = PEM_read_PrivateKey(file.getFP, null, null, null);
+    
+    file.close();
+    
+    enforce(res != null);
+    
+    return res;
+}
+
 unittest
 {
     import std.file: remove;
     
     immutable key_name = "_unittest_key";
+    immutable filename = expandTilde("~/.dianna2/key_"~key_name~".pem");
     
     createKey(key_name);
     
-    remove(expandTilde("~/.dianna2/key_"~key_name~".pem"));
+    assert(readKey(filename));
+    
+    remove(filename);
 }
