@@ -5,7 +5,10 @@ import deimos.openssl.ecdsa;
 import deimos.openssl.pem;
 
 import std.exception: enforce;
-import std.stdio;
+import std.stdio: File;
+import std.file: setAttributes;
+import std.path: expandTilde;
+import std.conv: octal;
 
 
 struct Key
@@ -53,8 +56,9 @@ private EVP_PKEY* generatePrivateKey()
 
 void createKey(in string name)
 {
-    const filename = "/tmp/test_"~name~".pem";
+    const filename = expandTilde("~/.dianna2/key_"~name~".pem");
     auto file = File(filename, "w");
+    setAttributes(filename, octal!"600"); // chmod 600
     
     auto key = generatePrivateKey();
     
