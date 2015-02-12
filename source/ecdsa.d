@@ -2,8 +2,10 @@
 
 import deimos.openssl.evp;
 import deimos.openssl.ecdsa;
+import deimos.openssl.pem;
 
 import std.exception: enforce;
+import std.stdio;
 
 
 struct Key
@@ -16,12 +18,8 @@ struct Key
 
 alias signature = ECDSA_SIG;
 
-Key newKey(in string name)
+private EVP_PKEY* generatePrivateKey()
 {
-    Key res;
-    res.name = name;
-    //res.key = EC_KEY_new_by_curve_name(NID_secp256k1);
-    
     EVP_PKEY_CTX* pctx;
     EVP_PKEY_CTX* kctx;
     EVP_PKEY* params;
@@ -50,10 +48,26 @@ Key newKey(in string name)
         if(params) EVP_PKEY_free(params);
     }
     
-    return res;
+    return key;
+}
+
+void createKey(in string name)
+{
+    const filename = "/tmp/test_"~name~".pem";
+    auto file = File(filename, "w");
+    
+    auto key = generatePrivateKey();
+    
+    const res = PEM_write_PrivateKey(file.getFP, key, null, null, 0, null, null);
+    
+    enforce(res == 1, "PEM_write_PrivateKey error");
+    
+    scope(exit) EVP_PKEY_free(key);
+    
+    file.close();
 }
 
 unittest
 {
-    auto key = newKey("test key");
+    createKey("123");
 }
