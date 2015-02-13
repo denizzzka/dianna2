@@ -54,14 +54,12 @@ private EVP_PKEY* generatePrivateKey()
     return key;
 }
 
-void createKey(in string name)
+void createKey(in string path)
 {
-    const filename = expandTilde("~/.dianna2/key_"~name~".pem");
+    enforce(!exists(path), "Key file already exists");
     
-    enforce(!exists(filename), "Key file already exists");
-    
-    auto file = File(filename, "w");
-    setAttributes(filename, octal!"600"); // chmod 600
+    auto file = File(path, "w");
+    setAttributes(path, octal!"600"); // chmod 600
     
     EVP_PKEY* key = generatePrivateKey();
     
@@ -74,9 +72,9 @@ void createKey(in string name)
     file.close();
 }
 
-EVP_PKEY* readKey(in string filename)
+private EVP_PKEY* readKey(in string path)
 {
-    auto file = File(filename, "r");
+    auto file = File(path, "r");
     
     EVP_PKEY* res = PEM_read_PrivateKey(file.getFP, null, null, null);
     
@@ -91,12 +89,11 @@ unittest
 {
     import std.file: remove;
     
-    immutable key_name = "_unittest_key";
-    immutable filename = expandTilde("~/.dianna2/key_"~key_name~".pem");
+    immutable path = "/tmp/_unittest_key.pem";
     
-    createKey(key_name);
+    createKey(path);
     
-    assert(readKey(filename));
+    assert(readKey(path));
     
-    remove(filename);
+    remove(path);
 }
