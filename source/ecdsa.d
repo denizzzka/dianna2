@@ -19,7 +19,7 @@ struct Key
     string name;
 }
 
-alias signature = ECDSA_SIG;
+alias signature = ubyte[72];
 
 private EVP_PKEY* generatePrivateKey()
 {
@@ -54,12 +54,12 @@ private EVP_PKEY* generatePrivateKey()
     return key;
 }
 
-void createKey(in string path)
+void createKey(in string keyfilePath)
 {
-    enforce(!exists(path), "Key file already exists");
+    enforce(!exists(keyfilePath), "Key file already exists");
     
-    auto file = File(path, "w");
-    setAttributes(path, octal!"600"); // chmod 600
+    auto file = File(keyfilePath, "w");
+    setAttributes(keyfilePath, octal!"600"); // chmod 600
     
     EVP_PKEY* key = generatePrivateKey();
     
@@ -72,15 +72,46 @@ void createKey(in string path)
     file.close();
 }
 
-private EVP_PKEY* readKey(in string path)
+private EVP_PKEY* readKey(in string keyfilePath)
 {
-    auto file = File(path, "r");
+    auto file = File(keyfilePath, "r");
     
     EVP_PKEY* res = PEM_read_PrivateKey(file.getFP, null, null, null);
     
     file.close();
     
     enforce(res != null);
+    
+    return res;
+}
+
+signature sign(in ubyte[] digest, in string keyfilePath)
+{
+    auto key = readKey(keyfilePath);
+    
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(key, null);
+    enforce(ctx);
+    
+    enforce(EVP_PKEY_sign_init(ctx) == 1);
+    
+    size_t siglen;
+    
+    // obtain signature length
+    enforce(EVP_PKEY_sign(ctx, null, &siglen, digest.ptr, digest.length) == 1);
+    
+    // ecdsa signature size check
+    enforce(siglen == signature.length);
+    
+    signature res;
+    
+    // sign
+    enforce(EVP_PKEY_sign(ctx, res.ptr, &siglen, digest.ptr, digest.length) == 1);
+    
+    scope(exit)
+    {
+        if(ctx) EVP_PKEY_CTX_free(ctx);
+        if(ctx) EVP_PKEY_free(key);
+    }
     
     return res;
 }
@@ -94,6 +125,9 @@ unittest
     createKey(path);
     
     assert(readKey(path));
+    
+    ubyte[20] digest;
+    sign(digest, path);
     
     remove(path);
 }
