@@ -116,6 +116,26 @@ signature sign(in ubyte[] digest, in string keyfilePath)
     return res;
 }
 
+bool verify(in ubyte[] digest, in signature sig, in string keyfilePath)
+{
+    auto key = readKey(keyfilePath);
+    
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(key, null);
+    enforce(ctx);
+    
+    enforce(EVP_PKEY_verify_init(ctx) == 1);
+    
+    auto res = EVP_PKEY_verify(ctx, sig.ptr, sig.length, digest.ptr, digest.length);
+    
+    scope(exit)
+    {
+        if(ctx) EVP_PKEY_CTX_free(ctx);
+        if(ctx) EVP_PKEY_free(key);
+    }
+    
+    return res == 1;
+}
+
 unittest
 {
     import std.file: remove;
@@ -127,7 +147,14 @@ unittest
     assert(readKey(path));
     
     ubyte[20] digest;
-    sign(digest, path);
+    
+    auto s = sign(digest, path);
+    
+    assert(verify(digest, s, path));
+    
+    foreach(ref c; s) c = 0x00; // broke signature
+    
+    assert(!verify(digest, s, path));
     
     remove(path);
 }
