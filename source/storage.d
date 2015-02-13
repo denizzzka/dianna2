@@ -4,7 +4,7 @@ import records;
 import d2sqlite3;
 
 import std.exception: enforce;
-import std.process: environment;
+import std.path: expandTilde;
 import std.file;
 import core.stdc.errno;
 import std.conv: to;
@@ -115,12 +115,11 @@ class Storage
         qSelectNextParallelBlocks,
         qCalcHash;
     
-    this(string filename)
+    this(in string filename)
     {
         enforce(threadSafe(), "SQLite3 is not threadsafe");
         
-        string home = environment["HOME"];
-        string appdir = home~"/.dianna2";
+        const appdir = expandTilde("~/.dianna2");
         path = appdir~"/"~filename;
         
         try
