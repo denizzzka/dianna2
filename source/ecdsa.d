@@ -19,7 +19,11 @@ struct Key
     string name;
 }
 
-alias signature = ubyte[72];
+struct signature
+{
+    ubyte[72] sign;
+    ubyte[72] pubKey;
+}
 
 private EVP_PKEY* generatePrivateKey()
 {
@@ -100,12 +104,15 @@ signature sign(in ubyte[] digest, in string keyfilePath)
     enforce(EVP_PKEY_sign(ctx, null, &siglen, digest.ptr, digest.length) == 1);
     
     // ecdsa signature size check
-    enforce(siglen == signature.length);
+    enforce(siglen == signature.sign.length);
     
-    signature res;
+    signature r;
     
     // sign
-    enforce(EVP_PKEY_sign(ctx, res.ptr, &siglen, digest.ptr, digest.length) == 1);
+    enforce(EVP_PKEY_sign(ctx, r.sign.ptr, &siglen, digest.ptr, digest.length) == 1);
+    
+    // store public key
+    
     
     scope(exit)
     {
@@ -113,7 +120,7 @@ signature sign(in ubyte[] digest, in string keyfilePath)
         if(ctx) EVP_PKEY_free(key);
     }
     
-    return res;
+    return r;
 }
 
 bool verify(in ubyte[] digest, in signature sig, in string keyfilePath)
@@ -125,7 +132,7 @@ bool verify(in ubyte[] digest, in signature sig, in string keyfilePath)
     
     enforce(EVP_PKEY_verify_init(ctx) == 1);
     
-    auto res = EVP_PKEY_verify(ctx, sig.ptr, sig.length, digest.ptr, digest.length);
+    auto res = EVP_PKEY_verify(ctx, sig.sign.ptr, sig.sign.length, digest.ptr, digest.length);
     
     scope(exit)
     {
@@ -152,7 +159,7 @@ unittest
     
     assert(verify(digest, s, path));
     
-    foreach(ref c; s) c = 0x00; // broke signature
+    foreach(ref c; s.sign) c = 0x00; // broke signature
     
     assert(!verify(digest, s, path));
     
