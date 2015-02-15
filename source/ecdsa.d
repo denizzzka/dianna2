@@ -19,10 +19,12 @@ struct Key
     string name;
 }
 
+alias PubKey = ubyte[248];
+
 struct signature
 {
     ubyte[72] sign;
-    ubyte[72] pubKey;
+    PubKey pubKey;
 }
 
 private EVP_PKEY* generatePrivateKey()
@@ -89,6 +91,18 @@ private EVP_PKEY* readKey(in string keyfilePath)
     return res;
 }
 
+private PubKey getPubKey(EVP_PKEY* key)
+{
+    PubKey res;
+    
+    auto p = res.ptr;
+    
+    enforce(i2d_PUBKEY(key, null) == PubKey.length);
+    enforce(i2d_PUBKEY(key, &p) == PubKey.length);
+    
+    return res;
+}
+
 signature sign(in ubyte[] digest, in string keyfilePath)
 {
     auto key = readKey(keyfilePath);
@@ -112,7 +126,7 @@ signature sign(in ubyte[] digest, in string keyfilePath)
     enforce(EVP_PKEY_sign(ctx, r.sign.ptr, &siglen, digest.ptr, digest.length) == 1);
     
     // store public key
-    
+    r.pubKey = getPubKey(key);
     
     scope(exit)
     {
