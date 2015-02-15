@@ -137,9 +137,10 @@ signature sign(in ubyte[] digest, in string keyfilePath)
     return r;
 }
 
-bool verify(in ubyte[] digest, in signature sig, in string keyfilePath)
+bool verify(in ubyte[] digest, in signature sig)
 {
-    auto key = readKey(keyfilePath);
+    auto p = sig.pubKey.ptr;
+    auto key = d2i_PUBKEY(null, &p, sig.pubKey.length);
     
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(key, null);
     enforce(ctx);
@@ -171,11 +172,11 @@ unittest
     
     auto s = sign(digest, path);
     
-    assert(verify(digest, s, path));
+    assert(verify(digest, s));
     
     foreach(ref c; s.sign) c = 0x00; // broke signature
     
-    assert(!verify(digest, s, path));
+    assert(!verify(digest, s));
     
     remove(path);
 }
