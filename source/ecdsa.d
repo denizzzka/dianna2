@@ -21,7 +21,7 @@ struct Key
 
 alias PubKey = ubyte[248];
 
-struct signature
+struct Signature
 {
     ubyte[72] sign;
     PubKey pubKey;
@@ -103,7 +103,7 @@ private PubKey getPubKey(EVP_PKEY* key)
     return res;
 }
 
-signature sign(in ubyte[] digest, in string keyfilePath)
+Signature sign(in ubyte[] digest, in string keyfilePath)
 {
     auto key = readKey(keyfilePath);
     
@@ -118,9 +118,9 @@ signature sign(in ubyte[] digest, in string keyfilePath)
     enforce(EVP_PKEY_sign(ctx, null, &siglen, digest.ptr, digest.length) == 1);
     
     // ecdsa signature size check
-    enforce(siglen == signature.sign.length);
+    enforce(siglen == Signature.sign.length);
     
-    signature r;
+    Signature r;
     
     // sign
     enforce(EVP_PKEY_sign(ctx, r.sign.ptr, &siglen, digest.ptr, digest.length) == 1);
@@ -137,7 +137,7 @@ signature sign(in ubyte[] digest, in string keyfilePath)
     return r;
 }
 
-bool verify(in ubyte[] digest, in signature sig)
+bool verify(in ubyte[] digest, in Signature sig)
 {
     auto p = sig.pubKey.ptr;
     auto key = d2i_PUBKEY(null, &p, sig.pubKey.length);
