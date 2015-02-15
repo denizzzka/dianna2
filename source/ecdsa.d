@@ -131,7 +131,7 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
     scope(exit)
     {
         if(ctx) EVP_PKEY_CTX_free(ctx);
-        if(ctx) EVP_PKEY_free(key);
+        if(key) EVP_PKEY_free(key);
     }
     
     return r;
@@ -152,7 +152,7 @@ bool verify(in ubyte[] digest, in Signature sig)
     scope(exit)
     {
         if(ctx) EVP_PKEY_CTX_free(ctx);
-        if(ctx) EVP_PKEY_free(key);
+        if(key) EVP_PKEY_free(key);
     }
     
     return res == 1;
