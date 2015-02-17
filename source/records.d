@@ -147,6 +147,14 @@ struct Record
     }
 }
 
+SHA1Hash.Hash calcSHA1Hash(inout ubyte[] from) pure
+{
+    SHA1 _hash;
+    _hash.put(from);
+    
+    return _hash.finish;
+}
+
 SHA1Hash calcSHA1Hash(inout ubyte[] from, inout SHA1Hash.Salt salt) pure
 {
     SHA1Hash res;

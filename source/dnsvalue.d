@@ -1,6 +1,7 @@
 @safe:
 
 import ecdsa;
+import records: calcSHA1Hash;
 
 import std.conv: to;
 
@@ -13,6 +14,13 @@ struct DNSValue
     Signature signature;
     
     // TODO: also need serial number of dns record
+    
+    void sign(in string filename)
+    {
+        const hash = calcSHA1Hash(getUbytes());
+        
+        signature = ecdsa.sign(hash, filename);
+    }
     
     ubyte[] serialize() const
     {
