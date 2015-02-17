@@ -75,7 +75,7 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
 
 string getDNSRecord(Storage s, ChainType chainType, string key)
 {
-    //s.findLatestHonestBlock(
+    const b = s.findLatestHonestBlock(1_000_000_000);
     return key;
 }
 
@@ -105,7 +105,7 @@ string getDNSRecord(Storage s, ChainType chainType, string key)
     
     s.createNewRecord(ChainType.Test, dv);
     s.calcPowForNewRecords(ChainType.Test);
-    s.writeInitialBlockHash();
+    s.writeInitialBlockHashSetting();
     
     s.purge;
 }

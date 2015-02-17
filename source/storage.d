@@ -360,7 +360,7 @@ class Storage
     
     // TODO: it is really need?
     version(unittest)
-    void writeInitialBlockHash()
+    void writeInitialBlockHashSetting()
     {
         Storage.Block ib;
         
