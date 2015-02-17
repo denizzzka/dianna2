@@ -22,8 +22,6 @@ struct DNSValue
         res ~= to!ubyte(value.length);
         res ~= value;
         
-        res ~= signature.serialize();
-        
         return res;
     }
     
@@ -34,8 +32,6 @@ struct DNSValue
         
         res.key = getString(from, offset);
         res.value = getString(from, offset);
-        
-        res.signature = Signature.deserialize(from[offset..$]);
         
         return res;
     }
@@ -65,5 +61,4 @@ struct DNSValue
     
     assert(d1.key == d2.key);
     assert(d1.value == d2.value);
-    assert(d1.signature == d2.signature);
 }
