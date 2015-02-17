@@ -11,11 +11,11 @@ import core.cpuid: threadsPerCPU;
 debug(PoW) import std.stdio;
 
 
-void createNewRecord(Storage s, in DNSValue dnsValue)
+void createNewRecord(Storage s, in ChainType chainType, in DNSValue dnsValue)
 {
     Record r;
     
-    r.chainType = ChainType.Test;
+    r.chainType = chainType;
     r.payloadType = PayloadType.DNS;
     r.payload = dnsValue.serialize();
     r.hash = r.calcPayloadHash();
@@ -73,6 +73,12 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     while(records.length > 0);
 }
 
+string getDNSRecord(Storage s, ChainType chainType, string key)
+{
+    //s.findLatestHonestBlock(
+    return key;
+}
+
 @trusted unittest
 {
     import std.file: remove;
@@ -97,7 +103,8 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     
     remove(path);
     
-    s.createNewRecord(dv);
+    s.createNewRecord(ChainType.Test, dv);
+    s.calcPowForNewRecords(ChainType.Test);
     
     s.purge;
 }
