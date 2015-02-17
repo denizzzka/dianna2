@@ -74,7 +74,6 @@ alias SHA1Hash = HashT!(ubyte[20]);
 alias PoW = HashT!(ubyte[32]);
 alias RecordHash = SHA1Hash;
 alias BlockHash = ubyte[20];
-alias Signature = ubyte[10];
 alias Difficulty = ulong;
 
 ulong extractTarget(in PoW.Hash h) pure @nogc
