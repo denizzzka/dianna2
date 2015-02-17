@@ -73,8 +73,10 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     while(records.length > 0);
 }
 
-unittest
+@trusted unittest
 {
+    import std.file: remove;
+    
     auto s = new Storage("_unittest_work.sqlite");
     
     s.createNewRecord([0x00, 0x01, 0x02]);
@@ -82,6 +84,20 @@ unittest
     s.createNewRecord([0x02, 0x01, 0x02]);
     
     s.calcPowForNewRecords(ChainType.Test);
+    
+    DNSValue dv;
+    
+    dv.key = cast(ubyte[]) "test key";
+    dv.value = cast(ubyte[]) "test value";
+    
+    immutable path = "/tmp/_unittest_work_key.pem";
+    ecdsa.createKey(path);
+    
+    dv.sign(path);
+    
+    remove(path);
+    
+    s.createNewRecord(dv);
     
     s.purge;
 }
