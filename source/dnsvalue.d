@@ -49,15 +49,15 @@ struct DNSValue
 @trusted unittest
 {
     
-    DNSValue d;
+    DNSValue d1;
     
-    d.key = cast(ubyte[]) "key data";
-    d.value = cast(ubyte[]) "value data";
+    d1.key = cast(ubyte[]) "key data";
+    d1.value = cast(ubyte[]) "value data";
     
-    auto ser = d.serialize();
+    auto ser = d1.serialize();
     
     auto d2 = DNSValue.deserialize(ser);
     
-    assert(d.key == d2.key);
-    assert(d.value == d2.value);
+    assert(d1.key == d2.key);
+    assert(d1.value == d2.value);
 }
