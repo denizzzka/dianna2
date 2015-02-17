@@ -2,17 +2,62 @@
 
 import ecdsa;
 
+import std.conv: to;
 
-struct Signature
-{
-    private ubyte[10] signature;
-    
-    alias signature this;
-}
 
 struct DNSValue
 {
+    ubyte[] key;
+    ubyte[] value;
+    
     Signature signature;
     
-    string A = "A record blah blah blah";
+    ubyte[] serialize()
+    {
+        ubyte[] res;
+        
+        res ~= to!ubyte(key.length);
+        res ~= key;
+        
+        res ~= to!ubyte(value.length);
+        res ~= value;
+        
+        return res;
+    }
+    
+    static DNSValue deserialize(ubyte[] from)
+    {
+        DNSValue res;
+        size_t offset;
+        
+        res.key = getString(from, offset);
+        res.value = getString(from[offset..$], offset);
+        
+        return res;
+    }
+    
+    private static ubyte[] getString(ubyte[] from, out size_t offset)
+    {
+        const len = from[0];
+        
+        offset = 1 + len;
+        
+        return from[1..offset];
+    }
+}
+
+@trusted unittest
+{
+    
+    DNSValue d;
+    
+    d.key = cast(ubyte[]) "key data";
+    d.value = cast(ubyte[]) "value data";
+    
+    auto ser = d.serialize();
+    
+    auto d2 = DNSValue.deserialize(ser);
+    
+    assert(d.key == d2.key);
+    assert(d.value == d2.value);
 }

@@ -23,7 +23,9 @@ alias PubKey = ubyte[248];
 
 struct Signature
 {
-    ubyte[72] sign;
+    alias ECSign = ubyte[72];
+    
+    ECSign sign;
     PubKey pubKey;
 }
 

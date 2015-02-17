@@ -3,7 +3,7 @@
 import std.datetime;
 import std.conv;
 import std.digest.sha;
-import std.bitmanip;
+import std.bitmanip: littleEndianToNative;
 import std.random: uniform;
 import scrypt: calcScrypt;
 import std.file: read;
