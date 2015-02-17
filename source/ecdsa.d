@@ -27,6 +27,26 @@ struct Signature
     
     ECSign sign;
     PubKey pubKey;
+    
+    ubyte[] serialize() const
+    {
+        ubyte[] res;
+        
+        res ~= sign;
+        res ~= pubKey;
+        
+        return res;
+    }
+    
+    static Signature deserialize(ubyte[] from)
+    {
+        Signature res;
+        
+        res.sign = from[0..sign.length];
+        res.pubKey = from[0..pubKey.length];
+        
+        return res;
+    }
 }
 
 private EVP_PKEY* generatePrivateKey()

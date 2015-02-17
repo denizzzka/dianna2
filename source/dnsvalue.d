@@ -12,7 +12,7 @@ struct DNSValue
     
     Signature signature;
     
-    ubyte[] serialize()
+    ubyte[] serialize() const
     {
         ubyte[] res;
         
@@ -21,6 +21,8 @@ struct DNSValue
         
         res ~= to!ubyte(value.length);
         res ~= value;
+        
+        res ~= signature.serialize();
         
         return res;
     }
@@ -31,18 +33,21 @@ struct DNSValue
         size_t offset;
         
         res.key = getString(from, offset);
-        res.value = getString(from[offset..$], offset);
+        res.value = getString(from, offset);
+        
+        res.signature = Signature.deserialize(from[offset..$]);
         
         return res;
     }
     
-    private static ubyte[] getString(ubyte[] from, out size_t offset)
+    private static ubyte[] getString(ubyte[] from, ref size_t offset)
     {
-        const len = from[0];
+        const len = from[offset];
         
-        offset = 1 + len;
+        const start = offset + 1;
+        offset += 1 + len;
         
-        return from[1..offset];
+        return from[start..offset];
     }
 }
 
@@ -60,4 +65,5 @@ struct DNSValue
     
     assert(d1.key == d2.key);
     assert(d1.value == d2.value);
+    assert(d1.signature == d2.signature);
 }
