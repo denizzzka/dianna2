@@ -105,6 +105,7 @@ string getDNSRecord(Storage s, ChainType chainType, string key)
     
     s.createNewRecord(ChainType.Test, dv);
     s.calcPowForNewRecords(ChainType.Test);
+    s.writeInitialBlockHash();
     
     s.purge;
 }

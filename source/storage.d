@@ -358,6 +358,15 @@ class Storage
         remove(path);
     }
     
+    // TODO: it is really need?
+    version(unittest)
+    void writeInitialBlockHash()
+    {
+        Storage.Block ib;
+        
+        setSetting("rootBlockHash", ib.blockHash);
+    }
+    
     void addRecord(in Record r)
     {
         db.begin;
@@ -832,6 +841,19 @@ class Storage
             
             return res[maxKey];
         }
+    }
+    
+    BlockHash findLatestHonestBlock(in size_t limitBlockNum)
+    {
+        const val = getSetting("rootBlockHash");
+        
+        enforce(val.length == BlockHash.length);
+        
+        const BlockHash h = val[0..BlockHash.length];
+        
+        const Block b = getBlock(h);
+        
+        return findLatestHonestBlock(b, limitBlockNum);
     }
     
     BlockHash findLatestHonestBlock(in Block from, in size_t limitBlockNum)
