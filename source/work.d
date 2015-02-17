@@ -2,11 +2,26 @@
 
 import storage;
 import records;
+import dnsvalue;
 import generation;
+
+
 import core.time: Duration, dur;
 import core.cpuid: threadsPerCPU;
 debug(PoW) import std.stdio;
 
+
+void createNewRecord(Storage s, in DNSValue dnsValue)
+{
+    Record r;
+    
+    r.chainType = ChainType.Test;
+    r.payloadType = PayloadType.DNS;
+    r.payload = dnsValue.serialize();
+    r.hash = r.calcPayloadHash();
+    
+    s.addRecordAwaitingPoW(r);
+}
 
 void createNewRecord(Storage s, ubyte[] payload)
 {

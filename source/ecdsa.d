@@ -38,15 +38,34 @@ struct Signature
         return res;
     }
     
-    static Signature deserialize(ubyte[] from)
+    static Signature deserialize(in ubyte[] from)
+    in
+    {
+        assert(from.length == sign.length + pubKey.length);
+    }
+    body
     {
         Signature res;
         
         res.sign = from[0..sign.length];
-        res.pubKey = from[0..pubKey.length];
+        res.pubKey = from[sign.length..sign.length + pubKey.length];
         
         return res;
     }
+}
+
+unittest
+{
+    Signature s1;
+    
+    s1.sign[0] = 0xEE;
+    s1.pubKey[0] = 0xAA;
+    
+    const ser = s1.serialize();
+    
+    Signature s2 = Signature.deserialize(ser);
+    
+    assert(s1 == s2);
 }
 
 private EVP_PKEY* generatePrivateKey()

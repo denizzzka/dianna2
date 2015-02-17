@@ -12,7 +12,17 @@ struct DNSValue
     
     Signature signature;
     
+    // TODO: also need serial number of dns record
+    
     ubyte[] serialize() const
+    {
+        auto res = getUbytes();
+        res ~= signature.serialize();
+        
+        return res;
+    }
+    
+    private ubyte[] getUbytes() const
     {
         ubyte[] res;
         
@@ -32,6 +42,7 @@ struct DNSValue
         
         res.key = getString(from, offset);
         res.value = getString(from, offset);
+        res.signature = Signature.deserialize(from[offset..$]);        
         
         return res;
     }
@@ -54,6 +65,7 @@ struct DNSValue
     
     d1.key = cast(ubyte[]) "key data";
     d1.value = cast(ubyte[]) "value data";
+    d1.signature.pubKey[0] = 0xAA;
     
     auto ser = d1.serialize();
     
@@ -61,4 +73,5 @@ struct DNSValue
     
     assert(d1.key == d2.key);
     assert(d1.value == d2.value);
+    assert(d1.signature == d2.signature);
 }
