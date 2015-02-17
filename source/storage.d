@@ -93,7 +93,12 @@ SELECT
     blockHash,
     isParallelRecord,
     proofOfWork
-FROM r
+FROM r;
+
+CREATE TABLE IF NOT EXISTS Settings (
+    key TEXT NOT NULL PRIMARY KEY,
+    value BLOB
+)
 `;
 
 class Storage
@@ -113,7 +118,9 @@ class Storage
         qSelectNextParallelMostFilledBlockHash,
         qSelectNextBlocks,
         qSelectNextParallelBlocks,
-        qCalcHash;
+        qCalcHash,
+        qSetSetting,
+        qGetSetting;
     
     this(in string filename)
     {
@@ -306,6 +313,16 @@ class Storage
             FROM ordered
         `);
         
+        qSetSetting = db.prepare(`
+            INSERT OR REPLACE INTO Settings (key, value)
+            VALUES (:key, :value)
+        `);
+        
+        qGetSetting = db.prepare(`
+            SELECT value
+            FROM Settings
+            WHERE key = :key
+        `);
     }
     
     extern (C)
@@ -822,6 +839,42 @@ class Storage
         return findRecursively(from, limitBlockNum).blockHash;
     }
     
+    BlockHash getPrevBlock(in Block b)
+    {
+        return b.prevParallelBlockHash.isNull ?
+            b.prevFilledBlockHash : b.prevParallelBlockHash;
+    }
+    
+    void setSetting(in string key, in ubyte[] value)
+    {
+        alias q = qSetSetting;
+        
+        q.bind(":key", key);
+        q.bind(":value", value);
+        
+        auto answer = q.execute();
+        assert(db.changes() == 1);
+        q.reset();
+    }
+    
+    ubyte[] getSetting(in string key)
+    {
+        alias q = qGetSetting;
+        
+        q.bind(":key", key);
+        
+        auto answer = q.execute();
+        
+        ubyte[] res;
+        
+        if(!answer.empty)
+            res = answer.oneValue!(ubyte[]);
+        
+        q.reset();
+        
+        return res;
+    }
+    
     // TODO:
     bool validate(in Record r)
     {
@@ -946,6 +999,21 @@ unittest
     
     auto oldest2 = s.getOldestRecordsAwaitingPublish(ChainType.Test, true, 3);
     assert(oldest2.length == 0);
+    
+    immutable key = "test key";
+    const value1 = cast(ubyte[]) "test value 1";
+    const value2 = cast(ubyte[]) "test value 2";
+    
+    assert(s.getSetting(key) == null);
+    
+    s.setSetting(key, value1);
+    assert(s.getSetting(key) == value1);
+    
+    s.setSetting(key, value2);
+    assert(s.getSetting(key) == value2);
+    
+    s.setSetting(key, null);
+    assert(s.getSetting(key) == null);
     
     s.purge;
 }
