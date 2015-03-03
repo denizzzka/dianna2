@@ -9,9 +9,9 @@
     "targetPath": "bin",
     "versions": ["VibeCustomMain"],
     "dependencies": {
-            "d2sqlite3": ">=0.6.0",
-            "vibe-d": ">=0.7.22",
-            "openssl": "~>1.1.4+1.0.1g"
+            "d2sqlite3": "~>0.6.0",
+            "vibe-d": "~>0.7",
+            "openssl": ">=1.1.4+1.0.1g"
     },
     "libs": ["scrypt"],
     "configurations": [
