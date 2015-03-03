@@ -1,17 +1,10 @@
 language: d
 
+d: dmd-2.066.1
+
 before_install:
-  #ubuntu packages
   - echo 'deb http://us.archive.ubuntu.com/ubuntu/ trusty universe' | sudo tee -a /etc/apt/sources.list
   - sudo apt-get -y update
-  #dmd
-  - DMD_VER=2.066.1
-  - DMD=dmd_${DMD_VER}-0_amd64.deb
-  - wget http://downloads.dlang.org/releases/2014/${DMD}
-  #dub
-  - DUB_VER=0.9.22
-  - DUB=dub-${DUB_VER}-linux-x86_64
-  - wget http://code.dlang.org/files/${DUB}.tar.gz
   
 install:
   - sudo dpkg -i ${DMD}
