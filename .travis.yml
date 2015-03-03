@@ -17,5 +17,4 @@ install:
   
 script:
   # unittest version with PoW calculation test run
-  - rm ~/.dianna2/_unittest*
   - dub test --debug=PoWt
