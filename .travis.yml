@@ -10,7 +10,7 @@ install:
   - wget http://downloads.dlang.org/releases/2014/${DMD}
   - sudo dpkg -i ${DMD} || true
   - sudo apt-get -y update
-  - sudo apt-get -fy install
+  - sudo apt-get -y install libscrypt-dev
   - sudo dpkg -i ${DMD}
   - wget http://code.dlang.org/files/${DUB}.tar.gz
   - sudo tar -C /usr/local/bin -zxf ${DUB}.tar.gz
