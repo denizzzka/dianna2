@@ -9,6 +9,7 @@ install:
   - DUB=dub-${DUB_VER}-linux-x86_64
   - wget http://downloads.dlang.org/releases/2014/${DMD}
   - sudo dpkg -i ${DMD} || true
+  - echo "deb http://cz.archive.ubuntu.com/ubuntu trusty main universe" > /etc/apt/sources.list.d/trusty.list
   - sudo apt-get -y update
   - sudo apt-get -y install libscrypt-dev
   - sudo dpkg -i ${DMD}
