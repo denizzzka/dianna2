@@ -11,7 +11,7 @@ install:
   - sudo dpkg -i ${DMD} || true
   - echo 'deb http://us.archive.ubuntu.com/ubuntu/ trusty universe' | sudo tee -a /etc/apt/sources.list
   - sudo apt-get -y update
-  - sudo apt-get -y install libscrypt0 libscrypt-dev libsqlite3-0 libsqlite3-dev
+  - sudo apt-get -y install -t trusty libscrypt0 libscrypt-dev libsqlite3-0 libsqlite3-dev
   - sudo dpkg -i ${DMD}
   - wget http://code.dlang.org/files/${DUB}.tar.gz
   - sudo tar -C /usr/local/bin -zxf ${DUB}.tar.gz
