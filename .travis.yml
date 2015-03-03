@@ -7,10 +7,7 @@ before_install:
   - sudo apt-get -y update
   
 install:
-  - sudo dpkg -i ${DMD}
-  - sudo tar -C /usr/local/bin -zxf ${DUB}.tar.gz
   - sudo apt-get -y install -t trusty libscrypt0 libscrypt-dev libsqlite3-0 libsqlite3-dev
   
 script:
-  # unittest version with PoW calculation test run
   - dub test --debug=PoWt
