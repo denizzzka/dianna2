@@ -856,12 +856,12 @@ class Storage
         return findLatestHonestBlock(b, limitBlockNum);
     }
     
-    BlockHash findLatestHonestBlock(in Block from, in size_t limitBlockNum)
+    private BlockHash findLatestHonestBlock(in Block from, in size_t limitBlockNum)
     {
         return findRecursively(from, limitBlockNum).blockHash;
     }
     
-    BlockHash getPrevBlock(in Block b)
+    private BlockHash getPrevBlock(in Block b)
     {
         return b.prevParallelBlockHash.isNull ?
             b.prevFilledBlockHash : b.prevParallelBlockHash;
