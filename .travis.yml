@@ -3,11 +3,11 @@ language: d
 d: dmd-2.066.1
 
 before_install:
-  - echo 'deb http://us.archive.ubuntu.com/ubuntu/ trusty main universe' | sudo tee -a /etc/apt/sources.list
+  - echo 'deb http://us.archive.ubuntu.com/ubuntu/ vivid main universe' | sudo tee -a /etc/apt/sources.list
   - sudo apt-get -y update
   
 install:
-  - sudo apt-get -y install -t trusty libscrypt0 libscrypt-dev libsqlite3-0 libsqlite3-dev
+  - sudo apt-get -y install -t vivid libscrypt0 libscrypt-dev libsqlite3-0 libsqlite3-dev
   
 script:
   - dpkg -l|grep  libsqlite3-0
