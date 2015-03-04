@@ -27,6 +27,7 @@ struct Signature
     alias ECSign = ubyte[72];
     
     ECSign sign;
+    ubyte slen;
     PubKey pubKey;
     
     ubyte[] serialize() const
@@ -133,11 +134,8 @@ private EVP_PKEY* readKey(in string keyfilePath)
     return res;
 }
 
-private PubKey getPubKey(EVP_PKEY* key)
+private PubKey getPubKey(in EC_KEY* ec_key)
 {
-    EC_KEY* ec_key = EVP_PKEY_get1_EC_KEY(key);
-    enforce(ec_key);
-    
     const EC_GROUP* ec_group = EC_KEY_get0_group(ec_key);
     enforce(ec_group);
     
@@ -196,10 +194,14 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
     enforce(ECDSA_size(ec_key) == Signature.sign.length);
     
     const ECDSA_SIG* ecdsa_sig = ECDSA_do_sign(digest.ptr, to!int(digest.length), ec_key);
+    enforce(ecdsa_sig);
     
     Signature res;
+    res.pubKey = getPubKey(ec_key);
+    
     auto p = res.sign.ptr;
-    enforce(i2d_ECDSA_SIG(ecdsa_sig, &p) <= Signature.sign.length);
+    res.slen = to!ubyte(enforce(i2d_ECDSA_SIG(ecdsa_sig, &p)));
+    enforce(res.slen <= Signature.sign.length);
     
     scope(exit)
     {
@@ -213,13 +215,14 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
 
 bool verify(in ubyte[] digest, in Signature sig)
 {
-    EC_KEY* key = extractEC_KEY(sig.pubKey);
+    EC_KEY* pubKey = extractEC_KEY(sig.pubKey);
+    
+    auto sptr = sig.sign.ptr;
+    
     ECDSA_SIG* ecdsa_sig;
-    auto p = sig.sign.ptr;
+    if(!d2i_ECDSA_SIG(&ecdsa_sig, &sptr, sig.slen)) return false;
     
-    enforce(d2i_ECDSA_SIG(&ecdsa_sig, &p, to!long(sig.sign.length)));
-    
-    auto res = ECDSA_do_verify(sig.sign.ptr, sig.sign.length, ecdsa_sig, key);    
+    return ECDSA_do_verify(digest.ptr, to!int(digest.length), ecdsa_sig, pubKey) == 1;
     
     scope(exit)
     {
@@ -227,8 +230,6 @@ bool verify(in ubyte[] digest, in Signature sig)
         //if(ctx) EVP_PKEY_CTX_free(ctx);
         //if(key) EVP_PKEY_free(key);
     }
-    
-    return res == 1;
 }
 
 unittest
