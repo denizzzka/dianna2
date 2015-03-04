@@ -1,6 +1,7 @@
 @trusted:
 
 import deimos.openssl.evp;
+import deimos.openssl.ec: point_conversion_form_t;
 import deimos.openssl.ecdsa;
 import deimos.openssl.pem;
 
@@ -8,7 +9,7 @@ import std.exception: enforce;
 import std.stdio: File;
 import std.file: exists, setAttributes;
 import std.path: expandTilde;
-import std.conv: octal;
+import std.conv: octal, to;
 
 
 struct Key
@@ -19,7 +20,7 @@ struct Key
     string name;
 }
 
-alias PubKey = ubyte[248];
+alias PubKey = ubyte[33];
 
 struct Signature
 {
@@ -101,7 +102,7 @@ private EVP_PKEY* generatePrivateKey()
     return key;
 }
 
-void createKey(in string keyfilePath)
+void createKeyPair(in string keyfilePath)
 {
     enforce(!exists(keyfilePath), "Key file already exists");
     
@@ -134,66 +135,97 @@ private EVP_PKEY* readKey(in string keyfilePath)
 
 private PubKey getPubKey(EVP_PKEY* key)
 {
+    EC_KEY* ec_key = EVP_PKEY_get1_EC_KEY(key);
+    enforce(ec_key);
+    
+    const EC_GROUP* ec_group = EC_KEY_get0_group(ec_key);
+    enforce(ec_group);
+    
+    const EC_POINT* ec_point = EC_KEY_get0_public_key(ec_key);
+    enforce(ec_point);
+    
     PubKey res;
     
-    auto p = res.ptr;
+    const len = EC_POINT_point2oct(
+        ec_group,
+        ec_point,
+        point_conversion_form_t.POINT_CONVERSION_COMPRESSED,
+        res.ptr,
+        PubKey.length,
+        null
+    );
+    enforce(len > 0);
+    enforce(len == PubKey.length, "Public key size mismatch");
     
-    enforce(i2d_PUBKEY(key, null) == PubKey.length);
-    enforce(i2d_PUBKEY(key, &p) == PubKey.length);
+    scope(exit)
+    {
+        // FIXME:
+        //if(ec_key) EC_KEY_free(ec_key);
+        //if(ec_group) EC_KEY_free(ec_group);
+        //if(ec_point) EC_POINT_free(ec_point);
+    }
     
     return res;
+}
+
+private EC_KEY* extractEC_KEY(in PubKey pubKey)
+{
+    EC_KEY* ec_key;
+    EC_POINT* ec_point;
+    
+    ec_key = enforce(EC_KEY_new_by_curve_name(NID_secp256k1));
+    const ec_group = enforce(EC_KEY_get0_group(ec_key));
+    ec_point = enforce(EC_POINT_new(ec_group));
+    
+    enforce(EC_POINT_oct2point(ec_group, ec_point, pubKey.ptr, pubKey.length, null) == 1);
+    
+    enforce(EC_KEY_set_public_key(ec_key, ec_point) == 1);
+    
+    // FIXME: memory leak?
+    
+    return ec_key;
 }
 
 Signature sign(in ubyte[] digest, in string keyfilePath)
 {
     auto key = readKey(keyfilePath);
     
-    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(key, null);
-    enforce(ctx);
+    EC_KEY* ec_key = EVP_PKEY_get1_EC_KEY(key);
+    enforce(ec_key);
     
-    enforce(EVP_PKEY_sign_init(ctx) == 1);
+    enforce(ECDSA_size(ec_key) == Signature.sign.length);
     
-    size_t siglen;
+    const ECDSA_SIG* ecdsa_sig = ECDSA_do_sign(digest.ptr, to!int(digest.length), ec_key);
     
-    // obtain signature length
-    enforce(EVP_PKEY_sign(ctx, null, &siglen, digest.ptr, digest.length) == 1);
-    
-    // ecdsa signature size check
-    enforce(siglen == Signature.sign.length);
-    
-    Signature r;
-    
-    // sign
-    enforce(EVP_PKEY_sign(ctx, r.sign.ptr, &siglen, digest.ptr, digest.length) == 1);
-    
-    // store public key
-    r.pubKey = getPubKey(key);
+    Signature res;
+    auto p = res.sign.ptr;
+    enforce(i2d_ECDSA_SIG(ecdsa_sig, &p) <= Signature.sign.length);
     
     scope(exit)
     {
-        if(ctx) EVP_PKEY_CTX_free(ctx);
-        if(key) EVP_PKEY_free(key);
+        // FIXME: memory leak?
+        //if(ctx) EVP_PKEY_CTX_free(ctx);
+        //if(key) EVP_PKEY_free(key);
     }
     
-    return r;
+    return res;
 }
 
 bool verify(in ubyte[] digest, in Signature sig)
 {
-    auto p = sig.pubKey.ptr;
-    auto key = d2i_PUBKEY(null, &p, sig.pubKey.length);
+    EC_KEY* key = extractEC_KEY(sig.pubKey);
+    ECDSA_SIG* ecdsa_sig;
+    auto p = sig.sign.ptr;
     
-    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(key, null);
-    enforce(ctx);
+    enforce(d2i_ECDSA_SIG(&ecdsa_sig, &p, to!long(sig.sign.length)));
     
-    enforce(EVP_PKEY_verify_init(ctx) == 1);
-    
-    auto res = EVP_PKEY_verify(ctx, sig.sign.ptr, sig.sign.length, digest.ptr, digest.length);
+    auto res = ECDSA_do_verify(sig.sign.ptr, sig.sign.length, ecdsa_sig, key);    
     
     scope(exit)
     {
-        if(ctx) EVP_PKEY_CTX_free(ctx);
-        if(key) EVP_PKEY_free(key);
+        // FIXME: memory leak?
+        //if(ctx) EVP_PKEY_CTX_free(ctx);
+        //if(key) EVP_PKEY_free(key);
     }
     
     return res == 1;
@@ -205,7 +237,7 @@ unittest
     
     immutable path = "/tmp/_unittest_key.pem";
     
-    createKey(path);
+    createKeyPair(path);
     
     assert(readKey(path));
     

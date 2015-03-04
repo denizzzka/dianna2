@@ -97,7 +97,7 @@ string getDNSRecord(Storage s, ChainType chainType, string key)
     dv.value = cast(ubyte[]) "test value";
     
     immutable path = "/tmp/_unittest_work_key.pem";
-    ecdsa.createKey(path);
+    ecdsa.createKeyPair(path);
     
     dv.sign(path);
     
