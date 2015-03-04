@@ -10,5 +10,4 @@ install:
   - sudo apt-get -y install -t vivid libscrypt0 libscrypt-dev libssl1.0.0 libsqlite3-0 libsqlite3-dev
   
 script:
-  - dpkg -l|grep libssl1.0.0
   - dub test --debug=PoWt
