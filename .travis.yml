@@ -10,5 +10,6 @@ install:
   - sudo apt-get -y install -t trusty libscrypt0 libscrypt-dev libsqlite3-0 libsqlite3-dev
   
 script:
+  - ls /usr/lib/x86_64-linux-gnu/libsqlite3.so
   - nm -D /usr/lib/x86_64-linux-gnu/libsqlite3.so | grep sqlite3_db_filename
   - dub test --debug=PoWt
