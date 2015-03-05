@@ -70,7 +70,7 @@ unittest
     assert(s1 == s2);
 }
 
-private EVP_PKEY* generatePrivateKey()
+private EVP_PKEY* generateKeyPair()
 {
     EVP_PKEY_CTX* pctx;
     EVP_PKEY_CTX* kctx;
@@ -110,7 +110,7 @@ void createKeyPair(in string keyfilePath)
     auto file = File(keyfilePath, "w");
     setAttributes(keyfilePath, octal!"600"); // chmod 600
     
-    EVP_PKEY* key = generatePrivateKey();
+    EVP_PKEY* key = generateKeyPair();
     
     const res = PEM_write_PrivateKey(file.getFP, key, null, null, 0, null, null);
     
@@ -193,7 +193,7 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
     
     enforce(ECDSA_size(ec_key) == Signature.sign.length);
     
-    const ECDSA_SIG* ecdsa_sig = ECDSA_do_sign(digest.ptr, to!int(digest.length), ec_key);
+    ECDSA_SIG* ecdsa_sig = ECDSA_do_sign(digest.ptr, to!int(digest.length), ec_key);
     enforce(ecdsa_sig);
     
     Signature res;
@@ -205,9 +205,8 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
     
     scope(exit)
     {
-        // FIXME: memory leak?
-        //if(ctx) EVP_PKEY_CTX_free(ctx);
-        //if(key) EVP_PKEY_free(key);
+        if(key) EVP_PKEY_free(key);
+        if(ecdsa_sig) ECDSA_SIG_free(ecdsa_sig);
     }
     
     return res;
