@@ -134,7 +134,7 @@ private EVP_PKEY* readKey(in string keyfilePath)
     return res;
 }
 
-private PubKey getPubKey(in EC_KEY* ec_key)
+private PubKey getPubKey(scope EC_KEY* ec_key)
 {
     const EC_GROUP* ec_group = EC_KEY_get0_group(ec_key);
     enforce(ec_group);
@@ -155,13 +155,7 @@ private PubKey getPubKey(in EC_KEY* ec_key)
     enforce(len > 0);
     enforce(len == PubKey.length, "Public key size mismatch");
     
-    scope(exit)
-    {
-        // FIXME:
-        //if(ec_key) EC_KEY_free(ec_key);
-        //if(ec_group) EC_KEY_free(ec_group);
-        //if(ec_point) EC_POINT_free(ec_point);
-    }
+    scope(exit) if(ec_key) EC_KEY_free(ec_key);
     
     return res;
 }
