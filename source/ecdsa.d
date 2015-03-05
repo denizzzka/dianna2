@@ -215,21 +215,16 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
 
 bool verify(in ubyte[] digest, in Signature sig)
 {
-    EC_KEY* pubKey = extractEC_KEY(sig.pubKey);
-    
     auto sptr = sig.sign.ptr;
+    
+    EC_KEY* pubKey = extractEC_KEY(sig.pubKey);
     
     ECDSA_SIG* ecdsa_sig;
     if(!d2i_ECDSA_SIG(&ecdsa_sig, &sptr, sig.slen)) return false;
     
-    return ECDSA_do_verify(digest.ptr, to!int(digest.length), ecdsa_sig, pubKey) == 1;
+    scope(exit) if(pubKey) EC_KEY_free(pubKey);
     
-    scope(exit)
-    {
-        // FIXME: memory leak?
-        //if(ctx) EVP_PKEY_CTX_free(ctx);
-        //if(key) EVP_PKEY_free(key);
-    }
+    return ECDSA_do_verify(digest.ptr, to!int(digest.length), ecdsa_sig, pubKey) == 1;
 }
 
 unittest
