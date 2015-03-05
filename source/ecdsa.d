@@ -179,7 +179,10 @@ private EC_KEY* extractEC_KEY(in PubKey pubKey)
     
     enforce(EC_KEY_set_public_key(ec_key, ec_point) == 1);
     
-    // FIXME: memory leak?
+    scope(exit)
+    {
+        if(ec_point) EC_POINT_free(ec_point);
+    }
     
     return ec_key;
 }
