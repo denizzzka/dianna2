@@ -142,8 +142,7 @@ private EVP_PKEY* generateKeyPair()
     
     enforceEx!OpenSSLEx(EVP_PKEY_paramgen(pctx, &params));
     
-    kctx = EVP_PKEY_CTX_new(params, null);
-    enforceEx!OpenSSLEx(kctx);
+    kctx = enforceEx!OpenSSLEx(EVP_PKEY_CTX_new(params, null));
     
     enforceEx!OpenSSLEx(EVP_PKEY_keygen_init(kctx));
     
