@@ -88,24 +88,20 @@ class OpenSSLEx : Exception
         
         const (char)* file;
         int line;
-        const (char)* data;
-        int flags;
         
         long errCode;
         
         do{
-            errCode = ERR_get_error_line_data(&file, &line, &data, &flags);
+            errCode = ERR_get_error_line(&file, &line);
             
             if(errCode)
             {
                 Errors e;
                 e.file = to!string(file);
                 e.line = line;
-                e.msg = flags & ERR_TXT_STRING ? to!string(data) : null;
+                e.msg = to!string(ERR_error_string(errCode, null));
                 
                 errList ~= e;
-                
-                if(flags & ERR_TXT_MALLOCED) OPENSSL_free(cast(void*)data);
             }
         }
         while(errCode);
