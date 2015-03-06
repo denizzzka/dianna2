@@ -82,7 +82,7 @@ class OpenSSLEx : Exception
     
     Errors[] errList;
     
-    this()
+    this(string msg, string fileEx, const size_t lineEx)
     {
         ERR_load_crypto_strings();
         
@@ -112,7 +112,16 @@ class OpenSSLEx : Exception
         
         ERR_free_strings();
         
-        super("message", null, null );
+        enforce(errList.length > 0);
+        
+        msg ~= msg.length > 0 ? ":" : "";
+        foreach(e; errList)
+            msg ~=
+                "File:"~e.file~
+                "Line:"~to!string(e.line)~
+                "Msg:"~e.msg;
+        
+        super(msg, fileEx, lineEx);
     }
 }
 
