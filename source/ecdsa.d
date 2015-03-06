@@ -246,19 +246,18 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
 {
     auto key = readKey(keyfilePath);
     
-    EC_KEY* ec_key = EVP_PKEY_get1_EC_KEY(key);
-    enforce(ec_key);
+    EC_KEY* ec_key = enforceEx!OpenSSLEx(EVP_PKEY_get1_EC_KEY(key));
     
     enforce(ECDSA_size(ec_key) == Signature.sign.length);
     
     ECDSA_SIG* ecdsa_sig = ECDSA_do_sign(digest.ptr, to!int(digest.length), ec_key);
-    enforce(ecdsa_sig);
+    enforceEx!OpenSSLEx(ecdsa_sig);
     
     Signature res;
     res.pubKey = getPubKey(ec_key);
     
     auto p = res.sign.ptr;
-    res.slen = to!ubyte(enforce(i2d_ECDSA_SIG(ecdsa_sig, &p)));
+    res.slen = to!ubyte(enforceEx!OpenSSLEx(i2d_ECDSA_SIG(ecdsa_sig, &p)));
     enforce(res.slen <= Signature.sign.length);
     
     scope(exit)
@@ -272,6 +271,8 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
 
 bool verify(in ubyte[] digest, in Signature sig)
 {
+    // TODO: it is need to verify curve type and constants too
+    
     auto sptr = sig.sign.ptr;
     
     EC_KEY* pubKey = extractEC_KEY(sig.pubKey);
@@ -279,7 +280,11 @@ bool verify(in ubyte[] digest, in Signature sig)
     ECDSA_SIG* ecdsa_sig;
     if(!d2i_ECDSA_SIG(&ecdsa_sig, &sptr, sig.slen)) return false;
     
-    scope(exit) if(pubKey) EC_KEY_free(pubKey);
+    scope(exit)
+    {
+        if(pubKey) EC_KEY_free(pubKey);
+        if(ecdsa_sig) ECDSA_SIG_free(ecdsa_sig);
+    }
     
     return ECDSA_do_verify(digest.ptr, to!int(digest.length), ecdsa_sig, pubKey) == 1;
 }
