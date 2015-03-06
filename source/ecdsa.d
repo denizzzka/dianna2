@@ -271,8 +271,6 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
 
 bool verify(in ubyte[] digest, in Signature sig)
 {
-    // TODO: it is need to verify curve type and constants too
-    
     auto sptr = sig.sign.ptr;
     
     EC_KEY* pubKey = extractEC_KEY(sig.pubKey);
