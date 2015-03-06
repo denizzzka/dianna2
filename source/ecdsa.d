@@ -101,7 +101,7 @@ class OpenSSLEx : Exception
                 Errors e;
                 e.file = to!string(file);
                 e.line = line;
-                if(data) e.msg = to!string(data);
+                e.msg = data ? to!string(data) : "(no message)";
                 
                 errList ~= e;
                 
@@ -114,12 +114,13 @@ class OpenSSLEx : Exception
         
         enforce(errList.length > 0);
         
-        msg ~= msg.length > 0 ? ":" : "";
-        foreach(e; errList)
-            msg ~=
-                "File:"~e.file~
-                "Line:"~to!string(e.line)~
-                "Msg:"~e.msg;
+        msg ~= "\nOpenSSL errors stack:\n";
+        foreach(i, e; errList)
+            msg ~= "("~to!string(i)~")"~
+                " Msg:\""~e.msg~"\""~
+                ",file:"~e.file~
+                ",line:"~to!string(e.line)~
+                "\n";
         
         super(msg, fileEx, lineEx);
     }
@@ -133,20 +134,20 @@ private EVP_PKEY* generateKeyPair()
     EVP_PKEY* key;
     
     pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, null);
-    enforce(pctx);
+    enforceEx!OpenSSLEx(pctx);
     
-    enforce(EVP_PKEY_paramgen_init(pctx));
+    enforceEx!OpenSSLEx(EVP_PKEY_paramgen_init(pctx));
     
-    enforce(EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, NID_secp256k1));
+    enforceEx!OpenSSLEx(EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, NID_secp256k1));
     
-    enforce(EVP_PKEY_paramgen(pctx, &params));
+    enforceEx!OpenSSLEx(EVP_PKEY_paramgen(pctx, &params));
     
     kctx = EVP_PKEY_CTX_new(params, null);
-    enforce(kctx);
+    enforceEx!OpenSSLEx(kctx);
     
-    enforce(EVP_PKEY_keygen_init(kctx));
+    enforceEx!OpenSSLEx(EVP_PKEY_keygen_init(kctx));
     
-    enforce(EVP_PKEY_keygen(kctx, &key));
+    enforceEx!OpenSSLEx(EVP_PKEY_keygen(kctx, &key));
     
     scope(exit)
     {
