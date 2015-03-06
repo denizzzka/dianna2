@@ -4,8 +4,9 @@ import deimos.openssl.evp;
 import deimos.openssl.ec: point_conversion_form_t;
 import deimos.openssl.ecdsa;
 import deimos.openssl.pem;
+import deimos.openssl.err;
 
-import std.exception: enforce;
+import std.exception: Exception, enforce, enforceEx;
 import std.stdio: File;
 import std.file: exists, setAttributes;
 import std.path: expandTilde;
@@ -68,6 +69,51 @@ unittest
     Signature s2 = Signature.deserialize(ser);
     
     assert(s1 == s2);
+}
+
+class OpenSSLEx : Exception
+{
+    struct Errors
+    {
+        string file;
+        size_t line;
+        string msg;
+    }
+    
+    Errors[] errList;
+    
+    this()
+    {
+        ERR_load_crypto_strings();
+        
+        const (char)* file;
+        int line;
+        const (char)* data;
+        int flags;
+        
+        long errCode;
+        
+        do{
+            errCode = ERR_get_error_line_data(&file, &line, &data, &flags);
+            
+            if(errCode)
+            {
+                Errors e;
+                e.file = to!string(file);
+                e.line = line;
+                if(data) e.msg = to!string(data);
+                
+                errList ~= e;
+                
+                if(flags & ERR_TXT_MALLOCED) OPENSSL_free(cast(void*)data);
+            }
+        }
+        while(errCode);
+        
+        ERR_free_strings();
+        
+        super("message", null, null );
+    }
 }
 
 private EVP_PKEY* generateKeyPair()
