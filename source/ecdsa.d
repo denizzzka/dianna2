@@ -218,15 +218,26 @@ private EC_KEY* extractEC_KEY(in PubKey pubKey)
     EC_KEY* ec_key;
     EC_POINT* ec_point;
     
-    ec_key = enforce(EC_KEY_new_by_curve_name(NID_secp256k1));
-    const ec_group = enforce(EC_KEY_get0_group(ec_key));
-    ec_point = enforce(EC_POINT_new(ec_group));
+    ec_key = enforceEx!OpenSSLEx(EC_KEY_new_by_curve_name(NID_secp256k1));
     
-    enforce(EC_POINT_oct2point(ec_group, ec_point, pubKey.ptr, pubKey.length, null) == 1);
-    
-    enforce(EC_KEY_set_public_key(ec_key, ec_point) == 1);
-    
-    scope(exit) if(ec_point) EC_POINT_free(ec_point);
+    try
+    {
+        const ec_group = enforceEx!OpenSSLEx(EC_KEY_get0_group(ec_key));
+        ec_point = enforceEx!OpenSSLEx(EC_POINT_new(ec_group));
+        
+        enforceEx!OpenSSLEx(EC_POINT_oct2point(ec_group, ec_point, pubKey.ptr, pubKey.length, null) == 1);
+        enforceEx!OpenSSLEx(EC_KEY_set_public_key(ec_key, ec_point) == 1);
+    }
+    catch(Exception e)
+    {
+        EC_KEY_free(ec_key);
+        
+        throw e;
+    }
+    finally
+    {
+        if(ec_point) EC_POINT_free(ec_point);
+    }
     
     return ec_key;
 }
