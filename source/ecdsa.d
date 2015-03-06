@@ -101,7 +101,7 @@ class OpenSSLEx : Exception
                 Errors e;
                 e.file = to!string(file);
                 e.line = line;
-                e.msg = data ? to!string(data) : "(no message)";
+                e.msg = flags & ERR_TXT_STRING ? to!string(data) : "(no message)";
                 
                 errList ~= e;
                 
@@ -167,13 +167,14 @@ void createKeyPair(in string keyfilePath)
     
     EVP_PKEY* key = generateKeyPair();
     
-    const res = PEM_write_PrivateKey(file.getFP, key, null, null, 0, null, null);
+    enforceEx!OpenSSLEx(
+        PEM_write_PrivateKey(file.getFP, key, null, null, 0, null, null) == 1,
+        "PEM_write_PrivateKey error"
+    );
     
-    enforce(res == 1, "PEM_write_PrivateKey error");
+    EVP_PKEY_free(key);
     
-    scope(exit) EVP_PKEY_free(key);
-    
-    file.close();
+    scope(exit) file.close();
 }
 
 private EVP_PKEY* readKey(in string keyfilePath)
