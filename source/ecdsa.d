@@ -101,7 +101,7 @@ class OpenSSLEx : Exception
                 Errors e;
                 e.file = to!string(file);
                 e.line = line;
-                e.msg = flags & ERR_TXT_STRING ? to!string(data) : "(no message)";
+                e.msg = flags & ERR_TXT_STRING ? to!string(data) : null;
                 
                 errList ~= e;
                 
@@ -114,10 +114,14 @@ class OpenSSLEx : Exception
         
         enforce(errList.length > 0);
         
-        msg ~= "\nOpenSSL errors stack:\n";
-        foreach(i, e; errList)
+        msg ~= "\nOpenSSL error stack:\n";
+        foreach_reverse(i, e; errList)
             msg ~= "("~to!string(i)~")"~
-                " Msg:\""~e.msg~"\""~
+                (
+                    e.msg.length > 0 ?
+                        " Msg:\""~e.msg~"\"" :
+                        " No message"
+                )~
                 ",file:"~e.file~
                 ",line:"~to!string(e.line)~
                 "\n";
