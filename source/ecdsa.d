@@ -185,11 +185,9 @@ private EVP_PKEY* readKey(in string keyfilePath)
 {
     auto file = File(keyfilePath, "r");
     
-    EVP_PKEY* res = PEM_read_PrivateKey(file.getFP, null, null, null);
+    EVP_PKEY* res = enforceEx!OpenSSLEx(PEM_read_PrivateKey(file.getFP, null, null, null));
     
-    file.close();
-    
-    enforce(res != null);
+    scope(exit) file.close();
     
     return res;
 }
