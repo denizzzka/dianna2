@@ -194,11 +194,8 @@ private EVP_PKEY* readKey(in string keyfilePath)
 
 private PubKey getPubKey(scope EC_KEY* ec_key)
 {
-    const EC_GROUP* ec_group = EC_KEY_get0_group(ec_key);
-    enforce(ec_group);
-    
-    const EC_POINT* ec_point = EC_KEY_get0_public_key(ec_key);
-    enforce(ec_point);
+    const EC_GROUP* ec_group = enforceEx!OpenSSLEx(EC_KEY_get0_group(ec_key));
+    const EC_POINT* ec_point = enforceEx!OpenSSLEx(EC_KEY_get0_public_key(ec_key));
     
     PubKey res;
     
@@ -210,10 +207,8 @@ private PubKey getPubKey(scope EC_KEY* ec_key)
         PubKey.length,
         null
     );
-    enforce(len > 0);
+    enforceEx!OpenSSLEx(len > 0);
     enforce(len == PubKey.length, "Public key size mismatch");
-    
-    scope(exit) if(ec_key) EC_KEY_free(ec_key);
     
     return res;
 }
