@@ -378,6 +378,7 @@ class Storage
     }
     
     // TODO: it is really need?
+    @disable
     version(unittest)
     void writeInitialBlockHashSetting()
     {
@@ -862,13 +863,12 @@ class Storage
         }
     }
     
+    @disable
     BlockHash findLatestHonestBlock(in size_t limitBlockNum)
     {
         //FIXME: chainType forgotten
         const val = getSetting("rootBlockHash");
-        
         enforce(val.length == BlockHash.length);
-        
         const BlockHash h = val[0..BlockHash.length];
         
         const Block b = getBlock(h);
@@ -936,9 +936,9 @@ class Storage
             r.payload = a["payload"].as!(ubyte[]);
             r.hash = RecordHash((a["hash"].as!(ubyte[]))[0..RecordHash.length]);
             r.blockNum = a["blockNum"].as!uint;
-            r.prevFilledBlock = (a["prevFilledBlock"].as!(ubyte[]))[0..BlockHash.length];
+            r.prevFilledBlock = (a["prevFilledBlockHash"].as!(ubyte[]))[0..BlockHash.length];
             r.difficulty = a["difficulty"].as!Difficulty;
-            r.proofOfWork = a["proofOfWork"].as!PoW;
+            r.proofOfWork = PoW((a["proofOfWork"].as!(ubyte[]))[0..PoW.length]);
             
             res ~= r;
         }
@@ -952,17 +952,16 @@ class Storage
     void followByChain(
         in ChainType chainType,
         in PayloadType payloadType,
-        in string key,
         bool delegate(ref Record) dg
     )
     {
         db.begin();
         
-        Nullable!Block curr = getBlock(
-            findLatestHonestBlock(
-                calcCurrentFilledBlockNum()
-            )
-        );
+        const val = getSetting("latestHonestBlock");
+        enforce(val.length == BlockHash.length);
+        const BlockHash h = val[0..BlockHash.length];
+        
+        Nullable!Block curr = getBlock(h);
         
         blockLoop:
         do{
@@ -1117,6 +1116,18 @@ unittest
     
     s.setSetting(key, null);
     assert(s.getSetting(key) == null);
+    
+    s.setSetting("latestHonestBlock", latest8);
+    
+    bool dg(ref Record r)
+    {
+        import std.stdio;
+        writeln("Record=", r);
+        
+        return true;
+    }
+    
+    s.followByChain(ChainType.Test, PayloadType.Test, &dg);
     
     s.purge;
 }

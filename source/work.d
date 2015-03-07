@@ -72,13 +72,13 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     }
     while(records.length > 0);
 }
-
+/*
 string getDNSRecord(Storage s, ChainType chainType, string key)
 {
     const b = s.findLatestHonestBlock(1_000_000_000);
     return key;
 }
-
+*/
 @trusted unittest
 {
     import std.file: remove;
@@ -105,7 +105,7 @@ string getDNSRecord(Storage s, ChainType chainType, string key)
     
     s.createNewRecord(ChainType.Test, dv);
     s.calcPowForNewRecords(ChainType.Test);
-    s.writeInitialBlockHashSetting();
+    //s.writeInitialBlockHashSetting();
     
     s.purge;
 }
