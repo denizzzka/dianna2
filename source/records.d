@@ -8,6 +8,7 @@ import std.random: uniform;
 import scrypt: calcScrypt;
 import std.file: read;
 import std.exception: enforce;
+import std.format: format;
 
 
 enum ChainType: ushort
@@ -20,6 +21,11 @@ enum PayloadType: ushort
 {
     Test = 1,
     DNS
+}
+
+string toString(in ubyte[] arr)
+{
+    return format("%(%02X %)", arr);
 }
 
 struct HashT(T)
@@ -67,6 +73,11 @@ struct HashT(T)
         res = cast(ubyte[]) read("/dev/urandom", Salt.sizeof);
         
         return res;
+    }
+    
+    string toString() const
+    {
+        return format("h: % s: %s", hash.toString, salt.toString);
     }
 }
 
@@ -143,6 +154,18 @@ struct Record
         res ~= to!string(difficulty);
         
         return res;
+    }
+    
+    string toString() const
+    {
+        return format(
+            "ChainType=%s PayloadType=%s blockNum=%d difficulty=%d payload=%s",
+            chainType,
+            payloadType,
+            blockNum,
+            difficulty,
+            payload.toString
+        );
     }
 }
 

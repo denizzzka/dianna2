@@ -1119,15 +1119,17 @@ unittest
     
     s.setSetting("latestHonestBlock", latest8);
     
+    size_t followCounter = 0;
+    
     bool dg(ref Record r)
     {
-        import std.stdio;
-        writeln("Record=", r);
+        followCounter++;
         
-        return true;
+        return followCounter <= 2;
     }
     
     s.followByChain(ChainType.Test, PayloadType.Test, &dg);
+    assert(followCounter == 3);
     
     s.purge;
 }
