@@ -118,6 +118,7 @@ class Storage
         qSelectNextParallelMostFilledBlockHash,
         qSelectNextBlocks,
         qSelectNextParallelBlocks,
+        qSelectBlockRecords,
         qCalcHash,
         qSetSetting,
         qGetSetting;
@@ -322,6 +323,24 @@ class Storage
             SELECT value
             FROM Settings
             WHERE key = :key
+        `);
+        
+        qSelectBlockRecords = db.prepare(`
+            SELECT
+                chainType,
+                payloadType,
+                payload,
+                hash,
+                version,
+                blockNum,
+                prevFilledBlockHash,
+                difficulty,
+                proofOfWork
+                
+            FROM BlocksContents b
+            JOIN records r USING(proofOfWork)
+            WHERE blockHash = :blockHash
+            AND version = 1
         `);
     }
     
@@ -895,6 +914,51 @@ class Storage
         q.reset();
         
         return res;
+    }
+    
+    Record[] getBlockRecords(in BlockHash b)
+    {
+        alias q = qSelectBlockRecords;
+        
+        q.bind(":blockHash", b);
+        
+        auto answer = q.execute();
+        
+        Record[] res;
+        
+        foreach(ref a; answer)
+        {
+            Record r;
+            r.chainType = a["chainType"].as!ChainType;
+            r.payloadType = a["payloadType"].as!PayloadType;
+            r.payload = a["payload"].as!(ubyte[]);
+            r.hash = RecordHash((a["hash"].as!(ubyte[]))[0..RecordHash.length]);
+            r.blockNum = a["blockNum"].as!uint;
+            r.prevFilledBlock = (a["prevFilledBlock"].as!(ubyte[]))[0..BlockHash.length];
+            r.difficulty = a["difficulty"].as!Difficulty;
+            r.proofOfWork = a["proofOfWork"].as!PoW;
+            
+            res ~= r;
+        }
+        
+        q.reset();
+        
+        return res;
+    }
+    
+    /// Calls delegate for records from latest block to root
+    void followByChain(in string key, bool delegate() dg)
+    {
+        db.begin();
+        
+        const honest = findLatestHonestBlock(calcCurrentFilledBlockNum());
+        
+        //dg(
+        //auto prevBlock = getSetting("rootBlockHash");
+        
+        //auto currBlock = 
+        
+        db.commit();
     }
     
     // TODO:
