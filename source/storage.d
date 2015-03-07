@@ -953,7 +953,7 @@ class Storage
         in ChainType chainType,
         in PayloadType payloadType,
         in string key,
-        bool delegate(Record) dg
+        bool delegate(ref Record) dg
     )
     {
         db.begin();
@@ -964,11 +964,12 @@ class Storage
             )
         );
         
+        blockLoop:
         do{
             Record[] recs = getBlockRecords(curr.blockHash, payloadType);
             
             foreach(ref r; recs)
-                dg(r);
+                if(!dg(r)) break blockLoop;
             
             curr = getBlock(getPrevBlock(curr));
         }
