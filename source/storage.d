@@ -328,7 +328,6 @@ class Storage
         qSelectBlockRecords = db.prepare(`
             SELECT
                 chainType,
-                payloadType,
                 payload,
                 hash,
                 version,
@@ -340,6 +339,7 @@ class Storage
             FROM BlocksContents b
             JOIN records r USING(proofOfWork)
             WHERE blockHash = :blockHash
+            AND payloadType = :payloadType
             AND version = 1
         `);
     }
@@ -864,6 +864,7 @@ class Storage
     
     BlockHash findLatestHonestBlock(in size_t limitBlockNum)
     {
+        //FIXME: chainType forgotten
         const val = getSetting("rootBlockHash");
         
         enforce(val.length == BlockHash.length);
@@ -916,11 +917,12 @@ class Storage
         return res;
     }
     
-    Record[] getBlockRecords(in BlockHash b)
+    Record[] getBlockRecords(in BlockHash b, in PayloadType pt)
     {
         alias q = qSelectBlockRecords;
         
         q.bind(":blockHash", b);
+        q.bind(":payloadType", pt);
         
         auto answer = q.execute();
         
@@ -930,7 +932,7 @@ class Storage
         {
             Record r;
             r.chainType = a["chainType"].as!ChainType;
-            r.payloadType = a["payloadType"].as!PayloadType;
+            r.payloadType = pt;
             r.payload = a["payload"].as!(ubyte[]);
             r.hash = RecordHash((a["hash"].as!(ubyte[]))[0..RecordHash.length]);
             r.blockNum = a["blockNum"].as!uint;
@@ -946,17 +948,31 @@ class Storage
         return res;
     }
     
-    /// Calls delegate for records from latest block to root
-    void followByChain(in string key, bool delegate() dg)
+    /// Calls delegate for all records from latest to first block in blockchain
+    void followByChain(
+        in ChainType chainType,
+        in PayloadType payloadType,
+        in string key,
+        bool delegate(Record) dg
+    )
     {
         db.begin();
         
-        const honest = findLatestHonestBlock(calcCurrentFilledBlockNum());
+        Nullable!Block curr = getBlock(
+            findLatestHonestBlock(
+                calcCurrentFilledBlockNum()
+            )
+        );
         
-        //dg(
-        //auto prevBlock = getSetting("rootBlockHash");
-        
-        //auto currBlock = 
+        do{
+            Record[] recs = getBlockRecords(curr.blockHash, payloadType);
+            
+            foreach(ref r; recs)
+                dg(r);
+            
+            curr = getBlock(getPrevBlock(curr));
+        }
+        while(!curr.isNull);
         
         db.commit();
     }
