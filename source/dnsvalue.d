@@ -104,6 +104,14 @@ void followByChain(
     }
 }
 
+enum DNSRecordType: ubyte
+{
+    NS, /// IP address of an authoritative name server
+    DS, /// Delegation signer. Fingerprint of the DNSSEC signing key of a delegated zone.
+    TOR,
+    I2P
+}
+
 @trusted unittest
 {
     
