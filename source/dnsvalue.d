@@ -1,9 +1,10 @@
 @safe:
 
 import ecdsa;
-import records: calcSHA1Hash;
+import records;
 
 import std.conv: to;
+import storage;
 
 
 struct DNSValue
@@ -63,6 +64,32 @@ struct DNSValue
         offset += 1 + len;
         
         return from[start..offset];
+    }
+}
+
+void followByChain(
+    Storage s,
+    in ChainType chainType,
+    in string key,
+    void delegate(ref Record, ref DNSValue) @safe dg
+)
+{
+    Record[] records;
+    
+    bool fillRecords(ref Record r)
+    {
+        records ~= r;
+        
+        return true;
+    }
+    
+    s.followByChain(chainType, PayloadType.DNS, &fillRecords);
+    
+    foreach_reverse(ref r; records)
+    {
+        DNSValue dnsValue = DNSValue.deserialize(r.payload);
+        
+        dg(r, dnsValue);
     }
 }
 
