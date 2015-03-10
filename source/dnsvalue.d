@@ -65,6 +65,11 @@ struct DNSValue
         
         return from[start..offset];
     }
+    
+    string toString() const
+    {
+        return format("key=%s value=%s signature=%s", to!string(key), to!string(value), signature);
+    }
 }
 
 void followByChain(
