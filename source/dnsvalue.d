@@ -4,6 +4,8 @@ import ecdsa;
 import records;
 import storage;
 
+import vibe.data.json;
+
 import std.conv: to;
 import std.encoding;
 
@@ -111,6 +113,14 @@ enum DNSRecordType: ubyte
     TOR,
     I2P
 }
+
+/** TODO: describe records types:
+ * announcing,
+ * cancellation,
+ * key assignee,
+ * key changing,
+ * authority transfer
+*/
 
 @trusted unittest
 {
