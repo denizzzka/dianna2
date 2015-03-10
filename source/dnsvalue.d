@@ -2,9 +2,10 @@
 
 import ecdsa;
 import records;
+import storage;
 
 import std.conv: to;
-import storage;
+import std.encoding;
 
 
 struct DNSValue
@@ -15,6 +16,11 @@ struct DNSValue
     Signature signature;
     
     // TODO: also need serial number of dns record
+    
+    string key2string() const @trusted
+    {
+        return cast(string) key;
+    }
     
     void sign(in string filename)
     {
@@ -68,7 +74,7 @@ struct DNSValue
     
     string toString() const
     {
-        return format("key=%s value=%s signature=%s", to!string(key), to!string(value), signature);
+        return format("key=%s value=%s", key2string(), value.toString());
     }
 }
 
