@@ -12,26 +12,26 @@ import std.encoding;
 
 struct DNSValue
 {
-    SignedKeyValue skv;
-    alias skv this;
+    SignedKeyValue pb;
+    alias pb this;
     
     string key(string key) @trusted
     {
-        skv.key = cast(ubyte[]) key;
+        pb.key = cast(ubyte[]) key;
         
         return key;
     }
     
     string key() @trusted
     {
-        return cast(string) skv.key;
+        return cast(string) pb.key;
     }
     
     void sign(in string filename)
     {
         const hash = calcSHA1Hash(getUbytes());
         
-        skv.signature = ecdsa.sign(hash, filename);
+        pb.signature = ecdsa.sign(hash, filename);
     }
     
     private ubyte[] getUbytes()
@@ -41,15 +41,15 @@ struct DNSValue
         res ~= to!ubyte(key.length);
         res ~= key;
         
-        res ~= to!ubyte(skv.payload.length);
-        res ~= skv.payload;
+        res ~= to!ubyte(pb.payload.length);
+        res ~= pb.payload;
         
         return res;
     }
     
     string toString()
     {
-        return format("key=%s value=%s", key, skv.payload.toString());
+        return format("key=%s value=%s", key, pb.payload.toString());
     }
 }
 
@@ -86,7 +86,7 @@ void followByChain(
     DNSValue d1;
     
     d1.key = "key data";
-    d1.skv.payload = cast(ubyte[]) "value data";
+    d1.pb.payload = cast(ubyte[]) "value data";
     PubKey pk;
     pk[0] = 0xAA;
     d1.signature.pubKey = pk;
@@ -97,6 +97,6 @@ void followByChain(
     d2.deserialize(ser);
     
     assert(d1.key == d2.key);
-    assert(d1.skv.payload == d2.skv.payload);
+    assert(d1.pb.payload == d2.pb.payload);
     assert(d1.signature == d2.signature);
 }
