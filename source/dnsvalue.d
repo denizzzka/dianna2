@@ -12,19 +12,19 @@ import std.encoding;
 
 struct DNSValue
 {
-    SignedKeyValue pb;
+    Signed pb;
     alias pb this;
     
     string key(string key) @trusted
     {
-        pb.key = cast(ubyte[]) key;
+        pb.keyValue.key = cast(ubyte[]) key;
         
         return key;
     }
     
     string key() @trusted
     {
-        return cast(string) pb.key;
+        return cast(string) pb.keyValue.key;
     }
     
     void sign(in string filename)
@@ -41,15 +41,15 @@ struct DNSValue
         res ~= to!ubyte(key.length);
         res ~= key;
         
-        res ~= to!ubyte(pb.payload.length);
-        res ~= pb.payload;
+        res ~= to!ubyte(pb.keyValue.payload.length);
+        res ~= pb.keyValue.payload;
         
         return res;
     }
     
     string toString()
     {
-        return format("key=%s value=%s", key, pb.payload.toString());
+        return format("key=%s value=%s", key, pb.keyValue.payload.toString());
     }
 }
 
@@ -86,7 +86,7 @@ void followByChain(
     DNSValue d1;
     
     d1.key = "key data";
-    d1.pb.payload = cast(ubyte[]) "value data";
+    d1.pb.keyValue.payload = cast(ubyte[]) "value data";
     PubKey pk;
     pk[0] = 0xAA;
     d1.signature.pubKey = pk;
@@ -97,6 +97,6 @@ void followByChain(
     d2.deserialize(ser);
     
     assert(d1.key == d2.key);
-    assert(d1.pb.payload == d2.pb.payload);
+    assert(d1.pb.keyValue.payload == d2.pb.keyValue.payload);
     assert(d1.signature == d2.signature);
 }

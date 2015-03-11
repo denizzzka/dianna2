@@ -11,12 +11,17 @@ enum Flags
     RecordSomeAnotherFlag = 4; // look at the enumeration!
 }
 
-message SignedKeyValue
+message KeyValue
 {
     required bytes key = 1;
-    required ECDSASignature signature = 2;
-    optional Flags flags = 3;
-    optional bytes payload = 4;
+    optional Flags flags = 2;
+    optional bytes payload = 3;
+}
+
+message Signed
+{
+    required ECDSASignature signature = 1;
+    required KeyValue keyValue = 2;
 }
 
 message Payload
