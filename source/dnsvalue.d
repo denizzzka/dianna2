@@ -14,20 +14,23 @@ import std.encoding;
 
 struct DNSValue
 {
-    SignedKeyValue signedKeyValue;
-    alias signedKeyValue this;
+    SignedKeyValue skv;
     
-    ubyte[] _key;
-    ubyte[] value;
+    string key(string key) @trusted
+    {
+        skv.key = cast(ubyte[]) key;
+        
+        return key;
+    }
+    
+    string key() @trusted
+    {
+        return cast(string) skv.key;
+    }
     
     Signature signature;
     
     // TODO: also need serial number of dns record
-    
-    string key2string() @trusted
-    {
-        return cast(string) key;
-    }
     
     void sign(in string filename)
     {
@@ -38,8 +41,7 @@ struct DNSValue
     
     ubyte[] serialize()
     {
-        auto res = getUbytes();
-        res ~= signature.serialize();
+        auto res = skv.serialize();
         
         return res;
     }
@@ -51,8 +53,8 @@ struct DNSValue
         res ~= to!ubyte(key.length);
         res ~= key;
         
-        res ~= to!ubyte(value.length);
-        res ~= value;
+        res ~= to!ubyte(skv.payload.length);
+        res ~= skv.payload;
         
         return res;
     }
@@ -60,11 +62,8 @@ struct DNSValue
     static DNSValue deserialize(ubyte[] from)
     {
         DNSValue res;
-        size_t offset;
         
-        res.key = getString(from, offset);
-        res.value = getString(from, offset);
-        res.signature = Signature.deserialize(from[offset..$]);        
+        res.skv = SignedKeyValue(from);
         
         return res;
     }
@@ -81,7 +80,7 @@ struct DNSValue
     
     string toString()
     {
-        return format("key=%s value=%s", key2string(), value.toString());
+        return format("key=%s value=%s", key, skv.payload.toString());
     }
 }
 
@@ -132,8 +131,8 @@ enum DNSRecordType: ubyte
     
     DNSValue d1;
     
-    d1.key = cast(ubyte[]) "key data";
-    d1.value = cast(ubyte[]) "value data";
+    d1.key = "key data";
+    d1.skv.payload = cast(ubyte[]) "value data";
     d1.signature.pubKey[0] = 0xAA;
     
     auto ser = d1.serialize();
@@ -141,6 +140,6 @@ enum DNSRecordType: ubyte
     auto d2 = DNSValue.deserialize(ser);
     
     assert(d1.key == d2.key);
-    assert(d1.value == d2.value);
+    assert(d1.skv.payload == d2.skv.payload);
     assert(d1.signature == d2.signature);
 }
