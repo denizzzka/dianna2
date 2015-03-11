@@ -15,7 +15,7 @@
             "dproto": "~>1.1.1"
     },
     "libs": ["scrypt", "sqlite3"],
-    "dflags": ["-Jsource"],
+    "stringImportPaths": ["source"],
     "configurations": [
         {
             "name": "production",

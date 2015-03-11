@@ -1,11 +1,17 @@
+message ECDSASignature
+{
+    required bytes sign = 1;
+    required bytes pubKey = 2;
+}
+
 message SignedKeyValue
 {
     required bytes key = 1;
-    required bytes signature = 2;
+    required ECDSASignature signature = 2;
     required bytes payload = 3;
 }
-/*
-message DNSRecord
+
+message DNSPayload
 {
     repeated NS ns = 1;
     repeated DS ds = 2;
@@ -27,4 +33,3 @@ message DS
 {
     required bytes fingerprint = 1; // Delegation signer. Fingerprint of the DNSSEC signing key of a delegated zone.
 }
-*/

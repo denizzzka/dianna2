@@ -4,13 +4,11 @@ import ecdsa;
 import records;
 import storage;
 
-import dproto.dproto;
+import protobuf;
 
 import std.conv: to;
 import std.encoding;
 
-
-@trusted mixin ProtocolBuffer!"dnsvalue.proto";
 
 struct DNSValue
 {

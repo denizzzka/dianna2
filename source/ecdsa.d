@@ -1,6 +1,6 @@
 @trusted:
 
-import dproto.dproto;
+import protobuf;
 
 import deimos.openssl.evp;
 import deimos.openssl.ec: point_conversion_form_t;
@@ -25,13 +25,7 @@ struct Key
 
 alias PubKey = ubyte[33];
 
-mixin ProtocolBufferFromString!"
-message PBSignature
-{
-    required bytes sign = 1;
-    required bytes pubKey = 2;
-}
-";
+alias PBSignature = ECDSASignature;
 
 struct Signature
 {
@@ -41,20 +35,18 @@ struct Signature
     ubyte slen;
     PubKey pubKey;
     
-    ubyte[] serialize()
+    PBSignature serialize()
     {
         PBSignature res;
         
         res.sign = sign;
         res.pubKey = pubKey;
         
-        return res.serialize();
+        return res;
     }
     
-    static Signature deserialize(ubyte[] from)
+    static Signature deserialize(PBSignature pb)
     {
-        auto pb = PBSignature(from);
-        
         enforce(pb.sign.length == ECSign.length);
         enforce(pb.pubKey.length == PubKey.length);
         
