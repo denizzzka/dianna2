@@ -27,24 +27,12 @@ struct DNSValue
         return cast(string) pb.keyValue.key;
     }
     
-    void sign(in string filename)
+    void sign(in string filename) @trusted
     {
-        const hash = calcSHA1Hash(getUbytes());
+        const digest = pb.keyValue.serialize();
+        const hash = calcSHA1Hash(digest);
         
         pb.signature = ecdsa.sign(hash, filename);
-    }
-    
-    private ubyte[] getUbytes()
-    {
-        ubyte[] res;
-        
-        res ~= to!ubyte(key.length);
-        res ~= key;
-        
-        res ~= to!ubyte(pb.keyValue.payload.length);
-        res ~= pb.keyValue.payload;
-        
-        return res;
     }
     
     string toString()
