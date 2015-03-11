@@ -25,5 +25,5 @@ message NS
 
 message DS
 {
-    required bytes addr = 1; // Delegation signer. Fingerprint of the DNSSEC signing key of a delegated zone.
+    required bytes fingerprint = 1; // Delegation signer. Fingerprint of the DNSSEC signing key of a delegated zone.
 }
