@@ -19,8 +19,6 @@ struct Key
 {
     ubyte[30] key;
     alias key this;
-    
-    string name;
 }
 
 alias PubKey = ubyte[33];
