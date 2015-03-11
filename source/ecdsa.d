@@ -43,10 +43,10 @@ unittest
     s1.signature = es;
     s1.pubKey = pk;
     
-    auto ser = s1.pb.serialize();
+    auto ser = s1.serialize();
     
     Signature s2;
-    s2.pb.deserialize(ser);
+    s2.deserialize(ser);
     
     assert(s1.signature == s2.signature);
 }
