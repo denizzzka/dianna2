@@ -28,8 +28,6 @@ struct DNSValue
     
     Signature signature;
     
-    // TODO: also need serial number of dns record
-    
     void sign(in string filename)
     {
         const hash = calcSHA1Hash(getUbytes());
@@ -67,16 +65,6 @@ struct DNSValue
         return res;
     }
     
-    private static ubyte[] getString(ubyte[] from, ref size_t offset)
-    {
-        const len = from[offset];
-        
-        const start = offset + 1;
-        offset += 1 + len;
-        
-        return from[start..offset];
-    }
-    
     string toString()
     {
         return format("key=%s value=%s", key, skv.payload.toString());
@@ -108,22 +96,6 @@ void followByChain(
         dg(r, dnsValue);
     }
 }
-
-enum DNSRecordType: ubyte
-{
-    NS, /// IP address of an authoritative name server
-    DS, /// Delegation signer. Fingerprint of the DNSSEC signing key of a delegated zone.
-    TOR,
-    I2P
-}
-
-/** TODO: describe records types:
- * announcing,
- * cancellation,
- * key assignee,
- * key changing,
- * authority transfer
-*/
 
 @trusted unittest
 {
