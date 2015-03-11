@@ -41,9 +41,9 @@ struct DNSValue
     
     ubyte[] serialize()
     {
-        auto res = skv.serialize();
+        skv.signature = signature.serialize();
         
-        return res;
+        return skv.serialize();
     }
     
     private ubyte[] getUbytes()
@@ -64,6 +64,7 @@ struct DNSValue
         DNSValue res;
         
         res.skv = SignedKeyValue(from);
+        res.signature = Signature.deserialize(res.skv.signature);
         
         return res;
     }

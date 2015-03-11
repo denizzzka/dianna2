@@ -1,5 +1,7 @@
 @trusted:
 
+import dproto.dproto;
+
 import deimos.openssl.evp;
 import deimos.openssl.ec: point_conversion_form_t;
 import deimos.openssl.ecdsa;
@@ -23,6 +25,14 @@ struct Key
 
 alias PubKey = ubyte[33];
 
+mixin ProtocolBufferFromString!"
+message PBSignature
+{
+    required bytes sign = 1;
+    required bytes pubKey = 2;
+}
+";
+
 struct Signature
 {
     alias ECSign = ubyte[72];
@@ -31,27 +41,27 @@ struct Signature
     ubyte slen;
     PubKey pubKey;
     
-    ubyte[] serialize() const
+    ubyte[] serialize()
     {
-        ubyte[] res;
+        PBSignature res;
         
-        res ~= sign;
-        res ~= pubKey;
+        res.sign = sign;
+        res.pubKey = pubKey;
         
-        return res;
+        return res.serialize();
     }
     
-    static Signature deserialize(in ubyte[] from)
-    in
+    static Signature deserialize(ubyte[] from)
     {
-        assert(from.length == sign.length + pubKey.length);
-    }
-    body
-    {
+        auto pb = PBSignature(from);
+        
+        enforce(pb.sign.length == ECSign.length);
+        enforce(pb.pubKey.length == PubKey.length);
+        
         Signature res;
         
-        res.sign = from[0..sign.length];
-        res.pubKey = from[sign.length..sign.length + pubKey.length];
+        res.sign = pb.sign;
+        res.pubKey = pb.pubKey;
         
         return res;
     }
@@ -64,7 +74,7 @@ unittest
     s1.sign[0] = 0xEE;
     s1.pubKey[0] = 0xAA;
     
-    const ser = s1.serialize();
+    auto ser = s1.serialize();
     
     Signature s2 = Signature.deserialize(ser);
     
