@@ -11,9 +11,11 @@
     "dependencies": {
             "d2sqlite3": "~>0.6.0",
             "vibe-d": "~>0.7",
-            "openssl": "~>1.1.4+1.0.1g"
+            "openssl": "~>1.1.4+1.0.1g",
+            "dproto": "~>1.1.1"
     },
     "libs": ["scrypt", "sqlite3"],
+    "dflags": ["-Jsource"],
     "configurations": [
         {
             "name": "production",

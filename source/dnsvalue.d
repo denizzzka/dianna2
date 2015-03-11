@@ -4,11 +4,13 @@ import ecdsa;
 import records;
 import storage;
 
-import vibe.data.json;
+import dproto.dproto;
 
 import std.conv: to;
 import std.encoding;
 
+
+@trusted mixin ProtocolBuffer!"dnsvalue.proto";
 
 struct DNSValue
 {

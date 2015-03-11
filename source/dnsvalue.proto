@@ -1,0 +1,29 @@
+message SignedKeyValue
+{
+    required string key = 1;
+    required bytes signature = 2;
+    required bytes payload = 3;
+}
+
+message DNSRecord
+{
+    repeated NS ns = 1;
+    repeated DS ds = 2;
+}
+
+enum IPProto
+{
+    IPv4 = 1;
+    IPv6 = 2;
+}
+
+message NS
+{
+    required IPProto ip_proto = 1;
+    required bytes addr = 2; // IP address of an authoritative name server
+}
+
+message DS
+{
+    required bytes addr = 1; // Delegation signer. Fingerprint of the DNSSEC signing key of a delegated zone.
+}
