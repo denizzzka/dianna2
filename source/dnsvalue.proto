@@ -1,10 +1,10 @@
 message SignedKeyValue
 {
-    required string key = 1;
+    required bytes key = 1;
     required bytes signature = 2;
     required bytes payload = 3;
 }
-
+/*
 message DNSRecord
 {
     repeated NS ns = 1;
@@ -27,3 +27,4 @@ message DS
 {
     required bytes fingerprint = 1; // Delegation signer. Fingerprint of the DNSSEC signing key of a delegated zone.
 }
+*/

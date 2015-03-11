@@ -11,7 +11,7 @@ import core.cpuid: threadsPerCPU;
 debug(PoW) import std.stdio;
 
 
-void createNewRecord(Storage s, in ChainType chainType, in DNSValue dnsValue)
+void createNewRecord(Storage s, in ChainType chainType, DNSValue dnsValue)
 {
     Record r;
     

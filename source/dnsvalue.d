@@ -14,14 +14,17 @@ import std.encoding;
 
 struct DNSValue
 {
-    ubyte[] key;
+    SignedKeyValue signedKeyValue;
+    alias signedKeyValue this;
+    
+    ubyte[] _key;
     ubyte[] value;
     
     Signature signature;
     
     // TODO: also need serial number of dns record
     
-    string key2string() const @trusted
+    string key2string() @trusted
     {
         return cast(string) key;
     }
@@ -33,7 +36,7 @@ struct DNSValue
         signature = ecdsa.sign(hash, filename);
     }
     
-    ubyte[] serialize() const
+    ubyte[] serialize()
     {
         auto res = getUbytes();
         res ~= signature.serialize();
@@ -41,7 +44,7 @@ struct DNSValue
         return res;
     }
     
-    private ubyte[] getUbytes() const
+    private ubyte[] getUbytes()
     {
         ubyte[] res;
         
@@ -76,7 +79,7 @@ struct DNSValue
         return from[start..offset];
     }
     
-    string toString() const
+    string toString()
     {
         return format("key=%s value=%s", key2string(), value.toString());
     }
