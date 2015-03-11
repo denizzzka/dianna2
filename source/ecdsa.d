@@ -15,60 +15,40 @@ import std.path: expandTilde;
 import std.conv: octal, to;
 
 
-struct Key
-{
-    ubyte[30] key;
-    alias key this;
-}
-
 alias PubKey = ubyte[33];
-
-alias PBSignature = ECDSASignature;
 
 struct Signature
 {
     alias ECSign = ubyte[72];
     
-    ECSign sign;
-    ubyte slen;
-    PubKey pubKey;
+    ECDSASignature pb;
+    alias pb this;
     
-    PBSignature serialize()
-    {
-        PBSignature res;
-        
-        res.sign = sign;
-        res.pubKey = pubKey;
-        
-        return res;
-    }
+    ECSign signature() { return pb.signature[0..ECSign.length]; }
+    ECSign signature(ECSign s) { pb.signature = s.dup; return s; }
     
-    static Signature deserialize(PBSignature pb)
-    {
-        enforce(pb.sign.length == ECSign.length);
-        enforce(pb.pubKey.length == PubKey.length);
-        
-        Signature res;
-        
-        res.sign = pb.sign;
-        res.pubKey = pb.pubKey;
-        
-        return res;
-    }
+    PubKey pubKey() { return pb.pubKey[0..PubKey.length]; }
+    PubKey pubKey(PubKey pk) { pb.pubKey = pk.dup; return pk; }
 }
 
 unittest
 {
     Signature s1;
+    Signature.ECSign es;
+    PubKey pk;
     
-    s1.sign[0] = 0xEE;
-    s1.pubKey[0] = 0xAA;
+    es[0] = 0xEE;
+    pk[0] = 0xAA;
     
-    auto ser = s1.serialize();
+    s1.signature = es;
+    s1.pubKey = pk;
     
-    Signature s2 = Signature.deserialize(ser);
+    auto ser = s1.pb.serialize();
     
-    assert(s1 == s2);
+    Signature s2;
+    s2.pb.deserialize(ser);
+    
+    assert(s1.signature == s2.signature);
 }
 
 class OpenSSLEx : Exception
@@ -216,6 +196,8 @@ private EC_KEY* extractEC_KEY(in PubKey pubKey)
     
     ec_key = enforceEx!OpenSSLEx(EC_KEY_new_by_curve_name(NID_secp256k1));
     
+    enforce(Signature.ECSign.length == ECDSA_size(ec_key));
+    
     try
     {
         const ec_group = enforceEx!OpenSSLEx(EC_KEY_get0_group(ec_key));
@@ -244,17 +226,19 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
     
     EC_KEY* ec_key = enforceEx!OpenSSLEx(EVP_PKEY_get1_EC_KEY(key));
     
-    enforce(ECDSA_size(ec_key) == Signature.sign.length);
-    
     ECDSA_SIG* ecdsa_sig = ECDSA_do_sign(digest.ptr, to!int(digest.length), ec_key);
     enforceEx!OpenSSLEx(ecdsa_sig);
     
     Signature res;
     res.pubKey = getPubKey(ec_key);
     
-    auto p = res.sign.ptr;
-    res.slen = to!ubyte(enforceEx!OpenSSLEx(i2d_ECDSA_SIG(ecdsa_sig, &p)));
-    enforce(res.slen <= Signature.sign.length);
+    Signature.ECSign buf;
+    
+    auto p = buf.ptr;
+    size_t len = to!ubyte(enforceEx!OpenSSLEx(i2d_ECDSA_SIG(ecdsa_sig, &p)));
+    enforce(len <= buf.length);
+    
+    res.signature = buf;
     
     scope(exit)
     {
@@ -265,14 +249,14 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
     return res;
 }
 
-bool verify(in ubyte[] digest, in Signature sig)
+bool verify(in ubyte[] digest, Signature sig)
 {
-    auto sptr = sig.sign.ptr;
-    
     EC_KEY* pubKey = extractEC_KEY(sig.pubKey);
     
     ECDSA_SIG* ecdsa_sig;
-    if(!d2i_ECDSA_SIG(&ecdsa_sig, &sptr, sig.slen)) return false;
+    auto orig = sig.signature;
+    const (ubyte)* sptr = orig.ptr;
+    if(!d2i_ECDSA_SIG(&ecdsa_sig, &sptr, orig.length)) return false;
     
     scope(exit)
     {
@@ -299,7 +283,8 @@ unittest
     
     assert(verify(digest, s));
     
-    foreach(ref c; s.sign) c = 0x00; // broke signature
+    Signature.ECSign buf;
+    s.signature = buf; // just brokes signature
     
     assert(!verify(digest, s));
     

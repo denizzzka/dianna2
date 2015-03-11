@@ -1,6 +1,6 @@
 message ECDSASignature
 {
-    required bytes sign = 1;
+    required bytes signature = 1;
     required bytes pubKey = 2;
 }
 
