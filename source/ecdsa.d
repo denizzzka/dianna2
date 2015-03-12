@@ -235,7 +235,7 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
     Signature.ECSign buf;
     
     auto p = buf.ptr;
-    size_t len = to!ubyte(enforceEx!OpenSSLEx(i2d_ECDSA_SIG(ecdsa_sig, &p)));
+    const len = to!ubyte(enforceEx!OpenSSLEx(i2d_ECDSA_SIG(ecdsa_sig, &p)));
     enforce(len <= buf.length);
     
     res.signature = buf;
