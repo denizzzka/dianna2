@@ -48,10 +48,14 @@ struct DNSValue
         r.key = j["domain"].get!string;
         
         const type = j["type"].get!string;
-        if(type == "announce") r.keyValue.flags &= Flags.RecordAnnounce;
-        if(type == "cancel") r.keyValue.flags &= Flags.RecordAnnounce;
+        if(type == "announce") r.keyValue.flags &= RecordFlags.Announce;
+        if(type == "cancel") r.keyValue.flags &= RecordFlags.Cancel;
         
-        //const resourceRecords = j["resourceRecords"].get!(Json[)
+        const ns = j["NS"].get!(Json[]);
+        DNSPayload payload;
+        //foreach(ref r; ns)
+        //{
+        //
         //payload
         
         r.sign(keypath);
@@ -114,12 +118,22 @@ void followByChain(
     DNSValue v = DNSValue.fromJson(parseJsonString(`
         {
             "type": "announce",
-            "domain": "domain-name"
+            "domain": "domain-name",
+            "NS": [
+                "192.168.0.1",
+                "192.168.0.2",
+                "fe80:0:0:0:200:f8ff:fe21:67cf",
+                "fe80::200:f8ff:fe21:67cf"
+            ],
+            "DS": [
+                "2BB183AF5F22588179A53B0A98631FAD1A292118",
+                "BROKENFINGERPRINTAAAAAAAAAAAAAAAAAAAAAAA"
+            ]
         }
     `), keypath);
     remove(keypath);
     
     assert(v.key == "domain-name");
-    assert(v.keyValue.flags & Flags.RecordAnnounce);
-    assert(!(v.keyValue.flags & Flags.RecordCancel));
+    assert(v.keyValue.flags & RecordFlags.Announce);
+    assert(!(v.keyValue.flags & RecordFlags.Cancel));
 }

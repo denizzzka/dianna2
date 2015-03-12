@@ -1,21 +1,21 @@
-message ECDSASignature
+enum RecordFlags
 {
-    required bytes signature = 1;
-    required bytes pubKey = 2;
-}
-
-enum Flags
-{
-    RecordAnnounce = 1;
-    RecordCancel = 2;
-    RecordSomeAnotherFlag = 4; // look at the enumeration!
+    Announce = 1;
+    Cancel = 2;
+    SomeAnotherFlag = 4; // look at the enumeration!
 }
 
 message KeyValue
 {
     required bytes key = 1;
-    optional Flags flags = 2;
+    optional RecordFlags flags = 2;
     optional bytes payload = 3;
+}
+
+message ECDSASignature
+{
+    required bytes signature = 1;
+    required bytes pubKey = 2;
 }
 
 message Signed
@@ -24,16 +24,12 @@ message Signed
     required KeyValue keyValue = 2;
 }
 
-message Payload
+message DNSPayload
 {
     repeated NS ns = 1;
     repeated DS ds = 2;
-}
-
-message KeysAssign
-{
-    repeated bytes ownerPubKeys = 1;
-    repeated bytes managersPubKeys = 2;
+    repeated bytes assignOwnerPubKeys = 3;
+    repeated bytes assignManagersPubKeys = 4;
 }
 
 enum IPProto
