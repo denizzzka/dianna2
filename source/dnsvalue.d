@@ -53,10 +53,16 @@ struct DNSValue
         
         const ns = j["NS"].get!(Json[]);
         DNSPayload payload;
-        //foreach(ref r; ns)
-        //{
-        //
-        //payload
+        foreach(ref c; ns)
+        {
+            NS _ns;
+            _ns.ip_proto = IPProto.IPv4;
+            _ns.addr = [cast(ubyte)0xAA];
+            
+            payload.ns ~= _ns;
+        }
+        
+        r.keyValue.payload = payload.serialize();
         
         r.sign(keypath);
         
@@ -122,6 +128,13 @@ void followByChain(
             "NS": [
                 "192.168.0.1",
                 "192.168.0.2",
+                "0xC0.0x00.0x02.0xEB",
+                "0300.0000.0002.0353",
+                "0xC00002EB",
+                "3221226219",
+                "030000001353",
+                
+                "2001:db8::",
                 "fe80:0:0:0:200:f8ff:fe21:67cf",
                 "fe80::200:f8ff:fe21:67cf"
             ],
