@@ -9,6 +9,9 @@ import vibe.data.json;
 
 import std.conv: to;
 import std.encoding;
+import std.socket;
+import std.typecons: Tuple;
+import std.bitmanip: nativeToBigEndian;
 
 
 struct DNSValue
@@ -41,6 +44,37 @@ struct DNSValue
         return format("key=%s value=%s", key, pb.keyValue.payload.toString());
     }
     
+    private static IPProto addr2network(in string addrString, out ubyte[] res) @trusted
+    {
+        const addr = parseAddress(addrString);
+        
+        IPProto proto;
+        switch(addr.addressFamily)
+        {
+            case AddressFamily.INET:
+                proto = IPProto.IPv4;
+                break;
+            
+            case AddressFamily.INET6:
+                proto = IPProto.IPv6;
+                break;
+            
+            default:
+                enforce(false, "Unsupported address type");
+                break;
+        }
+        
+        if(proto == IPProto.IPv6)
+            res = Internet6Address.parse(addrString);
+        else
+        {
+            const uint ipv4 = InternetAddress.parse(addrString);
+            res ~= nativeToBigEndian(ipv4);
+        }
+        
+        return proto;
+    }
+    
     static DNSValue fromJson(in Json j, in string keypath) @trusted
     {
         DNSValue r;
@@ -53,11 +87,15 @@ struct DNSValue
         
         const ns = j["NS"].get!(Json[]);
         DNSPayload payload;
-        foreach(ref c; ns)
+        foreach(ref s; ns)
         {
+            ubyte[] addr;
+            const proto = addr2network(s.get!string, addr);
+            
             NS _ns;
-            _ns.ip_proto = IPProto.IPv4;
-            _ns.addr = [cast(ubyte)0xAA];
+            
+            _ns.addr = addr;
+            _ns.ip_proto = proto;
             
             payload.ns ~= _ns;
         }
@@ -126,8 +164,7 @@ void followByChain(
             "type": "announce",
             "domain": "domain-name",
             "NS": [
-                "192.168.0.1",
-                "192.168.0.2",
+                "192.0.2.235",
                 "0xC0.0x00.0x02.0xEB",
                 "0300.0000.0002.0353",
                 "0xC00002EB",
