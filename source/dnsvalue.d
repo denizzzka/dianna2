@@ -41,17 +41,20 @@ struct DNSValue
         return format("key=%s value=%s", key, pb.keyValue.payload.toString());
     }
     
-    static DNSValue fromString(string s) @trusted
+    static DNSValue fromJson(in Json j, in string keypath) @trusted
     {
-        const j = parseJsonString(s);
-        
         DNSValue r;
         
         r.key = j["domain"].get!string;
         
         const type = j["type"].get!string;
-        if(type == "Announce") r.keyValue.flags &= Flags.RecordAnnounce;
-        if(type == "Cancel") r.keyValue.flags &= Flags.RecordAnnounce;
+        if(type == "announce") r.keyValue.flags &= Flags.RecordAnnounce;
+        if(type == "cancel") r.keyValue.flags &= Flags.RecordAnnounce;
+        
+        //const resourceRecords = j["resourceRecords"].get!(Json[)
+        //payload
+        
+        r.sign(keypath);
         
         return r;
     }
@@ -86,6 +89,8 @@ void followByChain(
 
 @trusted unittest
 {
+    import std.file: remove;
+    
     
     DNSValue d1;
     
@@ -104,12 +109,15 @@ void followByChain(
     assert(d1.pb.keyValue.payload == d2.pb.keyValue.payload);
     assert(d1.signature == d2.signature);
     
-    DNSValue v = DNSValue.fromString(`
+    const keypath = "/tmp/_unittest_dnsvalue.pem";
+    createKeyPair(keypath);
+    DNSValue v = DNSValue.fromJson(parseJsonString(`
         {
-            "type": "Announce",
+            "type": "announce",
             "domain": "domain-name"
         }
-    `);
+    `), keypath);
+    remove(keypath);
     
     assert(v.key == "domain-name");
     assert(v.keyValue.flags & Flags.RecordAnnounce);
