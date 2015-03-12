@@ -24,9 +24,6 @@ struct Signature
     ECDSASignature pb;
     alias pb this;
     
-    ECSign signature() { return pb.signature[0..ECSign.length]; }
-    ECSign signature(ECSign s) { pb.signature = s.dup; return s; }
-    
     PubKey pubKey() { return pb.pubKey[0..PubKey.length]; }
     PubKey pubKey(PubKey pk) { pb.pubKey = pk.dup; return pk; }
 }
@@ -238,7 +235,7 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
     const len = to!ubyte(enforceEx!OpenSSLEx(i2d_ECDSA_SIG(ecdsa_sig, &p)));
     enforce(len <= buf.length);
     
-    res.signature = buf;
+    res.signature = buf[0..len].dup;
     
     scope(exit)
     {
@@ -254,7 +251,7 @@ bool verify(in ubyte[] digest, Signature sig)
     EC_KEY* pubKey = extractEC_KEY(sig.pubKey);
     
     ECDSA_SIG* ecdsa_sig;
-    auto orig = sig.signature;
+    auto orig = sig.signature.dup;
     const (ubyte)* sptr = orig.ptr;
     if(!d2i_ECDSA_SIG(&ecdsa_sig, &sptr, orig.length)) return false;
     
