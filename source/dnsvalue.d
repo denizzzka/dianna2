@@ -49,6 +49,10 @@ struct DNSValue
         
         r.key = j["domain"].get!string;
         
+        const type = j["type"].get!string;
+        if(type == "Announce") r.keyValue.flags &= Flags.RecordAnnounce;
+        if(type == "Cancel") r.keyValue.flags &= Flags.RecordAnnounce;
+        
         return r;
     }
 }
@@ -102,9 +106,12 @@ void followByChain(
     
     DNSValue v = DNSValue.fromString(`
         {
+            "type": "Announce",
             "domain": "domain-name"
         }
     `);
     
     assert(v.key == "domain-name");
+    assert(v.keyValue.flags & Flags.RecordAnnounce);
+    assert(!(v.keyValue.flags & Flags.RecordCancel));
 }
