@@ -5,6 +5,7 @@ import records;
 import storage;
 
 import protobuf;
+import vibe.data.json;
 
 import std.conv: to;
 import std.encoding;
@@ -38,6 +39,17 @@ struct DNSValue
     string toString()
     {
         return format("key=%s value=%s", key, pb.keyValue.payload.toString());
+    }
+    
+    static DNSValue fromString(string s) @trusted
+    {
+        const j = parseJsonString(s);
+        
+        DNSValue r;
+        
+        r.key = j["domain"].get!string;
+        
+        return r;
     }
 }
 
@@ -87,4 +99,12 @@ void followByChain(
     assert(d1.key == d2.key);
     assert(d1.pb.keyValue.payload == d2.pb.keyValue.payload);
     assert(d1.signature == d2.signature);
+    
+    DNSValue v = DNSValue.fromString(`
+        {
+            "domain": "domain-name"
+        }
+    `);
+    
+    assert(v.key == "domain-name");
 }
