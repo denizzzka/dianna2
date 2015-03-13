@@ -5,13 +5,13 @@ import records;
 import storage;
 
 import protobuf;
-import vibe.data.json;
 
 import std.conv: to;
 import std.encoding;
 import std.socket;
 import std.typecons: Tuple;
 import std.bitmanip: nativeToBigEndian, bigEndianToNative;
+import std.json;
 
 
 struct DNSValue
@@ -103,20 +103,20 @@ struct DNSValue
         assert(networkAddr2string(string2networkAddr(ipv6str)) == ipv6str);
     }
     
-    static DNSValue fromJson(in Json j, in string keypath) @trusted
+    static DNSValue fromJson(in JSONValue j, in string keypath) @trusted
     {
         DNSValue r;
         
-        r.key = j["domain"].get!string;
+        r.key = j["domain"].str;
         
-        const type = j["type"].get!string;
+        const type = j["type"].str;
         if(type == "announce") r.keyValue.flags &= RecordFlags.Announce;
         if(type == "cancel") r.keyValue.flags &= RecordFlags.Cancel;
         
-        const ns = j["NS"].get!(Json[]);
+        const ns = j["NS"].array;
         DNSPayload payload;
         foreach(ref s; ns)
-            payload.ns ~= string2networkAddr(s.get!string);
+            payload.ns ~= string2networkAddr(s.str);
         
         r.keyValue.payload = payload.serialize();
         
@@ -125,16 +125,16 @@ struct DNSValue
         return r;
     }
     
-    Json toJson() @trusted
+    JSONValue toJson() @trusted
     {
-        Json j;
+        JSONValue j;
         
         {
-            auto v = Json(key);
-            v.name = "domain";
-            j ~= v;
+            //auto v = Json(key);
+            //v.name = "domain";
+            //j ~= v;
         }
-        
+        /*
         {
             Json v;
             v.name = "type";
@@ -148,13 +148,19 @@ struct DNSValue
             if(v != Json.undefined) j ~= v;
         }
         
-        {
-            
-            
-            Json v;
-            v.name = "NS";
-        }
+        DNSPayload dnsp;
+        dnsp.deserialize(keyValue.payload);
         
+        {
+            Json v = Json.emptyArray;
+            v.name = "NS";
+            
+            foreach(ref r; dnsp.ns)
+                v = networkAddr2string(r);
+            
+            j ~= v;
+        }
+        */
         return j;
     }
 }
@@ -211,7 +217,7 @@ DNSValue[] followByChain(
     
     const keypath = "/tmp/_unittest_dnsvalue.pem";
     createKeyPair(keypath);
-    DNSValue v = DNSValue.fromJson(parseJsonString(`
+    DNSValue v = DNSValue.fromJson(parseJSON(`
         {
             "type": "announce",
             "domain": "domain-name",
@@ -238,4 +244,7 @@ DNSValue[] followByChain(
     assert(v.key == "domain-name");
     assert(v.keyValue.flags & RecordFlags.Announce);
     assert(!(v.keyValue.flags & RecordFlags.Cancel));
+    
+    import std.stdio;
+    writeln(v.toJson.toPrettyString);
 }

@@ -6,10 +6,9 @@ import dnsvalue;
 import generation;
 import protobuf;
 
-import vibe.data.json;
-
 import core.time: Duration, dur;
 import core.cpuid: threadsPerCPU;
+import std.json;
 debug(PoW) import std.stdio;
 
 
@@ -74,7 +73,7 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     }
     while(records.length > 0);
 }
-
+/*
 string getDNSRecord(Storage s, ChainType chainType, string key) @trusted
 {
     //const b = s.findLatestHonestBlock(1_000_000_000);
@@ -105,7 +104,7 @@ string getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     
     return key;
 }
-
+*/
 @trusted unittest
 {
     import std.file: remove;
