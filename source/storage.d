@@ -958,7 +958,7 @@ class Storage
         db.begin();
         
         const val = getSetting("latestHonestBlock");
-        enforce(val.length == BlockHash.length);
+        enforce(val.length == BlockHash.length, "Latest honest block is not found");
         const BlockHash h = val[0..BlockHash.length];
         
         Nullable!Block curr = getBlock(h);

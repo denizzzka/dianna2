@@ -224,7 +224,4 @@ DNSValue[] followByChain(
     assert(v.key == "domain-name");
     assert(v.keyValue.flags & RecordFlags.Announce);
     assert(!(v.keyValue.flags & RecordFlags.Cancel));
-    
-    import std.stdio;
-    writeln(v.toJSON.toPrettyString);
 }

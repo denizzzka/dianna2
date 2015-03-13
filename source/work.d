@@ -74,7 +74,7 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     while(records.length > 0);
 }
 
-string getDNSRecord(Storage s, ChainType chainType, string key) @trusted
+JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
 {
     JSONValue j;
     bool avail;
@@ -101,7 +101,7 @@ string getDNSRecord(Storage s, ChainType chainType, string key) @trusted
         }
     }
     
-    return key;
+    return j;
 }
 
 @trusted unittest
@@ -131,6 +131,11 @@ string getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     s.createNewRecord(ChainType.Test, dv);
     s.calcPowForNewRecords(ChainType.Test);
     //s.writeInitialBlockHashSetting();
+    
+    //const j1 = s.getDNSRecord(ChainType.Test, "unavailable-domain");
+    
+    //import std.stdio;
+    //writeln("j1=", j1.toPrettyString);
     
     s.purge;
 }
