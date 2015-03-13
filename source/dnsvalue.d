@@ -55,13 +55,13 @@ struct DNSValue
         switch(a.addressFamily)
         {
             case AddressFamily.INET6:
-                res = Internet6Address.parse(addrString); // FIXME: addr to network byte order
+                res ~= Internet6Address.parse(addrString); // FIXME: addr to network byte order
                 break;
             
             case AddressFamily.INET:
                 const uint ipv4 = InternetAddress.parse(addrString);
                 writeln("uint ipv4=", ipv4);
-                res = nativeToBigEndian(ipv4);
+                res ~= nativeToBigEndian(ipv4);
                 writeln("res=", res);
                 break;
             
@@ -122,13 +122,14 @@ struct DNSValue
         
         foreach(i, ref s; j["NS"].array)
         {
-            const string a = s.str.dup;
-            
             import std.stdio;
-            writeln("fromJSON str:", a);
-            writeln("fromJSON str2na:", string2networkAddr(a));
             
-            auto b = string2networkAddr(a).dup;
+            const string a = s.str.dup;
+            auto b = string2networkAddr(a);
+            
+            writeln("fromJSON addr string=", a);
+            writeln("fromJSON bytes address=", b);
+            
             payload.ns ~= b;
             
             writeln("fromJSON ns:", payload.ns[i]);
