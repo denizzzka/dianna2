@@ -44,19 +44,20 @@ struct DNSValue
         return format("key=%s value=%s", key, pb.keyValue.payload.toString());
     }
     
-    private static IPAddr string2networkAddr(in string addrString) @trusted
+    private static ubyte[] string2networkAddr(in string addrString) @trusted
     {
-        const addr = parseAddress(addrString);
+        const a = parseAddress(addrString);
         
-        IPAddr res;
-        switch(addr.addressFamily)
+        ubyte[] res;
+        switch(a.addressFamily)
         {
-            case AddressFamily.INET:
-                res.ip_proto = IPProto.IPv4;
+            case AddressFamily.INET6:
+                res = Internet6Address.parse(addrString); // FIXME: addr to network byte order
                 break;
             
-            case AddressFamily.INET6:
-                res.ip_proto = IPProto.IPv6;
+            case AddressFamily.INET:
+                const uint ipv4 = InternetAddress.parse(addrString);
+                res = nativeToBigEndian(ipv4);
                 break;
             
             default:
@@ -64,35 +65,33 @@ struct DNSValue
                 break;
         }
         
-        if(res.ip_proto == IPProto.IPv6)
-            res.addr = Internet6Address.parse(addrString); // FIXME: addr to network byte order
-        else
-        {
-            const uint ipv4 = InternetAddress.parse(addrString);
-            res.addr ~= nativeToBigEndian(ipv4);
-        }
-        
         return res;
     }
     
-    private static string networkAddr2string(IPAddr addr) @trusted
+    private static string networkAddr2string(ubyte[] addr) @trusted
     {
-        if(addr.ip_proto == IPProto.IPv6)
+        string res;
+        
+        switch(addr.length)
         {
-            enforce(addr.addr.length == 16);
-            ubyte[16] b = addr.addr[0..16];
+            case 16:
+                ubyte[16] b = addr[0..16];
+                const ipv6 = new Internet6Address(b, Internet6Address.PORT_ANY); // FIXME: need to change byte order
+                res = ipv6.toAddrString();
+                break;
             
-            const ipv6 =  new Internet6Address(b, Internet6Address.PORT_ANY); // FIXME: need to change byte order?
-            return ipv6.toAddrString();
-        }
-        else
-        {
-            enforce(addr.addr.length == 4);
-            ubyte[4] b = addr.addr[0..4];
+            case 4:
+                ubyte[4] b = addr[0..4];
+                const ipv4 = new InternetAddress(bigEndianToNative!uint(b), InternetAddress.PORT_ANY);
+                res = ipv4.toAddrString();
+                break;
             
-            const ipv4 = new InternetAddress(bigEndianToNative!uint(b), InternetAddress.PORT_ANY);
-            return ipv4.toAddrString();
+            default:
+                enforce(false, "Unsupported address type");
+                break;                
         }
+        
+        return res;
     }
     
     unittest
