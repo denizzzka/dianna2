@@ -44,19 +44,19 @@ struct DNSValue
         return format("key=%s value=%s", key, pb.keyValue.payload.toString());
     }
     
-    private static IPProto addr2network(in string addrString, out ubyte[] res) @trusted
+    private static IPAddr string2networkAddr(in string addrString) @trusted
     {
         const addr = parseAddress(addrString);
         
-        IPProto proto;
+        IPAddr res;
         switch(addr.addressFamily)
         {
             case AddressFamily.INET:
-                proto = IPProto.IPv4;
+                res.ip_proto = IPProto.IPv4;
                 break;
             
             case AddressFamily.INET6:
-                proto = IPProto.IPv6;
+                res.ip_proto = IPProto.IPv6;
                 break;
             
             default:
@@ -64,15 +64,20 @@ struct DNSValue
                 break;
         }
         
-        if(proto == IPProto.IPv6)
-            res = Internet6Address.parse(addrString);
+        if(res.ip_proto == IPProto.IPv6)
+            res.addr = Internet6Address.parse(addrString);
         else
         {
             const uint ipv4 = InternetAddress.parse(addrString);
-            res ~= nativeToBigEndian(ipv4);
+            res.addr ~= nativeToBigEndian(ipv4);
         }
         
-        return proto;
+        return res;
+    }
+    
+    private static string networkAddr2string(in IPAddr addr)
+    {
+        return "";
     }
     
     static DNSValue fromJson(in Json j, in string keypath) @trusted
@@ -88,23 +93,46 @@ struct DNSValue
         const ns = j["NS"].get!(Json[]);
         DNSPayload payload;
         foreach(ref s; ns)
-        {
-            ubyte[] addr;
-            const proto = addr2network(s.get!string, addr);
-            
-            NS _ns;
-            
-            _ns.addr = addr;
-            _ns.ip_proto = proto;
-            
-            payload.ns ~= _ns;
-        }
+            payload.ns ~= string2networkAddr(s.get!string);
         
         r.keyValue.payload = payload.serialize();
         
         r.sign(keypath);
         
         return r;
+    }
+    
+    Json toJson() @trusted
+    {
+        Json j;
+        
+        {
+            auto v = Json(key);
+            v.name = "domain";
+            j ~= v;
+        }
+        
+        {
+            Json v;
+            v.name = "type";
+            
+            if(keyValue.flags & RecordFlags.Announce)
+                v = "announce";
+            
+            if(keyValue.flags & RecordFlags.Cancel)
+                v = "cancel";
+            
+            if(v != Json.undefined) j ~= v;
+        }
+        
+        {
+            Json v;
+            v.name = "NS";
+            
+            
+        }
+        
+        return j;
     }
 }
 
