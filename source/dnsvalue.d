@@ -48,9 +48,6 @@ struct DNSValue
     {
         const a = parseAddress(addrString);
         
-        import std.stdio;
-        writeln("parsed=", a);
-        
         ubyte[] res;
         switch(a.addressFamily)
         {
@@ -60,9 +57,7 @@ struct DNSValue
             
             case AddressFamily.INET:
                 const uint ipv4 = InternetAddress.parse(addrString);
-                writeln("uint ipv4=", ipv4);
                 res ~= nativeToBigEndian(ipv4);
-                writeln("res=", res);
                 break;
             
             default:
@@ -121,19 +116,7 @@ struct DNSValue
         DNSPayload payload;
         
         foreach(i, ref s; j["NS"].array)
-        {
-            import std.stdio;
-            
-            const string a = s.str.dup;
-            auto b = string2networkAddr(a);
-            
-            writeln("fromJSON addr string=", a);
-            writeln("fromJSON bytes address=", b);
-            
-            payload.ns ~= b;
-            
-            writeln("fromJSON ns:", payload.ns[i]);
-        }
+            payload.ns ~= string2networkAddr(s.str);
         
         r.keyValue.payload = payload.serialize();
         
@@ -148,9 +131,6 @@ struct DNSValue
         
         DNSPayload dnsp;
         dnsp.deserialize(keyValue.payload);
-        
-        import std.stdio;
-        writeln("to JSON raw:", dnsp.ns);
         
         {
             string[] ns;
