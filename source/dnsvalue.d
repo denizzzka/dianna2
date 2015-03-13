@@ -11,7 +11,7 @@ import std.conv: to;
 import std.encoding;
 import std.socket;
 import std.typecons: Tuple;
-import std.bitmanip: nativeToBigEndian;
+import std.bitmanip: nativeToBigEndian, bigEndianToNative;
 
 
 struct DNSValue
@@ -65,7 +65,7 @@ struct DNSValue
         }
         
         if(res.ip_proto == IPProto.IPv6)
-            res.addr = Internet6Address.parse(addrString);
+            res.addr = Internet6Address.parse(addrString); // FIXME: addr to network byte order
         else
         {
             const uint ipv4 = InternetAddress.parse(addrString);
@@ -75,9 +75,33 @@ struct DNSValue
         return res;
     }
     
-    private static string networkAddr2string(in IPAddr addr)
+    private static string networkAddr2string(IPAddr addr) @trusted
     {
-        return "";
+        if(addr.ip_proto == IPProto.IPv6)
+        {
+            enforce(addr.addr.length == 16);
+            ubyte[16] b = addr.addr[0..16];
+            
+            const ipv6 =  new Internet6Address(b, Internet6Address.PORT_ANY); // FIXME: need to change byte order?
+            return ipv6.toAddrString();
+        }
+        else
+        {
+            enforce(addr.addr.length == 4);
+            ubyte[4] b = addr.addr[0..4];
+            
+            const ipv4 = new InternetAddress(bigEndianToNative!uint(b), InternetAddress.PORT_ANY);
+            return ipv4.toAddrString();
+        }
+    }
+    
+    unittest
+    {
+        const ipv4str = "192.0.2.235";
+        const ipv6str = "2001:db8::";
+        
+        assert(networkAddr2string(string2networkAddr(ipv4str)) == ipv4str);
+        assert(networkAddr2string(string2networkAddr(ipv6str)) == ipv6str);
     }
     
     static DNSValue fromJson(in Json j, in string keypath) @trusted
@@ -126,10 +150,10 @@ struct DNSValue
         }
         
         {
+            
+            
             Json v;
             v.name = "NS";
-            
-            
         }
         
         return j;
