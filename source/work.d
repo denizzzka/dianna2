@@ -4,7 +4,9 @@ import storage;
 import records;
 import dnsvalue;
 import generation;
+import protobuf;
 
+import vibe.data.json;
 
 import core.time: Duration, dur;
 import core.cpuid: threadsPerCPU;
@@ -72,13 +74,38 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     }
     while(records.length > 0);
 }
-/*
-string getDNSRecord(Storage s, ChainType chainType, string key)
+
+string getDNSRecord(Storage s, ChainType chainType, string key) @trusted
 {
-    const b = s.findLatestHonestBlock(1_000_000_000);
+    //const b = s.findLatestHonestBlock(1_000_000_000);
+    
+    auto dnsRecords = followByChain(s, chainType, key);
+    
+    Json j;
+    bool avail;
+    foreach_reverse(ref d; dnsRecords)
+    {
+        if(d.pb.keyValue.flags == RecordFlags.Announce)
+        {
+            avail = true;
+            j = Json.emptyObject;
+        }
+        
+        if(d.pb.keyValue.flags == RecordFlags.Cancel)
+        {
+            avail = false;
+            j = Json.emptyObject;
+        }
+        
+        if(avail)
+        {
+            //j ~=
+        }
+    }
+    
     return key;
 }
-*/
+
 @trusted unittest
 {
     import std.file: remove;

@@ -108,31 +108,32 @@ struct DNSValue
     }
 }
 
-void followByChain(
+DNSValue[] followByChain(
     Storage s,
     in ChainType chainType,
-    in string key,
-    void delegate(ref Record, ref DNSValue) @safe dg
+    in string key
 )
 {
-    Record[] records;
+    DNSValue[] dnsRecords;
     
     bool fillRecords(ref Record r)
     {
-        records ~= r;
+        DNSValue d;
+        d.deserialize(r.payload);
+        
+        if(d.key == key)
+        {
+            dnsRecords ~= d;
+            
+            return d.pb.keyValue.flags != RecordFlags.Announce;
+        }
         
         return true;
     }
     
     s.followByChain(chainType, PayloadType.DNS, &fillRecords);
     
-    foreach_reverse(ref r; records)
-    {
-        DNSValue dnsValue;
-        dnsValue.deserialize(r.payload);
-        
-        dg(r, dnsValue);
-    }
+    return dnsRecords;
 }
 
 @trusted unittest
