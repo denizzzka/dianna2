@@ -125,42 +125,28 @@ struct DNSValue
         return r;
     }
     
-    JSONValue toJson() @trusted
+    JSONValue toJSON() @trusted
     {
-        JSONValue j;
+        JSONValue j = ["domain": key];
         
-        {
-            //auto v = Json(key);
-            //v.name = "domain";
-            //j ~= v;
-        }
-        /*
-        {
-            Json v;
-            v.name = "type";
-            
-            if(keyValue.flags & RecordFlags.Announce)
-                v = "announce";
-            
-            if(keyValue.flags & RecordFlags.Cancel)
-                v = "cancel";
-            
-            if(v != Json.undefined) j ~= v;
-        }
+        if(keyValue.flags & RecordFlags.Announce)
+            j.object["type"] = "announce";
+        
+        if(keyValue.flags & RecordFlags.Cancel)
+            j.object["type"] = "cancel";
         
         DNSPayload dnsp;
         dnsp.deserialize(keyValue.payload);
         
         {
-            Json v = Json.emptyArray;
-            v.name = "NS";
+            string[] ns;
             
             foreach(ref r; dnsp.ns)
-                v = networkAddr2string(r);
+                ns ~= networkAddr2string(r);
             
-            j ~= v;
+            j.object["NS"] = ns;
         }
-        */
+        
         return j;
     }
 }
@@ -246,5 +232,5 @@ DNSValue[] followByChain(
     assert(!(v.keyValue.flags & RecordFlags.Cancel));
     
     import std.stdio;
-    writeln(v.toJson.toPrettyString);
+    writeln(v.toJSON.toPrettyString);
 }
