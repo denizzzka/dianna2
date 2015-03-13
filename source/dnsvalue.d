@@ -48,6 +48,9 @@ struct DNSValue
     {
         const a = parseAddress(addrString);
         
+        import std.stdio;
+        writeln("parsed=", a);
+        
         ubyte[] res;
         switch(a.addressFamily)
         {
@@ -57,7 +60,9 @@ struct DNSValue
             
             case AddressFamily.INET:
                 const uint ipv4 = InternetAddress.parse(addrString);
+                writeln("uint ipv4=", ipv4);
                 res = nativeToBigEndian(ipv4);
+                writeln("res=", res);
                 break;
             
             default:
@@ -68,7 +73,7 @@ struct DNSValue
         return res;
     }
     
-    private static string networkAddr2string(ubyte[] addr) @trusted
+    private static string networkAddr2string(in ubyte[] addr) @trusted
     {
         string res;
         
@@ -103,7 +108,7 @@ struct DNSValue
         assert(networkAddr2string(string2networkAddr(ipv6str)) == ipv6str);
     }
     
-    static DNSValue fromJson(in JSONValue j, in string keypath) @trusted
+    static DNSValue fromJSON(in JSONValue j, in string keypath) @trusted
     {
         DNSValue r;
         
@@ -113,10 +118,21 @@ struct DNSValue
         if(type == "announce") r.keyValue.flags &= RecordFlags.Announce;
         if(type == "cancel") r.keyValue.flags &= RecordFlags.Cancel;
         
-        const ns = j["NS"].array;
         DNSPayload payload;
-        foreach(ref s; ns)
-            payload.ns ~= string2networkAddr(s.str);
+        
+        foreach(i, ref s; j["NS"].array)
+        {
+            const string a = s.str.dup;
+            
+            import std.stdio;
+            writeln("fromJSON str:", a);
+            writeln("fromJSON str2na:", string2networkAddr(a));
+            
+            auto b = string2networkAddr(a).dup;
+            payload.ns ~= b;
+            
+            writeln("fromJSON ns:", payload.ns[i]);
+        }
         
         r.keyValue.payload = payload.serialize();
         
@@ -129,19 +145,16 @@ struct DNSValue
     {
         JSONValue j = ["domain": key];
         
-        if(keyValue.flags & RecordFlags.Announce)
-            j.object["type"] = "announce";
-        
-        if(keyValue.flags & RecordFlags.Cancel)
-            j.object["type"] = "cancel";
-        
         DNSPayload dnsp;
         dnsp.deserialize(keyValue.payload);
+        
+        import std.stdio;
+        writeln("to JSON raw:", dnsp.ns);
         
         {
             string[] ns;
             
-            foreach(ref r; dnsp.ns)
+            foreach(r; dnsp.ns)
                 ns ~= networkAddr2string(r);
             
             j.object["NS"] = ns;
@@ -203,7 +216,7 @@ DNSValue[] followByChain(
     
     const keypath = "/tmp/_unittest_dnsvalue.pem";
     createKeyPair(keypath);
-    DNSValue v = DNSValue.fromJson(parseJSON(`
+    DNSValue v = DNSValue.fromJSON(parseJSON(`
         {
             "type": "announce",
             "domain": "domain-name",

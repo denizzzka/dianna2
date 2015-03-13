@@ -73,38 +73,37 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     }
     while(records.length > 0);
 }
-/*
+
 string getDNSRecord(Storage s, ChainType chainType, string key) @trusted
 {
-    //const b = s.findLatestHonestBlock(1_000_000_000);
+    JSONValue j;
+    bool avail;
     
     auto dnsRecords = followByChain(s, chainType, key);
     
-    Json j;
-    bool avail;
     foreach_reverse(ref d; dnsRecords)
     {
         if(d.pb.keyValue.flags == RecordFlags.Announce)
         {
             avail = true;
-            j = Json.emptyObject;
+            j = JSONValue();
         }
         
         if(d.pb.keyValue.flags == RecordFlags.Cancel)
         {
             avail = false;
-            j = Json.emptyObject;
+            j = JSONValue();
         }
         
         if(avail)
         {
-            //j ~=
+            j = d.toJSON;
         }
     }
     
     return key;
 }
-*/
+
 @trusted unittest
 {
     import std.file: remove;
