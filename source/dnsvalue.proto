@@ -29,14 +29,16 @@ message DNSPayload
     repeated bytes assignOwnerPubKeys = 1;
     repeated bytes assignManagersPubKeys = 2;
     
-    repeated bytes ns = 3; // IP (ver. 4 or 6) address of an authoritative name server
-    repeated bytes ds = 4; // DS record. Fingerprint of the DNSSEC signing key of a delegated zone.
+    repeated bytes ns = 3; // IP (v4 or v6) address of an authoritative name server
+    repeated DS ds = 4; // DS record
     repeated bytes a = 5; // A record
     repeated bytes aaaa = 6; // AAAA record
 }
 
-enum IPProto
+message DS
 {
-    IPv4 = 1;
-    IPv6 = 2;
+    required int32 keyTag = 1;
+    required int32 algorithm = 2;
+    required int32 digestType = 3;
+    required bytes digest = 4;
 }
