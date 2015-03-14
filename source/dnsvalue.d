@@ -12,6 +12,7 @@ import std.socket;
 import std.typecons: Tuple;
 import std.bitmanip: nativeToBigEndian, bigEndianToNative;
 import std.json;
+import std.format: formattedRead, format;
 
 
 struct DNSValue
@@ -143,6 +144,32 @@ struct DNSValue
         
         return j;
     }
+}
+
+ubyte[] hex2bytes(string s) @trusted
+{
+    enforce(s.length % 2 == 0);
+    
+    ubyte[] res = new ubyte[s.length/2];
+    
+    for(auto i = 0; i < s.length; i += 2)
+    {
+        string slice = s[i..i+2];
+        slice.formattedRead("%x", &res[i/2]);
+    }
+    
+    return res;
+}
+
+string bytes2hex(in ubyte[] b)
+{
+    return format("%(%02X%)", b);
+}
+
+unittest
+{
+    assert(hex2bytes("0102fe") == [1, 2, 254]);
+    assert(bytes2hex([1, 2, 254]) == "0102FE");
 }
 
 DNSValue[] followByChain(
