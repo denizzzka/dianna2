@@ -150,10 +150,12 @@ struct DNSValue
             j.object["NS"] = ns;
         }
         
-        JSONValue sig = ["signature": bytes2hex(signature.signature)];
-        sig.object["pubKey"] = bytes2hex(signature.pubKey);
-        
-        j.object["signature"] = sig;
+        {
+            JSONValue sig = ["signature": bytes2hex(signature.signature)];
+            sig.object["pubKey"] = bytes2hex(signature.pubKey);
+            
+            j.object["signature"] = sig;
+        }
         
         return j;
     }
