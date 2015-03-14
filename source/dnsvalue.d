@@ -104,24 +104,32 @@ struct DNSValue
         assert(networkAddr2string(string2networkAddr(ipv6str)) == ipv6str);
     }
     
-    static DNSValue fromJSON(in JSONValue j, in string keypath) @trusted
+    static DNSValue fromJSON(in JSONValue j) @trusted
     {
         DNSValue r;
         
         r.key = j["domain"].str;
         
-        const type = j["type"].str;
-        if(type == "announce") r.keyValue.flags &= RecordFlags.Announce;
-        if(type == "cancel") r.keyValue.flags &= RecordFlags.Cancel;
+        if("type" in j)
+        {
+            const type = j["type"].str;
+            if(type == "announce") r.keyValue.flags &= RecordFlags.Announce;
+            if(type == "cancel") r.keyValue.flags &= RecordFlags.Cancel;
+        }
         
         DNSPayload payload;
         
-        foreach(i, ref s; j["NS"].array)
-            payload.ns ~= string2networkAddr(s.str);
+        if("NS" in j)
+            foreach(i, ref s; j["NS"].array)
+                payload.ns ~= string2networkAddr(s.str);
         
         r.keyValue.payload = payload.serialize();
         
-        r.sign(keypath);
+        if("signature" in j)
+        {
+            r.signature.signature = hex2bytes(j["signature"]["signature"].str);
+            r.signature.pubKey = hex2bytes(j["signature"]["pubKey"].str);
+        }
         
         return r;
     }
@@ -243,9 +251,14 @@ DNSValue[] followByChain(
             "DS": [
                 "2BB183AF5F22588179A53B0A98631FAD1A292118",
                 "BROKENFINGERPRINTAAAAAAAAAAAAAAAAAAAAAAA"
-            ]
+            ],
+            "signature":
+            {
+                "signature": "1122334455667788",
+                "pubKey": "001122334455"
+            }
         }
-    `), keypath);
+    `));
     remove(keypath);
     
     assert(v.key == "domain-name");
