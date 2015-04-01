@@ -224,9 +224,15 @@ DNSValue[] followByChain(
     
     d1.key = "key data";
     d1.pb.keyValue.payload = cast(ubyte[]) "value data";
+    
     PubKey pk;
     pk[0] = 0xAA;
-    d1.signature.pubKey = pk;
+    
+    Signature.ECSign sig;
+    sig[0] = 0xBB;
+    
+    d1.pb.signature.signature = sig;
+    d1.pb.signature.pubKey = pk;
     
     auto ser = d1.serialize();
     
