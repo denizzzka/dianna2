@@ -234,6 +234,10 @@ DNSValue[] followByChain(
     d1.pb.signature.signature = sig;
     d1.pb.signature.pubKey = pk;
     
+    import std.stdio;
+    writeln(d1);
+    writeln(d1.pb);
+    
     auto ser = d1.serialize();
     
     DNSValue d2;
