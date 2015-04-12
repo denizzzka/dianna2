@@ -1,3 +1,5 @@
+@trusted:
+
 import inifiled;
 import std.path: expandTilde;
 import std.exception;
