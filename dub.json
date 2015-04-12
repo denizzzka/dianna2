@@ -10,7 +10,8 @@
     "dependencies": {
             "d2sqlite3": "~>0.7.1",
             "openssl": "~>1.1.4+1.0.1g",
-            "dproto": "==1.1.1"
+            "dproto": "==1.1.1",
+            "inifiled": "~>0.0.3"
     },
     "libs": ["scrypt", "sqlite3"],
     "stringImportPaths": ["source"],
