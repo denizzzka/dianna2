@@ -5,7 +5,7 @@ import config;
 
 import std.exception: enforce;
 import std.path: expandTilde;
-version(unittest) import std.file;
+import std.file;
 import core.stdc.errno;
 import std.datetime;
 import std.typecons: Nullable;
