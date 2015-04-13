@@ -27,7 +27,7 @@ static this()
     {}
     
     try
-	readINIFile(_cfg, "~/.config/dianna2/dianna2.conf");
+	readINIFile(_cfg, expandTilde("~/.config/dianna2/dianna2.conf"));
     catch(ErrnoException e)
     {}
 }
