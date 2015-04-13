@@ -8,7 +8,7 @@ import std.exception;
 @INI("Main section")
 private struct Config {
     @INI("Local addresses, IP and IPv6 is allowed")
-    string[] listen_addresses = ["::1"];
+    string[] listen_addresses = ["::"];
     
     @INI("Local port number")
     ushort listen_port = 60180; // TODO: need !=0 check

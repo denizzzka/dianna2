@@ -16,8 +16,9 @@ TcpSocket createListener()
     auto s = new TcpSocket(AddressFamily.INET6);
     enforce(s.isAlive);
     
-    s.blocking = false;
+    s.setOption(SocketOptionLevel.IPV6, SocketOption.IPV6_V6ONLY, false);
     s.setKeepAlive(60 * 3, 30);
+    s.blocking = false;
     
     foreach(ref c; cfg.listen_addresses)
         s.bind(new Internet6Address(c, cfg.listen_port));
