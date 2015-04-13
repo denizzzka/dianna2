@@ -30,7 +30,7 @@ class PeersStorage
     
     this(in string filename)
     {
-        const appdir = expandTilde(cfg.storage_path);
+        const appdir = expandTilde(cfg.storageDir);
         path = appdir~"/"~filename;
         
         try

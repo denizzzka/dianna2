@@ -12,7 +12,7 @@ private struct Config {
     string[] listen_addresses = [":::60180", ":::60181"];
     
     @INI("Local storage dir")
-    string storage_path = "~/.dianna2";
+    string storageDir = "~/.dianna2";
 }
 
 private Config _cfg;
