@@ -1,6 +1,6 @@
 dianna2
 =======
-[![Build Status](https://travis-ci.org/denizzzka/dianna2.svg)](https://travis-ci.org/denizzzka/dianna2)
+[![Build Status](https://travis-ci.org/denizzzka/dianna2.svg?branch=master)](https://travis-ci.org/denizzzka/dianna2)
 
 DIANNA - IANA Decetralized
 
