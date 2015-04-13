@@ -11,7 +11,7 @@ import std.socket;
 debug import std.stdio; //FIXME: remove it
 
 
-unittest
+TcpSocket createListener()
 {
     auto listener = new TcpSocket(AddressFamily.INET6);
     enforce(listener.isAlive);
@@ -22,7 +22,15 @@ unittest
         listener.bind(new Internet6Address(c, cfg.listen_port));
     
     listener.listen(cfg.max_inbound_connections);
+    
     writefln("Listening on port %d.", cfg.listen_port);
+    
+    return listener;
+}
+
+unittest
+{
+    auto listener = createListener();
     
     auto socketSet = new SocketSet(cfg.max_inbound_connections + 1);
     socketSet.add(listener);
