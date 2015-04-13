@@ -1,10 +1,19 @@
-import std.stdio;
-import std.conv;
-import std.exception : enforce;
+import config;
 
 import miniupnpc;
 import miniupnpc.upnpcommands;
 
+import std.stdio;
+import std.conv;
+import std.exception : enforce;
+import std.socket;
+
+
+private struct Peer
+{
+    string addr;
+    ubyte type = 0;
+}
 
 unittest
 {
