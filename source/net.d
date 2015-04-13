@@ -13,13 +13,13 @@ debug import std.stdio; //FIXME: remove it
 
 unittest
 {
-    auto listener = new TcpSocket();
+    auto listener = new TcpSocket(AddressFamily.INET6);
     enforce(listener.isAlive);
     
     listener.blocking = false;
     
     foreach(ref c; cfg.listen_addresses)
-        listener.bind(new InternetAddress(c, cfg.listen_port));
+        listener.bind(new Internet6Address(c, cfg.listen_port));
     
     listener.listen(cfg.max_inbound_connections);
     writefln("Listening on port %d.", cfg.listen_port);
