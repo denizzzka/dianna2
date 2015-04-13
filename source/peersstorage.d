@@ -8,8 +8,7 @@ import std.path: expandTilde;
 version(unittest) import std.file;
 import core.stdc.errno;
 import std.datetime;
-//import std.conv: to;
-//import std.typecons: Nullable;
+import std.typecons: Nullable;
 
 
 immutable string sqlCreateSchema =
@@ -27,7 +26,8 @@ class PeersStorage
     Database db;
     
     private Statement
-        qInsertPeer;
+        qInsertPeer,
+        qSelectRandomPeer;
     
     this(in string filename)
     {
@@ -46,22 +46,40 @@ class PeersStorage
         qInsertPeer = db.prepare("
             INSERT OR REPLACE INTO Peers (
                 addr,
+                type,
                 lastSeen,
                 banned
             )
             VALUES (
                 :addr,
+                :type,
                 :lastSeen,
                 :banned
             )
         ");
+        
+        qSelectRandomPeer = db.prepare("
+            SELECT addr, type
+            FROM Peers
+            WHERE lastSeen >= :lastSeenLimit
+            AND NOT banned
+            ORDER BY RANDOM()
+            LIMIT 1;
+        ");
     }
     
-    private void insertOrUpdatePeer(in string peer, in bool banned = false)
+    private struct Peer
+    {
+        string addr;
+        ubyte type = 0;
+    }
+    
+    private void insertOrUpdatePeer(in Peer peer, in bool banned = false)
     {
         alias e = qInsertPeer;
         
-        e.bind(":addr", peer);
+        e.bind(":addr", peer.addr);
+        e.bind(":type", peer.type);
         e.bind(":lastSeen", Clock.currTime.toUnixTime);
         e.bind(":banned", banned);
         
@@ -70,6 +88,35 @@ class PeersStorage
         e.reset();
     }
     
+    private Nullable!Peer getRandomPeer()
+    {
+        alias q = qSelectRandomPeer;
+        
+        q.bind(":lastSeenLimit", Clock.currTime.toUnixTime - 60 * 60 * 24 * 90 /* 90 days */);
+        
+        auto answer = q.execute();
+        
+        Nullable!Peer nullableResult;
+        
+        if(!answer.empty)
+        {
+            auto r = answer.front();
+            
+            Peer res;
+            res.addr = r["addr"].as!string;
+            res.type = r["type"].as!ubyte;
+                        
+            nullableResult = res;
+            
+            version(assert) answer.popFront;
+            assert(answer.empty);
+        }
+        
+        q.reset();
+        
+        return nullableResult;
+    }
+        
     version(unittest)
     void purge()
     {
@@ -81,8 +128,14 @@ unittest
 {
     auto s = new PeersStorage("_unittest_peers.sqlite");
     
-    s.insertOrUpdatePeer("1.2.3.4");
-    s.insertOrUpdatePeer("1.2.3.4");
+    PeersStorage.Peer p;
+    p.addr = "1.2.3.4";
+    
+    s.insertOrUpdatePeer(p);
+    s.insertOrUpdatePeer(p);
+    
+    auto peer = s.getRandomPeer();
+    assert(peer.addr == "1.2.3.4");
     
     s.purge;
 }
