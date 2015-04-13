@@ -16,7 +16,8 @@ immutable string sqlCreateSchema =
 `CREATE TABLE IF NOT EXISTS Peers (
     addr TEXT NOT NULL PRIMARY KEY,
     type INT NOT NULL DEFAULT 0,
-    lastSeen INT NOT NULL
+    lastSeen INT NOT NULL,
+    banned INT NOT NULL DEFAULT 0
 );
 `;
 
@@ -45,21 +46,24 @@ class PeersStorage
         qInsertPeer = db.prepare("
             INSERT OR REPLACE INTO Peers (
                 addr,
-                lastSeen
+                lastSeen,
+                banned
             )
             VALUES (
                 :addr,
-                :lastSeen
+                :lastSeen,
+                :banned
             )
         ");
     }
     
-    private void insertOrUpdatePeer(in string peer)
+    private void insertOrUpdatePeer(in string peer, in bool banned = false)
     {
         alias e = qInsertPeer;
         
         e.bind(":addr", peer);
         e.bind(":lastSeen", Clock.currTime.toUnixTime);
+        e.bind(":banned", banned);
         
         e.execute();
         assert(db.changes() == 1);
