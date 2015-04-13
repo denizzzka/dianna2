@@ -39,7 +39,7 @@ unittest
     
     Socket[] reads;
     
-    while (true)
+    while (false) // TODO: work here
     {
         foreach (sock; reads)
             socketSet.add(sock);
