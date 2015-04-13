@@ -7,9 +7,14 @@ import std.exception;
 
 @INI("Main section")
 private struct Config {
-    @INI("Local addresses. IP and IPv6 is allowed, port is required."~
-	 "Example: :::60180 - bind to all local addresses and port 60180")
-    string[] listen_addresses = [":::60180", ":::60181"];
+    @INI("Local addresses, IP and IPv6 is allowed")
+    string[] listen_addresses = ["::1"];
+    
+    @INI("Local port number")
+    ushort listen_port = 60180; // TODO: need !=0 check
+    
+    @INI("Maintain at most <n> inbound connections to peers")
+    max_inbound_connections = 8;
     
     @INI("Local storage dir")
     string storageDir = "~/.dianna2";
