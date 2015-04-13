@@ -2,7 +2,6 @@
 
 import d2sqlite3;
 import config;
-import net: Peer;
 
 import std.exception: enforce;
 import std.path: expandTilde;
@@ -20,6 +19,12 @@ immutable string sqlCreateSchema =
     banned INT NOT NULL
 );
 `;
+
+private struct Peer
+{
+    string addr;
+    ubyte type = 0;
+}
 
 class PeersStorage
 {

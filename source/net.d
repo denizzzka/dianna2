@@ -1,4 +1,5 @@
 import config;
+import peersstorage;
 
 import miniupnpc;
 import miniupnpc.upnpcommands;
@@ -8,12 +9,6 @@ import std.conv;
 import std.exception : enforce;
 import std.socket;
 
-
-private struct Peer
-{
-    string addr;
-    ubyte type = 0;
-}
 
 unittest
 {
