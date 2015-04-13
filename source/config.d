@@ -10,6 +10,9 @@ private struct Config {
     @INI("Local addresses. IP and IPv6 is allowed, port is required."~
 	 "Example: :::60180 - bind to all local addresses and port 60180")
     string[] listen_addresses = [":::60180", ":::60181"];
+    
+    @INI("Local storage dir")
+    string storage_path = "~/.dianna2";
 }
 
 private Config _cfg;
