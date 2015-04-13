@@ -17,7 +17,7 @@ immutable string sqlCreateSchema =
     addr TEXT NOT NULL PRIMARY KEY,
     type INT NOT NULL DEFAULT 0,
     lastSeen INT NOT NULL,
-    banned INT NOT NULL DEFAULT 0
+    banned INT NOT NULL
 );
 `;
 
