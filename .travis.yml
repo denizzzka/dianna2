@@ -7,7 +7,7 @@ before_install:
   - sudo apt-get -y update
   
 install:
-  - sudo apt-get -y install -t vivid libscrypt0 libscrypt-dev libssl1.0.0 libsqlite3-0 libsqlite3-dev libminiupnpc5 libminiupnpc-dev
+  - sudo apt-get -y install -t vivid libscrypt0 libscrypt-dev libssl1.0.0 libsqlite3-0 libsqlite3-dev libminiupnpc10 libminiupnpc-dev
   
 script:
   - dub test --debug=PoWt
