@@ -14,7 +14,7 @@
             "inifiled": "~>0.0.3",
             "miniupnpc-d": "~>0.0.2"
     },
-    "libs": ["scrypt", "sqlite3", "miniupnpc"],
+    "libs": ["scrypt", "sqlite3"],
     "stringImportPaths": ["source"],
     "configurations": [
         {
