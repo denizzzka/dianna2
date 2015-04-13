@@ -20,6 +20,12 @@ immutable string sqlCreateSchema =
 );
 `;
 
+private struct Peer
+{
+    string addr;
+    ubyte type = 0;
+}
+
 class PeersStorage
 {
     const string path;
@@ -66,12 +72,6 @@ class PeersStorage
             ORDER BY RANDOM()
             LIMIT 1;
         ");
-    }
-    
-    private struct Peer
-    {
-        string addr;
-        ubyte type = 0;
     }
     
     private void insertOrUpdatePeer(in Peer peer, in bool banned = false)
@@ -128,7 +128,7 @@ unittest
 {
     auto s = new PeersStorage("_unittest_peers.sqlite");
     
-    PeersStorage.Peer p;
+    Peer p;
     p.addr = "1.2.3.4";
     
     s.insertOrUpdatePeer(p);
