@@ -16,7 +16,7 @@ TcpSocket createListener()
     auto s = new TcpSocket(AddressFamily.INET6);
     enforce(s.isAlive);
     
-    s.setOption(SocketOptionLevel.IPV6, SocketOption.IPV6_V6ONLY, false);
+    s.setOption(SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, true);
     s.setKeepAlive(60 * 3, 30);
     s.blocking = false;
     
