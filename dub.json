@@ -13,10 +13,12 @@
             "dproto": "==1.1.1",
             "inifiled": "~>0.0.3",
             "miniupnpc-d": "~>0.0.2",
-            "dasocks": "~>0.0.3"
+            "vibe-d": "~>0.7.23"
     },
     "libs": ["scrypt", "sqlite3"],
     "stringImportPaths": ["source"],
+    "mainSourceFile": "source/main.d",
+    "versions": ["VibeCustomMain"],
     "configurations": [
         {
             "name": "production",
