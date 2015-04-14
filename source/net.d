@@ -15,18 +15,14 @@ debug import std.stdio; //FIXME: remove it
 
 unittest
 {
-    // Only required for bind() and Client test
-    import std.socket : InternetAddress, TcpSocket;
-    import std.stdio;
-    
     // Creates an asynchronous socket server
-    auto server = new AsyncTcpSocket;
+    auto server = new AsyncTcpSocket(AddressFamily.INET6);
     // Sets the events of the server
     server.setEvents(new AsyncSocketEvent(&onAccept), new AsyncSocketEvent(&onReceive), new AsyncSocketEvent(&onDisconnect));
     // Begins to accept a connection
     server.beginAccept();   
-    // Binds the server to 127.0.0.1:9988
-    server.bind(new InternetAddress("127.0.0.1", 9988));
+    // Binds the server to address and port
+    server.bind(new Internet6Address("::", 9988));
     // Starts listening for connections
     server.listen(500);
 
