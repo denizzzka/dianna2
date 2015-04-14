@@ -1,6 +1,8 @@
 import config;
 import peersstorage;
 
+import dasocks;
+
 import miniupnpc;
 import miniupnpc.upnpcommands;
 
@@ -11,14 +13,83 @@ import std.socket;
 debug import std.stdio; //FIXME: remove it
 
 
-TcpSocket createListener()
+unittest
 {
-    auto s = new TcpSocket(AddressFamily.INET6);
-    enforce(s.isAlive);
+    // Only required for bind() and Client test
+    import std.socket : InternetAddress, TcpSocket;
+    import std.stdio;
+    
+    // Creates an asynchronous socket server
+    auto server = new AsyncTcpSocket;
+    // Sets the events of the server
+    server.setEvents(new AsyncSocketEvent(&onAccept), new AsyncSocketEvent(&onReceive), new AsyncSocketEvent(&onDisconnect));
+    // Begins to accept a connection
+    server.beginAccept();   
+    // Binds the server to 127.0.0.1:9988
+    server.bind(new InternetAddress("127.0.0.1", 9988));
+    // Starts listening for connections
+    server.listen(500);
+
+    // Client test ...
+    writeln("Press ENTER to connect...");
+    readln();
+    // Creates a new NON-asynchronous tcp socket
+    auto client = new TcpSocket;
+    // Connects to 127.0.0.1:9988
+    client.connect(new InternetAddress("127.0.0.1", 9988));
+    writeln("Connected...");
+    while (true) {
+        writeln("Press ENTER to send a packet...");
+        readln();
+        // Creates a 10 byte packet
+        ubyte[] buffer = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        // Sends the packet
+        client.send(buffer);
+    }
+}
+
+void onAccept(AsyncTcpSocket server) {
+    // Ends the acceptance of a socket and returns the accepted socket
+    auto socket = server.endAccept();
+    writeln("Socket[", socket.socketId, "] has connected.");
+    // Begins to receive a 10 byte packet from the accepted socket
+    socket.beginReceive(10);
+
+    // Begins to accept a new connection
+    server.beginAccept();
+}
+
+void onReceive(AsyncTcpSocket client) {
+    import std.conv : to;
+
+    // Gets the received packet from the client
+    ubyte[] buffer = client.endReceive();
+
+    writeln("Received ", buffer, " from Socket[", client.socketId, "]");
+
+    // Begins to receive a 10 byte packet from the client
+    client.beginReceive(10);
+}
+
+void onDisconnect(AsyncTcpSocket socket) {
+    if (socket.listening) {
+        // If the socket is listening then it's a server socket
+        writeln("The server was shutdown!");
+    }
+    else {
+        // If the socket isn't listening then it's a client
+        writeln("Socket[", socket.socketId, "] has disconnected.");
+    }
+}
+
+AsyncTcpSocket createListener()
+{
+    auto s = new AsyncTcpSocket(AddressFamily.INET6);
+    //enforce(s.isAlive);
     
     s.setOption(SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, true);
     s.setKeepAlive(60 * 3, 30);
-    s.blocking = false;
+    //s.blocking = false;
     
     foreach(ref c; cfg.listen_addresses)
         s.bind(new Internet6Address(c, cfg.listen_port));
@@ -30,12 +101,13 @@ TcpSocket createListener()
     return s;
 }
 
+/*
 unittest
 {
     auto listener = createListener();
     
     auto socketSet = new SocketSet(cfg.max_inbound_connections + 1);
-    socketSet.add(listener);
+    //socketSet.add(listener);
     
     Socket[] reads;
     
@@ -84,9 +156,9 @@ unittest
             }
         }
         
-        if (socketSet.isSet(listener))        // connection request
+        if (true) //socketSet.isSet(listener))        // connection request
         {
-            Socket sn = listener.accept();
+            Socket sn; // = listener.accept();
             scope (failure)
             {
                 writefln("Error accepting");
@@ -95,7 +167,7 @@ unittest
                     sn.close();
             }
             assert(sn.isAlive);
-            assert(listener.isAlive);
+            //assert(listener.isAlive);
             
             if (reads.length < cfg.max_inbound_connections)
             {
@@ -108,13 +180,14 @@ unittest
                 writefln("Rejected connection from %s; too many connections.", sn.remoteAddress().toString());
                 sn.close();
                 assert(!sn.isAlive);
-                assert(listener.isAlive);
+                //assert(listener.isAlive);
             }
         }
         
         socketSet.reset();
     }
 }
+*/
 
 unittest
 {
