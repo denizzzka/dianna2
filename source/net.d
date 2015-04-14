@@ -17,7 +17,9 @@ unittest
 {
     // Creates an asynchronous socket server
     auto server = new AsyncTcpSocket(AddressFamily.INET6);
-    // Sets the events of the server
+    server.setOption(SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, true);
+    server.setKeepAlive(60 * 3, 30);
+        // Sets the events of the server
     server.setEvents(new AsyncSocketEvent(&onAccept), new AsyncSocketEvent(&onReceive), new AsyncSocketEvent(&onDisconnect));
     // Begins to accept a connection
     server.beginAccept();   
