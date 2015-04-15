@@ -24,8 +24,8 @@ struct Signature
     ECDSASignature pb;
     alias pb this;
     
-    PubKey pubKey() { return pb.pubKey[0..PubKey.length]; }
-    PubKey pubKey(PubKey pk) { pb.pubKey = pk.dup; return pk; }
+    PubKey getPubKey() { return pb.pubKey[0..PubKey.length]; }
+    PubKey getPubKey(PubKey pk) { pb.pubKey = pk.dup; return pk; }
 }
 
 unittest
@@ -248,7 +248,7 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
 
 bool verify(in ubyte[] digest, Signature sig)
 {
-    EC_KEY* pubKey = extractEC_KEY(sig.pubKey);
+    EC_KEY* pubKey = extractEC_KEY(sig.getPubKey);
     
     ECDSA_SIG* ecdsa_sig;
     auto orig = sig.signature.dup;
