@@ -9,14 +9,22 @@ import miniupnpc.upnpcommands;
 import std.stdio;
 import std.conv;
 import std.exception : enforce;
-import std.socket;
 debug import std.stdio; //FIXME: remove it
 
 
-version(unittest)
 shared static this()
 {
-    listenTCP(60800, (conn){ conn.write(conn); }, "::");
+    auto l = listenTCP(7000,
+            (conn)
+            {
+                //assert(false);
+                conn.write(conn);
+            },
+            "::"
+        );
+    
+    writeln("listener: ", l);
+    //l.stopListening();
 }
 
 unittest
