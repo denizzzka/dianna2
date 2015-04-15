@@ -248,20 +248,29 @@ Signature sign(in ubyte[] digest, in string keyfilePath)
 
 bool verify(in ubyte[] digest, Signature sig)
 {
-    EC_KEY* pubKey = extractEC_KEY(sig.getPubKey);
-    
+    EC_KEY* pubKey;
     ECDSA_SIG* ecdsa_sig;
+    
     auto orig = sig.signature.dup;
     const (ubyte)* sptr = orig.ptr;
-    if(!d2i_ECDSA_SIG(&ecdsa_sig, &sptr, orig.length)) return false;
     
-    scope(exit)
+    try
+    {
+        pubKey = extractEC_KEY(sig.getPubKey);
+        
+        if(!d2i_ECDSA_SIG(&ecdsa_sig, &sptr, orig.length)) return false;
+        
+        return ECDSA_do_verify(digest.ptr, to!int(digest.length), ecdsa_sig, pubKey) == 1;
+    }
+    catch(OpenSSLEx)
+    {
+        return false; // Any errors also indicate that signature is invalid
+    }
+    finally
     {
         if(pubKey) EC_KEY_free(pubKey);
         if(ecdsa_sig) ECDSA_SIG_free(ecdsa_sig);
     }
-    
-    return ECDSA_do_verify(digest.ptr, to!int(digest.length), ecdsa_sig, pubKey) == 1;
 }
 
 unittest
