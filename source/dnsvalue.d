@@ -224,24 +224,14 @@ DNSValue[] followByChain(
     
     d1.key = "key data";
     d1.pb.keyValue.payload = cast(ubyte[]) "value data";
-    
     PubKey pk;
     pk[0] = 0xAA;
+    d1.signature.pubKey = pk;
     
-    Signature.ECSign sig;
-    sig[0] = 0xBB;
-    
-    d1.pb.signature.signature = sig;
-    d1.pb.signature.pubKey = pk;
-    
-    import std.stdio;
-    writeln(d1);
-    writeln(d1.pb);
-    
-    auto ser = d1.serialize();
+    auto ser = d1.pb.serialize();
     
     DNSValue d2;
-    d2.deserialize(ser);
+    d2.pb.deserialize(ser);
     
     assert(d1.key == d2.key);
     assert(d1.pb.keyValue.payload == d2.pb.keyValue.payload);
