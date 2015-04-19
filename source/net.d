@@ -2,6 +2,8 @@ import config;
 import peersstorage;
 
 import vibe.core.net;
+import vibe.core.core: runTask;
+import vibe.vibe: runEventLoop, exitEventLoop;
 
 import miniupnpc;
 import miniupnpc.upnpcommands;
@@ -14,17 +16,26 @@ debug import std.stdio; //FIXME: remove it
 
 shared static this()
 {
-    auto l = listenTCP(7000,
-            (conn)
+    foreach(ref addr; cfg.listen_addresses)
+    {
+        auto l = listenTCP(cfg.listen_port,
+                (conn)
+                {
+                    conn.write(conn);
+                },
+                addr
+            );
+    }
+    
+    runTask(
             {
-                //assert(false);
-                conn.write(conn);
-            },
-            "::"
+                // TODO: some networking job here
+                
+                exitEventLoop();
+            }
         );
     
-    writeln("listener: ", l);
-    //l.stopListening();
+    runEventLoop();
 }
 
 unittest
