@@ -139,7 +139,8 @@ struct DNSValue
         JSONValue j = ["domain": key];
         
         DNSPayload dnsp;
-        dnsp.deserialize(keyValue.payload);
+        //FIXME: that fails
+        //dnsp.deserialize(keyValue.payload);
         
         {
             string[] ns;
@@ -219,19 +220,18 @@ DNSValue[] followByChain(
 {
     import std.file: remove;
     
-    
     DNSValue d1;
-    
     d1.key = "key data";
-    d1.pb.keyValue.payload = cast(ubyte[]) "value data";
+    d1.pb.keyValue.payload = cast(ubyte[]) "raw value data";
+    
     PubKey pk;
     pk[0] = 0xAA;
     d1.signature.pubKey = pk;
     
-    auto ser = d1.serialize();
+    auto ser = d1.pb.serialize();
     
     DNSValue d2;
-    d2.deserialize(ser);
+    d2.pb.deserialize(ser);
     
     assert(d1.key == d2.key);
     assert(d1.pb.keyValue.payload == d2.pb.keyValue.payload);
