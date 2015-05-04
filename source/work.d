@@ -77,12 +77,12 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
 // TODO:
 void publishRecord()
 {
-    // open transaction {
-        // get record from awaiting
-        // store it
-        // publish to network
-        // remove from awaiting
-    // } close transaction
+    // open SQL transaction (TODO: create method) {
+        // get record from awaiting (by getOldestRecordsAwaitingPublish)
+        // store it in main storage (by addRecord)
+        // publish to the p2p network (TODO: create method)
+        // remove from awaiting (by deleteRecordAwaitingPublish)
+    // } close SQL transaction (TODO: create method)
 }
 
 JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
