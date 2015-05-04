@@ -1007,6 +1007,8 @@ class Storage
     void begin(){ db.begin; }
     void commit(){ db.commit; }
     void rollback(){ db.rollback; }
+    
+    debug ResultRange exec(string sql){ return db.execute(sql); }
 }
 
 unittest

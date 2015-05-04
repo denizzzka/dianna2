@@ -83,12 +83,12 @@ void publishRecord(Storage s, ChainType chain)
     if(arr.length)
     {
         const r = arr[0];
+        // TODO: publish record to the p2p network (TODO: create method) or rollback
         s.addRecord(r);
-        // TODO: publish to the p2p network (TODO: create method)
         s.deleteRecordAwaitingPublish(r.hash);
     }
     
-    s.commit();
+    //s.commit();
 }
 
 JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
