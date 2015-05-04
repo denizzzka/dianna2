@@ -74,12 +74,11 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     while(records.length > 0);
 }
 
-// TODO:
-void publishRecord(Storage s, ChainType c)
+void publishRecord(Storage s, ChainType chain)
 {
-    s.begin();
+    //s.begin();
     
-    const arr = s.getOldestRecordsAwaitingPublish(c, true, 1);
+    const arr = s.getOldestRecordsAwaitingPublish(chain, true, 1);
     
     if(arr.length)
     {
@@ -128,11 +127,12 @@ JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     
     auto s = new Storage("_unittest_work.sqlite");
     
-    //s.createNewRecord([0x00, 0x01, 0x02]);
+    s.createNewRecord([0x00, 0x01, 0x02]);
     //s.createNewRecord([0x01, 0x01, 0x02]);
     //s.createNewRecord([0x02, 0x01, 0x02]);
     
-    //s.calcPowForNewRecords(ChainType.Test);
+    s.calcPowForNewRecords(ChainType.Test);
+    s.publishRecord(ChainType.Test);
     
     DNSValue dv;
     
@@ -146,8 +146,8 @@ JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     
     remove(path);
     
-    s.createNewRecord(ChainType.Test, dv);
-    s.calcPowForNewRecords(ChainType.Test);
+    //s.createNewRecord(ChainType.Test, dv);
+    //s.calcPowForNewRecords(ChainType.Test);
     //s.writeInitialBlockHashSetting();
     
     //const j1 = s.getDNSRecord(ChainType.Test, "unavailable-domain");
