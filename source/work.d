@@ -74,6 +74,15 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     while(records.length > 0);
 }
 
+// TODO:
+void publishRecord()
+{
+    // get record from awaiting
+    // store it
+    // publish to network
+    // all these with sql transaction support
+}
+
 JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
 {
     JSONValue j;
@@ -110,11 +119,11 @@ JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     
     auto s = new Storage("_unittest_work.sqlite");
     
-    s.createNewRecord([0x00, 0x01, 0x02]);
-    s.createNewRecord([0x01, 0x01, 0x02]);
-    s.createNewRecord([0x02, 0x01, 0x02]);
+    //s.createNewRecord([0x00, 0x01, 0x02]);
+    //s.createNewRecord([0x01, 0x01, 0x02]);
+    //s.createNewRecord([0x02, 0x01, 0x02]);
     
-    s.calcPowForNewRecords(ChainType.Test);
+    //s.calcPowForNewRecords(ChainType.Test);
     
     DNSValue dv;
     
@@ -134,7 +143,7 @@ JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     
     //const j1 = s.getDNSRecord(ChainType.Test, "unavailable-domain");
     
-    //import std.stdio;
+    import std.stdio;
     //writeln("j1=", j1.toPrettyString);
     
     s.purge;

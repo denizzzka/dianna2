@@ -121,7 +121,8 @@ class Storage
         qSelectBlockRecords,
         qCalcHash,
         qSetSetting,
-        qGetSetting;
+        qGetSetting,
+        qInitialPurposesGetAllBlockHashes;
     
     this(in string filename)
     {
@@ -342,6 +343,11 @@ class Storage
             AND payloadType = :payloadType
             AND version = 1
         `);
+        
+        qInitialPurposesGetAllBlockHashes = db.prepare(`
+            SELECT blockHash
+            FROM blocks
+        `);
     }
     
     extern (C)
@@ -377,14 +383,15 @@ class Storage
         remove(path);
     }
     
-    // TODO: it is really need?
-    @disable
-    version(unittest)
     void writeInitialBlockHashSetting()
     {
-        Storage.Block ib;
+        alias q = qInitialPurposesGetAllBlockHashes;
         
-        setSetting("rootBlockHash", ib.blockHash);
+        auto answer = q.execute();
+        
+        const BlockHash ib = (answer.oneValue!(ubyte[]))[0..BlockHash.length];
+        
+        setSetting("rootBlockHash", ib);
     }
     
     void addRecord(in Record r)
