@@ -75,14 +75,20 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
 }
 
 // TODO:
-void publishRecord(Storage s)
+void publishRecord(Storage s, ChainType c)
 {
     s.begin();
-    // open SQL transaction (TODO: create method) {
-        // get record from awaiting (by getOldestRecordsAwaitingPublish)
-        // store it in main storage (by addRecord)
-        // publish to the p2p network (TODO: create method)
-        // remove from awaiting (by deleteRecordAwaitingPublish)
+    
+    const arr = s.getOldestRecordsAwaitingPublish(c, true, 1);
+    
+    if(arr.length)
+    {
+        const r = arr[0];
+        s.addRecord(r);
+        // TODO: publish to the p2p network (TODO: create method)
+        s.deleteRecordAwaitingPublish(r.hash);
+    }
+    
     s.commit();
 }
 

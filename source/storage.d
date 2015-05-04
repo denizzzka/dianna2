@@ -680,6 +680,8 @@ class Storage
         
         q.reset();
         
+        assert(res.length <= num);
+        
         return res;
     }
     
