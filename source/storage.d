@@ -104,8 +104,7 @@ CREATE TABLE IF NOT EXISTS Settings (
 class Storage
 {
     const string path;
-    Database db;
-    
+    private Database db;
     private Statement
         qInsertRecAwaitingPublish,
         qSelectOldestRecsAwaitingPublish,
@@ -1002,6 +1001,10 @@ class Storage
         
         return true;
     }
+    
+    void begin(){ db.begin; }
+    void commit(){ db.commit; }
+    void rollback(){ db.rollback; }
 }
 
 unittest
