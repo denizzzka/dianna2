@@ -6,6 +6,10 @@ before_install:
   
 install:
   - sudo apt-get -y install -t vivid libscrypt0 libscrypt-dev libssl1.0.0 libsqlite3-0 libsqlite3-dev libminiupnpc10 libminiupnpc-dev
-  
+  - dub fetch doveralls && dub build doveralls
+
 script:
-  - dub test --debug=PoWt
+  - dub test --build=unittest-cov --debug=PoWt
+
+after_success:
+    ~/.dub/packages/doveralls-*/doveralls
