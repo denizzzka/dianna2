@@ -395,7 +395,8 @@ class Storage
     
     void addRecord(in Record r)
     {
-        db.begin;
+        immutable _savepoint = "addRecord";
+        savepoint(_savepoint);
         
         insertRecord(r);
         
@@ -456,7 +457,7 @@ class Storage
         
         insertBlock(nb);
         
-        db.commit;
+        release(_savepoint);
     }
     
     private BlockHash calcHash(in BlockHash blockHash, in PoW proofOfWork)
@@ -1004,9 +1005,8 @@ class Storage
         return true;
     }
     
-    void begin(){ db.begin; }
-    void commit(){ db.commit; }
-    void rollback(){ db.rollback; }
+    void savepoint(in string s){ db.execute("SAVEPOINT "~s); }
+    void release(in string s){ db.execute("RELEASE "~s); }
     
     debug ResultRange exec(string sql){ return db.execute(sql); }
 }

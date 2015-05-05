@@ -76,7 +76,8 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
 
 void publishRecord(Storage s, ChainType chain)
 {
-    //s.begin();
+    immutable _savepoint = "publishRecord";
+    s.savepoint(_savepoint);
     
     const arr = s.getOldestRecordsAwaitingPublish(chain, true, 1);
     
@@ -88,7 +89,7 @@ void publishRecord(Storage s, ChainType chain)
         s.deleteRecordAwaitingPublish(r.hash);
     }
     
-    //s.commit();
+    s.release(_savepoint);
 }
 
 JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
