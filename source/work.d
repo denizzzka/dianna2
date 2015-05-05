@@ -74,13 +74,22 @@ void calcPowForNewRecords(Storage s, ChainType chainType) @trusted
     while(records.length > 0);
 }
 
-// TODO:
-void publishRecord()
+void publishRecord(Storage s, ChainType chain)
 {
-    // get record from awaiting
-    // store it
-    // publish to network
-    // all these with sql transaction support
+    immutable _savepoint = "publishRecord";
+    s.savepoint(_savepoint);
+    
+    const arr = s.getOldestRecordsAwaitingPublish(chain, true, 1);
+    
+    if(arr.length)
+    {
+        const r = arr[0];
+        // TODO: publish record to the p2p network (TODO: create method) or rollback
+        s.addRecord(r);
+        s.deleteRecordAwaitingPublish(r.hash);
+    }
+    
+    s.release(_savepoint);
 }
 
 JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
@@ -119,14 +128,7 @@ JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     
     auto s = new Storage("_unittest_work.sqlite");
     
-    //s.createNewRecord([0x00, 0x01, 0x02]);
-    //s.createNewRecord([0x01, 0x01, 0x02]);
-    //s.createNewRecord([0x02, 0x01, 0x02]);
-    
-    //s.calcPowForNewRecords(ChainType.Test);
-    
     DNSValue dv;
-    
     dv.key = "test key";
     dv.keyValue.payload = cast(ubyte[]) "test value";
     
@@ -138,7 +140,16 @@ JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     remove(path);
     
     s.createNewRecord(ChainType.Test, dv);
+    
+    debug(FastUnittest){} else // adding more records
+    {
+        s.createNewRecord([0x00, 0x01, 0x02]);
+        s.createNewRecord([0x03, 0x04, 0x05]);
+    }
+    
     s.calcPowForNewRecords(ChainType.Test);
+    s.publishRecord(ChainType.Test); // TODO: need to publish all records
+    
     //s.writeInitialBlockHashSetting();
     
     //const j1 = s.getDNSRecord(ChainType.Test, "unavailable-domain");

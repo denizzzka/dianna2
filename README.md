@@ -1,8 +1,8 @@
 dianna2
 =======
-[![Build Status](https://travis-ci.org/denizzzka/dianna2.svg)](https://travis-ci.org/denizzzka/dianna2)
+[![Build Status](https://travis-ci.org/denizzzka/dianna2.svg?branch=master)](https://travis-ci.org/denizzzka/dianna2)
 
-DIANNA - IANA Decetralized
+DIANNA - IANA Decentralized
 
 This program is still in developing and is not operational.
 

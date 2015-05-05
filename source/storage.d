@@ -104,8 +104,7 @@ CREATE TABLE IF NOT EXISTS Settings (
 class Storage
 {
     const string path;
-    Database db;
-    
+    private Database db;
     private Statement
         qInsertRecAwaitingPublish,
         qSelectOldestRecsAwaitingPublish,
@@ -396,7 +395,8 @@ class Storage
     
     void addRecord(in Record r)
     {
-        db.begin;
+        immutable _savepoint = "addRecord";
+        savepoint(_savepoint);
         
         insertRecord(r);
         
@@ -457,7 +457,7 @@ class Storage
         
         insertBlock(nb);
         
-        db.commit;
+        release(_savepoint);
     }
     
     private BlockHash calcHash(in BlockHash blockHash, in PoW proofOfWork)
@@ -680,6 +680,8 @@ class Storage
         }
         
         q.reset();
+        
+        assert(res.length <= num);
         
         return res;
     }
@@ -1002,6 +1004,11 @@ class Storage
         
         return true;
     }
+    
+    void savepoint(in string s){ db.execute("SAVEPOINT "~s); }
+    void release(in string s){ db.execute("RELEASE "~s); }
+    
+    debug ResultRange exec(string sql){ return db.execute(sql); }
 }
 
 unittest

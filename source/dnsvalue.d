@@ -139,8 +139,7 @@ struct DNSValue
         JSONValue j = ["domain": key];
         
         DNSPayload dnsp;
-        //FIXME: that fails
-        //dnsp.deserialize(keyValue.payload);
+        dnsp.deserialize(keyValue.payload);
         
         {
             string[] ns;
