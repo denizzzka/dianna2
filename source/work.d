@@ -128,15 +128,7 @@ JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     
     auto s = new Storage("_unittest_work.sqlite");
     
-    s.createNewRecord([0x00, 0x01, 0x02]);
-    //s.createNewRecord([0x01, 0x01, 0x02]);
-    //s.createNewRecord([0x02, 0x01, 0x02]);
-    
-    s.calcPowForNewRecords(ChainType.Test);
-    s.publishRecord(ChainType.Test);
-    
     DNSValue dv;
-    
     dv.key = "test key";
     dv.keyValue.payload = cast(ubyte[]) "test value";
     
@@ -147,8 +139,17 @@ JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     
     remove(path);
     
-    //s.createNewRecord(ChainType.Test, dv);
-    //s.calcPowForNewRecords(ChainType.Test);
+    s.createNewRecord(ChainType.Test, dv);
+    
+    debug(FastUnittest){} else // adding more records
+    {
+        s.createNewRecord([0x00, 0x01, 0x02]);
+        s.createNewRecord([0x03, 0x04, 0x05]);
+    }
+    
+    s.calcPowForNewRecords(ChainType.Test);
+    s.publishRecord(ChainType.Test); // TODO: need to publish all records
+    
     //s.writeInitialBlockHashSetting();
     
     //const j1 = s.getDNSRecord(ChainType.Test, "unavailable-domain");
