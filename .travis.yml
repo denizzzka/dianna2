@@ -9,7 +9,7 @@ install:
   - dub fetch doveralls && dub build doveralls
 
 script:
-  - dub test --build=unittest-cov --debug=PoWt
+  - dub test --build=unittest-cov --combined --debug=PoWt
 
 after_success:
     ~/.dub/packages/doveralls-*/doveralls
