@@ -1,7 +1,5 @@
 language: d
 
-d: dmd-2.066.1
-
 before_install:
   - echo 'deb http://us.archive.ubuntu.com/ubuntu/ vivid main universe' | sudo tee -a /etc/apt/sources.list
   - sudo apt-get -y update
