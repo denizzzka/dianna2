@@ -295,4 +295,13 @@ unittest
     assert(!verify(digest, s));
     
     remove(path);
+    
+    const PubKey invalidKey;
+    bool exFlag = false;
+    try
+        extractEC_KEY(invalidKey);
+    catch(OpenSSLEx)
+        exFlag = true;
+    finally
+        assert(exFlag);
 }
