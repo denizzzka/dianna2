@@ -154,7 +154,7 @@ JSONValue getDNSRecord(Storage s, ChainType chainType, string key) @trusted
     
     //const j1 = s.getDNSRecord(ChainType.Test, "unavailable-domain");
     
-    import std.stdio;
+    //import std.stdio;
     //writeln("j1=", j1.toPrettyString);
     
     s.purge;
