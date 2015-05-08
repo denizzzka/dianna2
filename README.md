@@ -1,6 +1,6 @@
 dianna2
 =======
-[![Build Status](https://travis-ci.org/denizzzka/dianna2.svg?branch=master)](https://travis-ci.org/denizzzka/dianna2)
+[![Build Status](https://travis-ci.org/denizzzka/dianna2.svg?branch=master)](https://travis-ci.org/denizzzka/dianna2) [![Coverage Status](https://coveralls.io/repos/denizzzka/dianna2/badge.svg?branch=master)](https://coveralls.io/r/denizzzka/dianna2?branch=master)
 
 DIANNA - IANA Decentralized
 
