@@ -8,7 +8,7 @@
         ],
     "targetPath": "bin",
     "dependencies": {
-            "d2sqlite3": "~>0.7.1",
+            "d2sqlite3": "~master",
             "openssl": "~>1.1.4+1.0.1g",
             "dproto": "~>1.2.4",
             "inifiled": "~>0.0.3",
