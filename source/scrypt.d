@@ -47,9 +47,9 @@ unittest
 
 private:
 
-alias ubyte uint8_t;
-alias ulong uint64_t;
-alias uint uint32_t;
+alias uint8_t = ubyte;
+alias uint64_t = ulong;
+alias uint32_t = uint;
 
 @trusted:
 extern (C):
