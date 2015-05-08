@@ -84,7 +84,7 @@ private void worker(immutable ubyte[] from, immutable Difficulty difficulty)
     send(ownerTid(), cast(ubyte) 0xED);
 }
 
-void benchmark()
+void benchmark(in uint hashesPerThread = 10)
 {
     import std.stdio: writeln;
     import std.datetime: StopWatch;
@@ -92,7 +92,6 @@ void benchmark()
     
     
     immutable threads = threadsPerCPU();
-    immutable hashesPerThread = 10;    
     immutable hashes = hashesPerThread * threads;
     
     StopWatch sw;
@@ -116,4 +115,12 @@ void benchmark()
     
     writeln("Hashes per minute: ", 1.0 * hashes / sw.peek.seconds * 60);
     writeln("Elapsed time, minutes: ", 1.0 * sw.peek.seconds / 60);
+}
+
+unittest
+{
+    debug(FastUnittest){} else
+    {
+        benchmark(1);
+    }
 }
