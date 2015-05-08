@@ -18,7 +18,7 @@ shared static this()
 {
     foreach(ref addr; cfg.listen_addresses)
     {
-        auto l = listenTCP(cfg.listen_port,
+        listenTCP(cfg.listen_port,
                 (conn)
                 {
                     conn.write(conn);

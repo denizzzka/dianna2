@@ -903,7 +903,7 @@ class Storage
         q.bind(":key", key);
         q.bind(":value", value);
         
-        auto answer = q.execute();
+        q.execute();
         assert(db.changes() == 1);
         q.reset();
     }
@@ -1100,7 +1100,7 @@ unittest
     const difficulty2 = s.calcDifficulty(s.getBlock(latest8));
     assert(difficulty2 == 0);
     
-    auto isValid = s.validate(r6);
+    //auto isValid = s.validate(r6);
     //assert(isValid);
     
     s.addRecordAwaitingPoW(r);

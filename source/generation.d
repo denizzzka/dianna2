@@ -86,7 +86,7 @@ private void worker(immutable ubyte[] from, immutable Difficulty difficulty)
 
 void benchmark()
 {
-    import std.stdio;
+    import std.stdio: writeln;
     import std.datetime: StopWatch;
     import core.cpuid: threadsPerCPU;
     

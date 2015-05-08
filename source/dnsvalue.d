@@ -271,6 +271,6 @@ DNSValue[] followByChain(
     assert(v.keyValue.flags & RecordFlags.Announce);
     assert(!(v.keyValue.flags & RecordFlags.Cancel));
     
-    import std.stdio;
+    import std.stdio: writeln;
     writeln(v.toJSON.toPrettyString);
 }
