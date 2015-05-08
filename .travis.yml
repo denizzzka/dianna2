@@ -4,11 +4,11 @@ before_install:
   - echo 'deb http://us.archive.ubuntu.com/ubuntu/ vivid main universe' | sudo tee -a /etc/apt/sources.list
   - sudo apt-get -y update
   - git clone --depth=1 --recursive https://github.com/Hackerpilot/Dscanner.git ~/Dscanner
+  - if [ ${DC} = "dmd" ]; then make -C ~/Dscanner; fi
+  - dub fetch doveralls && dub build doveralls
 
 install:
   - sudo apt-get -y install -t vivid libscrypt0 libscrypt-dev libssl1.0.0 libsqlite3-0 libsqlite3-dev libminiupnpc10 libminiupnpc-dev
-  - if [ ${DC} = "dmd" ]; then make -C ~/Dscanner; fi
-  - dub fetch doveralls && dub build doveralls
 
 script:
   - if [ ${DC} = "dmd" ]; then ! ~/Dscanner/bin/dscanner -s --config=.dscanner.ini | grep ":"; fi
@@ -16,4 +16,4 @@ script:
   - dub test --coverage --combined --debug=PoWt
 
 after_success:
-    ~/.dub/packages/doveralls-*/doveralls
+  - dub run doveralls
