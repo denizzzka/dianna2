@@ -119,8 +119,5 @@ void benchmark(in uint hashesPerThread = 10)
 
 unittest
 {
-    debug(FastUnittest){} else
-    {
-        benchmark(1);
-    }
+    benchmark(1);
 }
