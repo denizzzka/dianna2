@@ -3,12 +3,16 @@ language: d
 before_install:
   - echo 'deb http://us.archive.ubuntu.com/ubuntu/ vivid main universe' | sudo tee -a /etc/apt/sources.list
   - sudo apt-get -y update
-  
+  - git clone --depth=1 --recursive https://github.com/Hackerpilot/Dscanner.git ~/Dscanner
+
 install:
   - sudo apt-get -y install -t vivid libscrypt0 libscrypt-dev libssl1.0.0 libsqlite3-0 libsqlite3-dev libminiupnpc10 libminiupnpc-dev
+  - if [ ${DC} = "dmd" ]; then make -C ~/Dscanner; fi
   - dub fetch doveralls && dub build doveralls
 
 script:
+  - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -s; fi
+  - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -S; fi
   - dub test --build=unittest-cov --combined --debug=PoWt
 
 after_success:
