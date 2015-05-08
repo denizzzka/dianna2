@@ -13,8 +13,7 @@ void calcScrypt(T)(
     const ubyte[] salt,
     uint N = SCRYPT_N,
     uint r = SCRYPT_r,
-    uint p = SCRYPT_p,
-    size_t outputBuf = 64
+    uint p = SCRYPT_p
 ) pure
 {
     auto errno = libscrypt_scrypt(
