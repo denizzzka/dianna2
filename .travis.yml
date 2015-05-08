@@ -12,8 +12,8 @@ install:
 
 script:
   - dub test --build=unittest-cov --combined --debug=PoWt
-  - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -s --config=.dscanner.ini; fi
-  - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -S --config=.dscanner.ini; fi
+  - if [ ${DC} = "dmd" ]; then ! ~/Dscanner/bin/dscanner -s --config=.dscanner.ini | grep ":"; fi
+  - if [ ${DC} = "dmd" ]; then ! ~/Dscanner/bin/dscanner -S --config=.dscanner.ini | grep ":"; fi
 
 after_success:
     ~/.dub/packages/doveralls-*/doveralls
