@@ -13,7 +13,7 @@ install:
 script:
   - if [ ${DC} = "dmd" ]; then ! ~/Dscanner/bin/dscanner -s --config=.dscanner.ini | grep ":"; fi
   - if [ ${DC} = "dmd" ]; then ! ~/Dscanner/bin/dscanner -S --config=.dscanner.ini | grep ":"; fi
-  - dub test --build=unittest-cov --combined --debug=PoWt
+  - dub test --coverage --combined --debug=PoWt
 
 after_success:
     ~/.dub/packages/doveralls-*/doveralls
