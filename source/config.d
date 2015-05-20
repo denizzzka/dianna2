@@ -11,7 +11,16 @@ private struct Config {
     string[] listen_addresses = ["::"];
     
     @INI("Local port number")
-    ushort listen_port = 60180; // TODO: need !=0 check
+    ushort listen_port = 60180;
+    
+    /// Listening enabled?
+    bool listen() const
+    {
+        return listen_addresses.length != 0;
+    }
+    
+    @INI("Enable UPnP")
+    bool UPnP = true;
     
     @INI("Maintain at most <n> inbound connections to peers")
     max_inbound_connections = 8;

@@ -31,6 +31,9 @@ immutable ushort maxAddrToSend = 1000;
 /** Maximum length of incoming protocol messages (no message over 2 MiB is currently acceptable). */
 immutable size_t maxProtocolMessageLength = 2 * 1024 * 1024;
 
+/** The maximum number of entries in mapAskFor */
+immutable size_t mapAskForMax = maxInvNum;
+
 shared static this()
 {
     foreach(ref addr; cfg.listen_addresses)
