@@ -1,3 +1,5 @@
+// Based on the Bitcoin networking code
+
 import config;
 import peersstorage;
 
@@ -13,6 +15,21 @@ import std.conv;
 import std.exception : enforce;
 debug import std.stdio; //FIXME: remove it
 
+
+/** Time between pings automatically sent out for latency probing and keepalive (in seconds). */
+immutable ushort pingInterval = 2 * 60;
+
+/** Time after which to disconnect, after waiting for a ping response (or inactivity). */
+immutable ushort timeoutInterval = 20 * 60;
+
+/** The maximum number of entries in an 'inv' protocol message */
+immutable ushort maxInvNum = 50000;
+
+/** The maximum number of new addresses to accumulate before announcing. */
+immutable ushort maxAddrToSend = 1000;
+
+/** Maximum length of incoming protocol messages (no message over 2 MiB is currently acceptable). */
+immutable size_t maxProtocolMessageLength = 2 * 1024 * 1024;
 
 shared static this()
 {
