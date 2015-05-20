@@ -20,7 +20,7 @@ private struct Config {
     }
     
     @INI("Enable UPnP")
-    bool UPnP = true;
+    bool upnp = true;
     
     @INI("Maintain at most <n> inbound connections to peers")
     max_inbound_connections = 8;
