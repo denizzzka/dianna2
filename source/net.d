@@ -11,6 +11,7 @@ import miniupnpc;
 import miniupnpc.upnpcommands;
 
 import std.stdio;
+import std.socket: Address;
 import std.conv;
 import std.exception : enforce;
 debug import std.stdio; //FIXME: remove it
@@ -42,6 +43,21 @@ size_t receiveFloodSize()
 size_t sendBufferSize()
 {
     return 1000 * cfg.maxSendBuffer;
+}
+
+enum AddrGroup
+{
+    DEFAULT
+}
+
+class PeerAddress : Address
+{
+    /// Get identifier of an address's group
+    /// No two connections will be attempted to addresses of the same group
+    AddrGroup getAddrGroup() const
+    {
+        return AddrGroup.DEFAULT;
+    }
 }
 
 shared static this()
