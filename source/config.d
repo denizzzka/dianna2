@@ -27,6 +27,9 @@ private struct Config {
     
     @INI("Local storage dir")
     string storageDir = "~/.dianna2";
+    
+    @INI("maxReceiveBuffer")
+    size_t maxReceiveBuffer = 5;
 }
 
 private Config _cfg;

@@ -34,6 +34,11 @@ immutable size_t maxProtocolMessageLength = 2 * 1024 * 1024;
 /** The maximum number of entries in mapAskFor */
 immutable size_t mapAskForMax = maxInvNum;
 
+size_t receiveFloodSize()
+{
+    return 1000 * cfg.maxReceiveBuffer;
+}
+
 shared static this()
 {
     foreach(ref addr; cfg.listen_addresses)
