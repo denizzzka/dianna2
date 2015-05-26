@@ -30,6 +30,9 @@ private struct Config {
     
     @INI("maxReceiveBuffer")
     size_t maxReceiveBuffer = 5;
+    
+    @INI("maxSendBuffer")
+    size_t maxSendBuffer = 1;
 }
 
 private Config _cfg;

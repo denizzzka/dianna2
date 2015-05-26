@@ -39,6 +39,11 @@ size_t receiveFloodSize()
     return 1000 * cfg.maxReceiveBuffer;
 }
 
+size_t sendBufferSize()
+{
+    return 1000 * cfg.maxSendBuffer;
+}
+
 shared static this()
 {
     foreach(ref addr; cfg.listen_addresses)
