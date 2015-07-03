@@ -11,8 +11,8 @@ install:
   - sudo apt-get -y install -t vivid libscrypt0 libscrypt-dev libssl1.0.0 libsqlite3-0 libsqlite3-dev libminiupnpc10 libminiupnpc-dev
 
 script:
-  - if [ ${DC} = "dmd" ]; then ! ~/Dscanner/bin/dscanner -s --config=.dscanner.ini | grep ":"; fi
-  - if [ ${DC} = "dmd" ]; then ! ~/Dscanner/bin/dscanner -S --config=.dscanner.ini | grep ":"; fi
+  - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -s --config=.dscanner.ini; fi
+  - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -S --config=.dscanner.ini; fi
   - dub test --coverage --combined --debug=PoWt
 
 after_success:
