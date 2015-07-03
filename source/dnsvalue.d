@@ -76,14 +76,14 @@ struct DNSValue
         switch(addr.length)
         {
             case 16:
-                ubyte[16] b = addr[0..16];
-                const ipv6 = new Internet6Address(b, Internet6Address.PORT_ANY); // FIXME: need to change byte order
+                const ubyte[16] b16 = addr[0..16];
+                const ipv6 = new Internet6Address(b16, Internet6Address.PORT_ANY); // FIXME: need to change byte order
                 res = ipv6.toAddrString();
                 break;
             
             case 4:
-                ubyte[4] b = addr[0..4];
-                const ipv4 = new InternetAddress(bigEndianToNative!uint(b), InternetAddress.PORT_ANY);
+                const ubyte[4] b4 = addr[0..4];
+                const ipv4 = new InternetAddress(bigEndianToNative!uint(b4), InternetAddress.PORT_ANY);
                 res = ipv4.toAddrString();
                 break;
             
