@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/denizzzka/dianna2.png?label=ready&title=Ready)](https://waffle.io/denizzzka/dianna2)
 dianna2
 =======
 [![Build Status](https://travis-ci.org/denizzzka/dianna2.svg?branch=master)](https://travis-ci.org/denizzzka/dianna2)
