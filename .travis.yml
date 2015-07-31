@@ -6,13 +6,9 @@ addons:
       - debian-sid
 
     packages:
-      - libscrypt0
-      - libscrypt-dev
       - libssl1.0.0
       - libsqlite3-0
       - libsqlite3-dev
-      - libminiupnpc10
-      - libminiupnpc-dev
 
 before_install:
   - sudo apt-get -y install libscrypt0 libscrypt-dev libminiupnpc10 libminiupnpc-dev
