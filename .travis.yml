@@ -1,5 +1,3 @@
-sudo: false
-
 language: d
 
 addons:
@@ -22,6 +20,7 @@ before_install:
   - dub fetch doveralls
 
 install:
+  - sudo apt-get -y install libscrypt0 libscrypt-dev libminiupnpc10 libminiupnpc-dev
 
 script:
   - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -s --config=.dscanner.ini; fi
