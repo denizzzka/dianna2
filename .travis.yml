@@ -20,6 +20,11 @@ before_install:
   - if [ ${DC} = "dmd" ]; then make -C ~/Dscanner; fi
   - dub fetch doveralls
 
+cache:
+  directories:
+    - ~/Dscanner
+    - ~/.dub/packages/doveralls-*
+
 script:
   - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -s --config=.dscanner.ini; fi
   - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -S --config=.dscanner.ini; fi
