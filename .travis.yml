@@ -2,14 +2,18 @@ sudo: false
 
 language: d
 
+addons:
+  apt:
+    sources:
+      - debian-sid
+
 before_install:
-  - sudo apt-get -y update
   - git clone --depth=1 --recursive https://github.com/Hackerpilot/Dscanner.git ~/Dscanner
   - if [ ${DC} = "dmd" ]; then make -C ~/Dscanner; fi
   - dub fetch doveralls
 
 install:
-  - sudo apt-get -y install -t vivid libscrypt0 libscrypt-dev libssl1.0.0 libsqlite3-0 libsqlite3-dev libminiupnpc10 libminiupnpc-dev
+  - sudo apt-get -y install libscrypt0 libscrypt-dev libssl1.0.0 libsqlite3-0 libsqlite3-dev libminiupnpc10 libminiupnpc-dev
 
 script:
   - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -s --config=.dscanner.ini; fi
