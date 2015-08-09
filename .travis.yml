@@ -1,6 +1,6 @@
 language: d
 
-sudo: false
+sudo: true
 
 addons:
   apt:
