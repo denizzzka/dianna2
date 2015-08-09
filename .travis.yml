@@ -1,5 +1,7 @@
 language: d
 
+sudo: false
+
 addons:
   apt:
     sources:
@@ -9,9 +11,10 @@ addons:
       - libssl1.0.0
       - libsqlite3-0
       - libsqlite3-dev
-
-before_install:
-  - sudo apt-get -y install libscrypt0 libscrypt-dev libminiupnpc10 libminiupnpc-dev
+      - libscrypt0
+      - libscrypt-dev
+      - libminiupnpc10
+      - libminiupnpc-dev
 
 install:
   - git clone --depth=1 --recursive https://github.com/Hackerpilot/Dscanner.git ~/Dscanner
