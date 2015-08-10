@@ -1,5 +1,8 @@
 language: d
 
+d:
+  - dmd-2.067.0
+
 sudo: true
 
 addons:
@@ -21,8 +24,8 @@ install:
   - dub fetch doveralls
 
 script:
-  - if [ ${DC} = "dmd" ]; then dub run dscanner -s --config=.dscanner.ini; fi
-  - if [ ${DC} = "dmd" ]; then dub run dscanner -S --config=.dscanner.ini; fi
+  - if [ ${DC} = "dmd" ]; then dub run dscanner -- -s --config=.dscanner.ini; fi
+  - if [ ${DC} = "dmd" ]; then dub run dscanner -- -S --config=.dscanner.ini; fi
   - dub test --coverage --combined --debug=PoWt
 
 after_success:
