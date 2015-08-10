@@ -17,18 +17,12 @@ addons:
       - libminiupnpc-dev
 
 install:
-  - git clone --depth=1 --recursive https://github.com/Hackerpilot/Dscanner.git ~/Dscanner
-  - if [ ${DC} = "dmd" ]; then make -C ~/Dscanner; fi
+  - dub fetch dscanner
   - dub fetch doveralls
 
-cache:
-  directories:
-    - ~/Dscanner
-    - ~/.dub/packages/doveralls-*
-
 script:
-  - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -s --config=.dscanner.ini; fi
-  - if [ ${DC} = "dmd" ]; then ~/Dscanner/bin/dscanner -S --config=.dscanner.ini; fi
+  - if [ ${DC} = "dmd" ]; then dub run dscanner -s --config=.dscanner.ini; fi
+  - if [ ${DC} = "dmd" ]; then dub run dscanner -S --config=.dscanner.ini; fi
   - dub test --coverage --combined --debug=PoWt
 
 after_success:
